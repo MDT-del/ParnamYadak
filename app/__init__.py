@@ -414,14 +414,6 @@ def create_app(config_name='default'):
                 app.logger.error(f"Error inserting initial data: {e}")
                 db.session.rollback()
 
-        # این دستور در اولین اجرا، جداول را می‌سازد
-        try:
-            db.create_all()
-            # داده‌های اولیه را تزریق می‌کنیم
-            insert_initial_data()
-        except Exception as e:
-            app.logger.error(f"Error creating database tables: {e}")
-
         # زمان‌بندی بک‌آپ خودکار دیتابیس هر ۲۴ ساعت با APScheduler
         def schedule_backup():
             try:
