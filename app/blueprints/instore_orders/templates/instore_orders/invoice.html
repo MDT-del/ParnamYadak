@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="max-w-2xl mx-auto bg-white dark:bg-gray-800 rounded-xl shadow p-8 mt-8 print:shadow-none print:bg-white">
+    <div class="flex justify-between items-center mb-8">
+        <div>
+            <h1 class="text-2xl font-bold mb-2">فاکتور سفارش حضوری</h1>
+            <div class="text-sm text-gray-500">کد سفارش: <span class="font-bold">{{ order.id }}</span></div>
+            <div class="text-sm text-gray-500">تاریخ: {{ order.created_at|to_shamsi }} {% if order.created_at %}{{ order.created_at.strftime('%H:%M') }}{% endif %}</div>
+        </div>
+        <div class="text-right">
+            <div class="text-lg font-bold">نیکایدک</div>
+        </div>
+    </div>
+    <div class="mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <div class="mb-1"><span class="font-semibold">نام مشتری:</span> {{ order.customer.full_name or '-' }}</div>
+                <div class="mb-1"><span class="font-semibold">شماره تلفن:</span> {{ order.customer.phone_number or '-' }}</div>
+                <div class="mb-1"><span class="font-semibold">وضعیت سفارش:</span> {{ order.status }}</div>
+            </div>
+            <div>
+                {% if order.shipping_required %}
+                <div class="mb-1"><span class="font-semibold">آدرس:</span> {{ order.province }}، {{ order.city }}، {{ order.address }}</div>
+                <div class="mb-1"><span class="font-semibold">کد پستی:</span> {{ order.postal_code }}</div>
+                {% endif %}
+                <div class="mb-1"><span class="font-semibold">انبار مغازه:</span> {{ 'بله' if order.store_stock else 'خیر' }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="overflow-x-auto mb-6">
+        <table class="min-w-full w-full text-sm border border-gray-200 rounded-lg">
+            <thead class="bg-gray-100">
+                <tr>
+                    <th class="px-4 py-2">#</th>
+                    <th class="px-4 py-2">نام محصول</th>
+                    <th class="px-4 py-2">کیفیت</th>
+                    <th class="px-4 py-2">تعداد</th>
+                    <th class="px-4 py-2">قیمت واحد</th>
+                    <th class="px-4 py-2">جمع</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in products %}
+                <tr>
+                    <td class="px-4 py-2">{{ loop.index }}</td>
+                    <td class="px-4 py-2">{{ p.name }}</td>
+                    <td class="px-4 py-2">{{ p.quality }}</td>
+                    <td class="px-4 py-2">{{ p.qty }}</td>
+                    <td class="px-4 py-2">{{ "{:,.0f}".format(p.price)|digits_to_persian }} تومان</td>
+                    <td class="px-4 py-2">{{ "{:,.0f}".format(p.price * p.qty)|digits_to_persian }} تومان</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="flex flex-col md:flex-row md:justify-between gap-4 mb-6">
+        <div>
+            <div class="mb-1"><span class="font-semibold">بیعانه:</span> {% if order.deposit_amount %}{{ "{:,.0f}".format(order.deposit_amount)|digits_to_persian }} تومان{% else %}-{% endif %}</div>
+            <div class="mb-1"><span class="font-semibold">یادداشت:</span> {{ order.notes or '-' }}</div>
+        </div>
+        <div class="text-lg font-bold">جمع کل: {{ "{:,.0f}".format(order.total_price)|digits_to_persian }} تومان</div>
+    </div>
+    <div class="flex justify-end mb-8">
+        <div class="bg-green-100 text-green-800 font-extrabold text-xl rounded-lg px-6 py-3 shadow">
+            مبلغ باقی‌مانده:
+            {% set payable = (order.total_price or 0) - (order.deposit_amount or 0) %}
+            {{ "{:,.0f}".format(payable)|digits_to_persian }} تومان
+        </div>
+    </div>
+    <div class="flex justify-end print:hidden">
+        <button onclick="window.print()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg shadow">پرینت فاکتور</button>
+    </div>
+</div>
+{% endblock %} 

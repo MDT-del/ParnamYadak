@@ -1,0 +1,303 @@
+{% extends "base.html" %}
+
+{% block title %}مدیریت سفارشات ربات تلگرام{% endblock %}
+
+{% block page_title %}مدیریت سفارشات ربات تلگرام{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- آمار کلی -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="bg-gradient-to-br from-blue-500 to-blue-600 p-6 rounded-2xl shadow-lg text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-blue-100 text-sm font-medium">کل سفارشات</p>
+                    <p class="text-3xl font-bold">{{ orders.total|digits_to_persian }}</p>
+                </div>
+                <div class="p-3 bg-blue-400/30 rounded-xl">
+                    <i class="bi bi-bag-check text-2xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-gradient-to-br from-green-500 to-green-600 p-6 rounded-2xl shadow-lg text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-green-100 text-sm font-medium">تایید شده</p>
+                    <p class="text-3xl font-bold">{{ orders.items|selectattr('status', 'equalto', 'تایید شده')|list|length|digits_to_persian }}</p>
+                </div>
+                <div class="p-3 bg-green-400/30 rounded-xl">
+                    <i class="bi bi-check-circle text-2xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-gradient-to-br from-orange-500 to-orange-600 p-6 rounded-2xl shadow-lg text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-orange-100 text-sm font-medium">در انتظار تایید</p>
+                    <p class="text-3xl font-bold">{{ orders.items|selectattr('status', 'equalto', 'در انتظار بررسی')|list|length|digits_to_persian }}</p>
+                </div>
+                <div class="p-3 bg-orange-400/30 rounded-xl">
+                    <i class="bi bi-clock text-2xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-gradient-to-br from-purple-500 to-purple-600 p-6 rounded-2xl shadow-lg text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-purple-100 text-sm font-medium">مجموع درآمد</p>
+                    <p class="text-3xl font-bold">{{ total_income|format_price|digits_to_persian }} تومان</p>
+                </div>
+                <div class="p-3 bg-purple-400/30 rounded-xl">
+                    <i class="bi bi-currency-dollar text-2xl"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- فیلترها -->
+    <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-lg">
+        <div class="flex flex-wrap gap-4">
+            <a href="{{ url_for('bot_orders.index') }}" 
+               class="px-4 py-2 rounded-lg {% if not status %}bg-indigo-600 text-white{% else %}bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300{% endif %} transition-colors">
+                همه
+            </a>
+            <a href="{{ url_for('bot_orders.index', status='در انتظار بررسی') }}" 
+               class="px-4 py-2 rounded-lg {% if status == 'در انتظار بررسی' %}bg-yellow-600 text-white{% else %}bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300{% endif %} transition-colors">
+                در انتظار بررسی
+            </a>
+            <a href="{{ url_for('bot_orders.index', status='تایید شده') }}" 
+               class="px-4 py-2 rounded-lg {% if status == 'تایید شده' %}bg-green-600 text-white{% else %}bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300{% endif %} transition-colors">
+                تایید شده
+            </a>
+            <a href="{{ url_for('bot_orders.index', status='پرداخت شده') }}" 
+               class="px-4 py-2 rounded-lg {% if status == 'پرداخت شده' %}bg-blue-600 text-white{% else %}bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300{% endif %} transition-colors">
+                پرداخت شده
+            </a>
+            <a href="{{ url_for('bot_orders.index', status='تکمیل شده') }}" 
+               class="px-4 py-2 rounded-lg {% if status == 'تکمیل شده' %}bg-purple-600 text-white{% else %}bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300{% endif %} transition-colors">
+                تکمیل شده
+            </a>
+            <a href="{{ url_for('bot_orders.index', status='لغو شده') }}" 
+               class="px-4 py-2 rounded-lg {% if status == 'لغو شده' %}bg-red-600 text-white{% else %}bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300{% endif %} transition-colors">
+                لغو شده
+            </a>
+        </div>
+    </div>
+
+    <!-- لیست سفارشات -->
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
+        {% if orders.items %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead class="bg-gray-50 dark:bg-gray-700">
+                    <tr>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">شماره سفارش</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">مشتری</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">مکانیک</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">محصولات</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">مبلغ کل</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">وضعیت</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">تاریخ</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">عملیات</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                    {% for order in orders.items %}
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                            #{{ order.id|digits_to_persian }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex flex-col items-start">
+                                {% if order.mechanic_obj %}
+                                    <!-- سفارش مکانیک: ستون مشتری خالی -->
+                                {% elif order.customer_name or order.customer_phone %}
+                                    <div class="text-sm text-gray-900 dark:text-white font-bold">
+                                        {{ order.customer_name or '-' }}
+                                    </div>
+                                    {% if order.customer_phone %}
+                                    <div class="text-xs text-gray-500 dark:text-gray-400 mt-1 ltr:text-left rtl:text-right">
+                                        {{ order.customer_phone }}
+                                    </div>
+                                    {% endif %}
+                                {% else %}
+                                    <div class="text-sm text-gray-400 dark:text-gray-500">-</div>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex flex-col items-start">
+                                {% if order.mechanic_obj %}
+                                    <div class="text-sm text-gray-900 dark:text-white font-bold">{{ order.mechanic_obj.full_name }}</div>
+                                    <div class="text-xs text-gray-500 dark:text-gray-400 mt-1 ltr:text-left rtl:text-right">{{ order.mechanic_obj.phone_number }}</div>
+                                    <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ order.mechanic_obj.commission_percentage|digits_to_persian }}% کمیسیون</div>
+                                {% else %}
+                                    <!-- سفارش مشتری: ستون مکانیک خالی -->
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-900 dark:text-white">
+                                {{ order.items.count()|digits_to_persian }} محصول
+                            </div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400">
+                                {% for item in order.items.limit(2).all() %}
+                                    {{ item.product_name }}{% if not loop.last %}, {% endif %}
+                                {% endfor %}
+                                {% if order.items.count() > 2 %}
+                                    و {{ (order.items.count() - 2)|digits_to_persian }} محصول دیگر
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                            {{ order.total_amount|format_price|digits_to_persian }} تومان
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full 
+                                {% if order.status == 'تکمیل شده' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+                                {% elif order.status == 'پرداخت شده' %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200
+                                {% elif order.status == 'تایید شده' %}bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200
+                                {% elif order.status == 'در انتظار بررسی' %}bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200
+                                {% elif order.status == 'لغو شده' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200
+                                {% else %}bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200{% endif %}">
+                                {{ order.status }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                            {{ order.created_at|to_shamsi|digits_to_persian if order.created_at else '' }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <div class="flex space-x-2 space-x-reverse">
+                                <a href="{{ url_for('bot_orders.detail', order_id=order.id) }}" 
+                                   class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- صفحه‌بندی -->
+        {% if orders.pages > 1 %}
+        <div class="bg-white dark:bg-gray-800 px-4 py-3 flex items-center justify-between border-t border-gray-200 dark:border-gray-700 sm:px-6">
+            <div class="flex-1 flex justify-between sm:hidden">
+                {% if orders.has_prev %}
+                <a href="{{ url_for('bot_orders.index', page=orders.prev_num, status=status) }}" 
+                   class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                    قبلی
+                </a>
+                {% endif %}
+                {% if orders.has_next %}
+                <a href="{{ url_for('bot_orders.index', page=orders.next_num, status=status) }}" 
+                   class="mr-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                    بعدی
+                </a>
+                {% endif %}
+            </div>
+            <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                <div>
+                    <p class="text-sm text-gray-700 dark:text-gray-300">
+                        نمایش <span class="font-medium">{{ orders.first|digits_to_persian }}</span> تا <span class="font-medium">{{ orders.last|digits_to_persian }}</span> از <span class="font-medium">{{ orders.total|digits_to_persian }}</span> نتیجه
+                    </p>
+                </div>
+                <div>
+                    <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                        {% if orders.has_prev %}
+                        <a href="{{ url_for('bot_orders.index', page=orders.prev_num, status=status) }}" 
+                           class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                            <i class="bi bi-chevron-right"></i>
+                        </a>
+                        {% endif %}
+
+                        {% for page_num in orders.iter_pages() %}
+                            {% if page_num %}
+                                {% if page_num != orders.page %}
+                                <a href="{{ url_for('bot_orders.index', page=page_num, status=status) }}" 
+                                   class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                    {{ page_num|digits_to_persian }}
+                                </a>
+                                {% else %}
+                                <span class="relative inline-flex items-center px-4 py-2 border border-indigo-500 bg-indigo-50 text-sm font-medium text-indigo-600">
+                                    {{ page_num|digits_to_persian }}
+                                </span>
+                                {% endif %}
+                            {% else %}
+                            <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
+                                ...
+                            </span>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if orders.has_next %}
+                        <a href="{{ url_for('bot_orders.index', page=orders.next_num, status=status) }}" 
+                           class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                            <i class="bi bi-chevron-left"></i>
+                        </a>
+                        {% endif %}
+                    </nav>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        {% else %}
+        <div class="text-center py-12">
+            <i class="bi bi-bag-x text-4xl text-gray-400 mb-4"></i>
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">سفارشی یافت نشد</h3>
+            <p class="text-gray-500 dark:text-gray-400">هنوز هیچ سفارشی از ربات تلگرام ثبت نشده است.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function processOrder(orderId, action) {
+    let message = '';
+    let confirmMessage = '';
+    
+    switch(action) {
+        case 'approve':
+            confirmMessage = 'آیا از تایید این سفارش مطمئن هستید؟';
+            message = 'تایید سفارش';
+            break;
+        case 'reject':
+            confirmMessage = 'آیا از رد این سفارش مطمئن هستید؟';
+            message = 'رد سفارش';
+            break;
+        case 'confirm_payment':
+            confirmMessage = 'آیا از تایید پرداخت این سفارش مطمئن هستید؟';
+            message = 'تایید پرداخت';
+            break;
+    }
+    
+    if (confirm(confirmMessage)) {
+        fetch(`/bot-orders/${orderId}/process`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `action=${action}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                window.location.reload();
+            } else {
+                alert(data.message);
+            }
+        })
+        .catch(error => {
+            console.error('خطا:', error);
+            alert('خطا در انجام عملیات');
+        });
+    }
+}
+</script>
+{% endblock %} 

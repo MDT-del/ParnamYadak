@@ -1,0 +1,534 @@
+{% extends "base.html" %}
+
+{% block title %}تاریخچه تراکنش‌های مالی{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">تاریخچه تراکنش‌های مالی</h1>
+        <p class="text-gray-600 dark:text-gray-400">مشاهده و مدیریت تمام تراکنش‌های مالی سیستم</p>
+    </div>
+
+    <!-- آمار کلی -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <div class="flex items-center">
+                <div class="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                    <i class="bi bi-currency-exchange text-2xl text-blue-600 dark:text-blue-400"></i>
+                </div>
+                <div class="mr-4">
+                    <p class="text-sm text-gray-500 dark:text-gray-400">کل تراکنش‌ها</p>
+                    <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ total_transactions|digits_to_persian }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <div class="flex items-center">
+                <div class="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                    <i class="bi bi-cash-stack text-2xl text-green-600 dark:text-green-400"></i>
+                </div>
+                <div class="mr-4">
+                    <p class="text-sm text-gray-500 dark:text-gray-400">مجموع مبالغ</p>
+                    <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ total_amount|format_price|digits_to_persian }} تومان</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <div class="flex items-center">
+                <div class="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                    <i class="bi bi-people text-2xl text-purple-600 dark:text-purple-400"></i>
+                </div>
+                <div class="mr-4">
+                    <p class="text-sm text-gray-500 dark:text-gray-400">مکانیک‌های فعال</p>
+                    <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ mechanics|length|digits_to_persian }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- فیلترها -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">فیلترها</h3>
+        <form method="GET" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">نوع تراکنش</label>
+                <select name="type" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white">
+                    <option value="">همه</option>
+                    <option value="commission_payment" {% if transaction_type == 'commission_payment' %}selected{% endif %}>پرداخت کمیسیون</option>
+                    <option value="order_payment" {% if transaction_type == 'order_payment' %}selected{% endif %}>پرداخت سفارش</option>
+                    <option value="refund" {% if transaction_type == 'refund' %}selected{% endif %}>بازگشت وجه</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">مکانیک</label>
+                <select name="mechanic_id" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white">
+                    <option value="">همه</option>
+                    {% for mechanic in mechanics %}
+                    <option value="{{ mechanic.id }}" {% if mechanic_id == mechanic.id %}selected{% endif %}>{{ mechanic.full_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">از تاریخ</label>
+                <input type="text" name="start_date" value="{{ start_date }}" id="start_date" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white" placeholder="تاریخ شمسی">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">تا تاریخ</label>
+                <input type="text" name="end_date" value="{{ end_date }}" id="end_date" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white" placeholder="تاریخ شمسی">
+            </div>
+
+            <div class="md:col-span-2 lg:col-span-4 flex gap-2">
+                <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                    <i class="bi bi-search ml-2"></i>جستجو
+                </button>
+                <a href="{{ url_for('financial_reports.transaction_history') }}" class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
+                    <i class="bi bi-arrow-clockwise ml-2"></i>پاک کردن
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- جدول تراکنش‌ها -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead class="bg-gray-50 dark:bg-gray-700">
+                    <tr>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">شناسه</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">نوع</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">مکانیک</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">مبلغ</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">روش پرداخت</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">فیش واریز</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">تاریخ</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">عملیات</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                    {% for transaction in transactions.items %}
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{{ transaction.id|digits_to_persian }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full 
+                                {% if transaction.transaction_type == 'commission_payment' %}bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300
+                                {% elif transaction.transaction_type == 'order_payment' %}bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300
+                                {% else %}bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300{% endif %}">
+                                {% if transaction.transaction_type == 'commission_payment' %}پرداخت کمیسیون
+                                {% elif transaction.transaction_type == 'order_payment' %}پرداخت سفارش
+                                {% else %}بازگشت وجه{% endif %}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                            {% if transaction.mechanic %}
+                                {{ transaction.mechanic.full_name }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                            {{ transaction.amount|format_price|digits_to_persian }} تومان
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                            {{ transaction.payment_method|payment_method_fa if transaction.payment_method else '-' }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                            {% if transaction.receipt_image %}
+                                <a href="{{ url_for('static', filename='receipts/' + transaction.receipt_image) }}" target="_blank" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
+                                    <i class="bi bi-file-earmark-image"></i> مشاهده
+                                </a>
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                            {{ transaction.created_at|to_shamsi('%Y/%m/%d %H:%M') }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <button onclick="showTransactionDetails({{ transaction.id }})" class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
+                            هیچ تراکنشی یافت نشد
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if transactions.pages > 1 %}
+        <div class="bg-white dark:bg-gray-800 px-4 py-3 border-t border-gray-200 dark:border-gray-700 sm:px-6">
+            <div class="flex items-center justify-between">
+                <div class="flex-1 flex justify-between sm:hidden">
+                    {% if transactions.has_prev %}
+                    <a href="{{ url_for('financial_reports.transaction_history', page=transactions.prev_num, type=transaction_type, mechanic_id=mechanic_id, start_date=start_date, end_date=end_date) }}" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        قبلی
+                    </a>
+                    {% endif %}
+                    {% if transactions.has_next %}
+                    <a href="{{ url_for('financial_reports.transaction_history', page=transactions.next_num, type=transaction_type, mechanic_id=mechanic_id, start_date=start_date, end_date=end_date) }}" class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        بعدی
+                    </a>
+                    {% endif %}
+                </div>
+                <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                    <div>
+                        <p class="text-sm text-gray-700 dark:text-gray-300">
+                            نمایش <span class="font-medium">{{ transactions.items|length|digits_to_persian }}</span> از <span class="font-medium">{{ transactions.total|digits_to_persian }}</span> نتیجه
+                        </p>
+                    </div>
+                    <div>
+                        <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                            {% if transactions.has_prev %}
+                            <a href="{{ url_for('financial_reports.transaction_history', page=transactions.prev_num, type=transaction_type, mechanic_id=mechanic_id, start_date=start_date, end_date=end_date) }}" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                                <i class="bi bi-chevron-right"></i>
+                            </a>
+                            {% endif %}
+                            
+                            {% for page_num in transactions.iter_pages() %}
+                                {% if page_num %}
+                                    {% if page_num != transactions.page %}
+                                    <a href="{{ url_for('financial_reports.transaction_history', page=page_num, type=transaction_type, mechanic_id=mechanic_id, start_date=start_date, end_date=end_date) }}" class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                        {{ page_num|digits_to_persian }}
+                                    </a>
+                                    {% else %}
+                                    <span class="relative inline-flex items-center px-4 py-2 border border-indigo-500 bg-indigo-50 text-sm font-medium text-indigo-600">
+                                        {{ page_num|digits_to_persian }}
+                                    </span>
+                                    {% endif %}
+                                {% else %}
+                                <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
+                                    ...
+                                </span>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if transactions.has_next %}
+                            <a href="{{ url_for('financial_reports.transaction_history', page=transactions.next_num, type=transaction_type, mechanic_id=mechanic_id, start_date=start_date, end_date=end_date) }}" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                                <i class="bi bi-chevron-left"></i>
+                            </a>
+                            {% endif %}
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal جزئیات تراکنش -->
+<div id="transactionModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50 flex items-center justify-center p-4 transition-opacity duration-300">
+    <div class="relative w-full max-w-2xl bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 transform transition-all duration-300 scale-95 opacity-0 max-h-[85vh] overflow-y-auto" id="modalContent">
+        <!-- Header -->
+        <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+            <div class="flex items-center gap-3">
+                <div class="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                    <i class="bi bi-receipt text-lg text-blue-600 dark:text-blue-400"></i>
+                </div>
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white">جزئیات تراکنش</h3>
+            </div>
+            <div class="flex items-center gap-2">
+                <button onclick="closeTransactionModal()" class="p-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Content -->
+        <div class="p-4">
+            <div id="transactionDetails" class="space-y-4">
+                <!-- محتوای جزئیات اینجا لود می‌شود -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal نمایش عکس -->
+<div id="imageModal" class="fixed inset-0 bg-black bg-opacity-75 overflow-y-auto h-full w-full hidden z-50 flex items-center justify-center p-4">
+    <div class="relative max-w-4xl max-h-full">
+        <button onclick="closeImageModal()" class="absolute top-4 right-4 text-white hover:text-gray-300 text-2xl z-10">
+            <i class="bi bi-x-lg"></i>
+        </button>
+        <img id="modalImage" src="" alt="تصویر کامل" class="max-w-full max-h-full object-contain rounded-lg">
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- تقویم شمسی -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@majidh1/jalalidatepicker/dist/jalalidatepicker.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@majidh1/jalalidatepicker/dist/jalalidatepicker.min.js"></script>
+
+<script>
+// راه‌اندازی تقویم شمسی
+jalaliDatepicker.startWatch({
+    selector: '#start_date',
+    time: false,
+    lang: 'fa',
+    theme: 'light',
+});
+
+jalaliDatepicker.startWatch({
+    selector: '#end_date',
+    time: false,
+    lang: 'fa',
+    theme: 'light',
+});
+
+function showTransactionDetails(transactionId) {
+    console.log('showTransactionDetails called with ID:', transactionId);
+    
+    const modal = document.getElementById('transactionModal');
+    const modalContent = document.getElementById('modalContent');
+    
+    // نمایش مودال با انیمیشن
+    modal.classList.remove('hidden');
+    
+    // انیمیشن ورود
+    setTimeout(() => {
+        modalContent.classList.remove('scale-95', 'opacity-0');
+        modalContent.classList.add('scale-100', 'opacity-100');
+    }, 10);
+    
+    // نمایش loading
+    document.getElementById('transactionDetails').innerHTML = `
+        <div class="flex items-center justify-center py-12">
+            <div class="text-center">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <p class="text-gray-600 dark:text-gray-400">در حال بارگذاری...</p>
+            </div>
+        </div>
+    `;
+    
+    const url = `/financial-reports/api/transaction-details/${transactionId}`;
+    console.log('Fetching from URL:', url);
+    
+    // دریافت جزئیات تراکنش از سرور
+    fetch(url, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        credentials: 'same-origin'
+    })
+        .then(response => {
+            console.log('Response status:', response.status);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Response data:', data);
+            if (data.success) {
+                const details = data.transaction;
+                let html = `
+                    <!-- اطلاعات اصلی -->
+                    <div class="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-4">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <!-- شناسه و نوع -->
+                            <div class="space-y-3">
+                                <div class="flex items-center gap-2">
+                                    <i class="bi bi-hash text-blue-600 dark:text-blue-400"></i>
+                                    <span class="text-sm text-gray-600 dark:text-gray-400">شناسه تراکنش</span>
+                                </div>
+                                <p class="text-lg font-bold text-gray-900 dark:text-white">${details.id}</p>
+                                
+                                <div class="flex items-center gap-2 mt-4">
+                                    <i class="bi bi-tag text-green-600 dark:text-green-400"></i>
+                                    <span class="text-sm text-gray-600 dark:text-gray-400">نوع تراکنش</span>
+                                </div>
+                                <span class="inline-flex px-3 py-1 text-sm font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+                                    ${details.transaction_type_fa}
+                                </span>
+                            </div>
+                            
+                            <!-- مبلغ -->
+                            <div class="space-y-3">
+                                <div class="flex items-center gap-2">
+                                    <i class="bi bi-currency-exchange text-orange-600 dark:text-orange-400"></i>
+                                    <span class="text-sm text-gray-600 dark:text-gray-400">مبلغ</span>
+                                </div>
+                                <p class="text-2xl font-bold text-orange-600 dark:text-orange-400">${details.amount.toLocaleString('fa-IR').replace(/\.0$/, '')} تومان</p>
+                                
+                                <div class="flex items-center gap-2 mt-4">
+                                    <i class="bi bi-person text-purple-600 dark:text-purple-400"></i>
+                                    <span class="text-sm text-gray-600 dark:text-gray-400">مکانیک</span>
+                                </div>
+                                <p class="text-lg font-semibold text-gray-900 dark:text-white">${details.mechanic_name || '-'}</p>
+                            </div>
+                            
+                            <!-- روش پرداخت -->
+                            <div class="space-y-3">
+                                <div class="flex items-center gap-2">
+                                    <i class="bi bi-credit-card text-indigo-600 dark:text-indigo-400"></i>
+                                    <span class="text-sm text-gray-600 dark:text-gray-400">روش پرداخت</span>
+                                </div>
+                                <span class="inline-flex px-3 py-1 text-sm font-semibold rounded-full bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">
+                                    ${details.payment_method_fa || '-'}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- اطلاعات تکمیلی -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-white dark:bg-gray-700 rounded-xl p-4 border border-gray-200 dark:border-gray-600">
+                            <h4 class="text-base font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                                <i class="bi bi-info-circle text-blue-600 dark:text-blue-400"></i>
+                                اطلاعات پرداخت
+                            </h4>
+                            <div class="space-y-3">
+                                <div class="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-600">
+                                    <span class="text-sm text-gray-600 dark:text-gray-400">شماره پیگیری</span>
+                                    <span class="font-semibold text-gray-900 dark:text-white">${details.tracking_number || '-'}</span>
+                                </div>
+                                <div class="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-600">
+                                    <span class="text-sm text-gray-600 dark:text-gray-400">تاریخ واریز</span>
+                                    <span class="font-semibold text-gray-900 dark:text-white">${details.payment_date_fa || '-'}</span>
+                                </div>
+                                <div class="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-600">
+                                    <span class="text-sm text-gray-600 dark:text-gray-400">شماره کارت</span>
+                                    <span class="font-semibold text-gray-900 dark:text-white">${details.card_number || '-'}</span>
+                                </div>
+                                <div class="flex justify-between items-center py-2">
+                                    <span class="text-sm text-gray-600 dark:text-gray-400">شماره چک</span>
+                                    <span class="font-semibold text-gray-900 dark:text-white">${details.check_number || '-'}</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white dark:bg-gray-700 rounded-xl p-4 border border-gray-200 dark:border-gray-600">
+                            <h4 class="text-base font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                                <i class="bi bi-clock text-green-600 dark:text-green-400"></i>
+                                اطلاعات زمانی
+                            </h4>
+                            <div class="space-y-3">
+                                <div class="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-600">
+                                    <span class="text-sm text-gray-600 dark:text-gray-400">تاریخ ثبت</span>
+                                    <span class="font-semibold text-gray-900 dark:text-white">${details.created_at_fa}</span>
+                                </div>
+                                <div class="flex justify-between items-center py-2">
+                                    <span class="text-sm text-gray-600 dark:text-gray-400">وضعیت</span>
+                                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+                                        تکمیل شده
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- توضیحات -->
+                    <div class="bg-white dark:bg-gray-700 rounded-xl p-4 border border-gray-200 dark:border-gray-600">
+                        <h4 class="text-base font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                            <i class="bi bi-chat-text text-purple-600 dark:text-purple-400"></i>
+                            توضیحات
+                        </h4>
+                        <p class="text-gray-700 dark:text-gray-300 leading-relaxed">${details.notes || 'توضیحی ثبت نشده'}</p>
+                    </div>
+                `;
+                
+                if (details.receipt_image) {
+                    html += `
+                        <!-- فیش واریز -->
+                        <div class="bg-white dark:bg-gray-700 rounded-xl p-4 border border-gray-200 dark:border-gray-600">
+                            <h4 class="text-base font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                                <i class="bi bi-file-earmark-image text-red-600 dark:text-red-400"></i>
+                                فیش واریز
+                            </h4>
+                            <div class="flex justify-center">
+                                <img src="/static/receipts/${details.receipt_image}" alt="فیش واریز" class="w-24 h-24 object-cover rounded-lg border-2 border-gray-200 dark:border-gray-600 shadow-lg cursor-pointer hover:scale-110 transition-transform" onclick="openImageModal('${details.receipt_image}')">
+                            </div>
+                            <p class="text-center text-xs text-gray-500 mt-2">برای مشاهده تصویر در اندازه کامل کلیک کنید</p>
+                        </div>
+                    `;
+                }
+                
+                document.getElementById('transactionDetails').innerHTML = html;
+            } else {
+                document.getElementById('transactionDetails').innerHTML = `
+                    <div class="flex items-center justify-center py-12">
+                        <div class="text-center">
+                            <i class="bi bi-exclamation-triangle text-4xl text-red-500 mb-4"></i>
+                            <p class="text-gray-600 dark:text-gray-400">خطا در دریافت جزئیات تراکنش</p>
+                        </div>
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.getElementById('transactionDetails').innerHTML = `
+                <div class="flex items-center justify-center py-12">
+                    <div class="text-center">
+                        <i class="bi bi-exclamation-triangle text-4xl text-red-500 mb-4"></i>
+                        <p class="text-gray-600 dark:text-gray-400">خطا در ارتباط با سرور</p>
+                        <p class="text-sm text-gray-500 mt-2">${error.message}</p>
+                    </div>
+                </div>
+            `;
+        });
+}
+
+function closeTransactionModal() {
+    const modal = document.getElementById('transactionModal');
+    const modalContent = document.getElementById('modalContent');
+    
+    // انیمیشن خروج
+    modalContent.classList.remove('scale-100', 'opacity-100');
+    modalContent.classList.add('scale-95', 'opacity-0');
+    
+    setTimeout(() => {
+        modal.classList.add('hidden');
+    }, 300);
+}
+
+// بستن modal با کلیک روی overlay
+document.getElementById('transactionModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeTransactionModal();
+    }
+});
+
+// توابع مودال عکس
+function openImageModal(imagePath) {
+    const modal = document.getElementById('imageModal');
+    const modalImage = document.getElementById('modalImage');
+    
+    modalImage.src = `/static/receipts/${imagePath}`;
+    modal.classList.remove('hidden');
+}
+
+function closeImageModal() {
+    const modal = document.getElementById('imageModal');
+    modal.classList.add('hidden');
+}
+
+// بستن مودال عکس با کلیک روی overlay
+document.getElementById('imageModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeImageModal();
+    }
+});
+
+// بستن مودال عکس با کلید Escape
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeImageModal();
+        closeTransactionModal();
+    }
+});
+</script>
+{% endblock %} 

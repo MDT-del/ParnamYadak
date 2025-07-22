@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+
+{% block page_title %}<span class="font-bold">مدیریت کالاها</span>{% endblock %}
+
+{% block title %}افزودن محصول جدید{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8" x-data="addProductForm()">
+    <!-- فرم افزودن محصول -->
+    <div class="max-w-2xl mx-auto">
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-bold text-gray-800 mb-6">افزودن محصول جدید</h2>
+            <form method="POST" @submit="validateForm">
+                <!-- نام محصول -->
+                <div class="mb-6">
+                    <label for="name" class="block text-sm font-medium text-gray-700 mb-2">
+                        نام محصول <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" 
+                           id="name" 
+                           name="name" 
+                           x-model="form.name"
+                           @input="checkDuplicate"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           placeholder="مثال: لنت ترمز لیفان 530"
+                           required>
+                    <div x-show="duplicateError" x-transition class="mt-1 text-sm text-red-600">
+                        <i class="fas fa-exclamation-triangle ml-1"></i>
+                        این محصول قبلاً در انبار ثبت شده است
+                    </div>
+                </div>
+
+                <!-- کیفیت -->
+                <div class="mb-6">
+                    <label for="quality" class="block text-sm font-medium text-gray-700 mb-2">
+                        کیفیت <span class="text-red-500">*</span>
+                    </label>
+                    <select id="quality" 
+                            name="quality" 
+                            x-model="form.quality"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="ایرانی">ایرانی</option>
+                        <option value="شرکتی">شرکتی</option>
+                        <option value="وارداتی">وارداتی</option>
+                    </select>
+                </div>
+
+                <!-- موجودی اولیه -->
+                <div class="mb-6">
+                    <label for="initial_quantity" class="block text-sm font-medium text-gray-700 mb-2">
+                        موجودی اولیه
+                    </label>
+                    <input type="number" 
+                           id="initial_quantity" 
+                           name="initial_quantity" 
+                           x-model="form.initial_quantity"
+                           min="0"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           placeholder="0">
+                    <p class="mt-1 text-sm text-gray-500">
+                        اگر موجودی اولیه دارید، آن را وارد کنید. در غیر این صورت می‌توانید بعداً پارت خرید اضافه کنید.
+                    </p>
+                </div>
+
+                <!-- قیمت خرید -->
+                <div class="mb-6">
+                    <label for="purchase_price" class="block text-sm font-medium text-gray-700 mb-2">
+                        قیمت خرید (تومان)
+                    </label>
+                    <input type="text"
+                           id="purchase_price"
+                           name="purchase_price"
+                           x-ref="priceInput"
+                           @input="formatPriceInput($event)"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-left"
+                           placeholder="0">
+                    <p class="mt-1 text-sm text-gray-500">
+                        قیمت خرید برای محاسبات مالی (اختیاری)
+                    </p>
+                </div>
+
+                <!-- پیش‌نمایش -->
+                <div x-show="form.name" x-transition class="mb-6 p-4 bg-gray-50 rounded-lg">
+                    <h4 class="text-sm font-medium text-gray-700 mb-2">پیش‌نمایش محصول:</h4>
+                    <div class="text-sm text-gray-600">
+                        <p><strong>نام:</strong> <span x-text="form.name"></span></p>
+                        <p><strong>کیفیت:</strong> <span x-text="form.quality"></span></p>
+                        <p><strong>موجودی اولیه:</strong> <span x-text="(form.initial_quantity || '0').toString().replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d])"></span> عدد</p>
+                        <p x-show="form.purchase_price_display"><strong>قیمت خرید:</strong> <span x-text="formatPrice(form.purchase_price_display)"></span></p>
+                    </div>
+                </div>
+
+                <!-- دکمه‌های عملیات -->
+                <div class="flex justify-end space-x-4 space-x-reverse">
+                    <a href="{{ url_for('inventory.index') }}" 
+                       class="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors">
+                        انصراف
+                    </a>
+                    <button type="submit" 
+                            :disabled="!form.name || duplicateError"
+                            class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                        <i class="fas fa-save ml-2"></i>
+                        ثبت محصول
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function addProductForm() {
+    return {
+        form: {
+            name: '',
+            quality: 'ایرانی',
+            initial_quantity: 0,
+            purchase_price_display: '' // مقدار سه‌رقمی برای نمایش
+        },
+        duplicateError: false,
+        
+        checkDuplicate() {
+            if (this.form.name.length > 2) {
+                // در حالت واقعی، اینجا API call برای بررسی تکراری بودن
+                // فعلاً فقط نمایش می‌دهیم
+                this.duplicateError = false;
+            }
+        },
+        
+        validateForm(event) {
+            if (!this.form.name.trim()) {
+                event.preventDefault();
+                alert('نام محصول الزامی است');
+                return false;
+            }
+            
+            if (this.form.initial_quantity < 0) {
+                event.preventDefault();
+                alert('موجودی اولیه نمی‌تواند منفی باشد');
+                return false;
+            }
+            
+            if (this.duplicateError) {
+                event.preventDefault();
+                alert('این محصول قبلاً ثبت شده است');
+                return false;
+            }
+            
+            // قبل از ارسال، مقدار عددی خام را جایگزین input اصلی کنیم
+            if (this.form.purchase_price_display) {
+                let price = this.form.purchase_price_display.replace(/[^\d]/g, '');
+                document.getElementById('purchase_price').value = price;
+            }
+            return true;
+        },
+        
+        formatPrice(price) {
+            if (!price) return '0 تومان';
+            let num = price.toString().replace(/[^\d]/g, '');
+            if (!num) return '0 تومان';
+            return this.addCommas(num) + ' تومان';
+        },
+        
+        formatPriceInput(event) {
+            let input = event.target;
+            let value = input.value;
+            
+            // حذف همه کاراکترهای غیر عددی
+            let numericValue = value.replace(/[^\d]/g, '');
+            
+            if (!numericValue) {
+                input.value = '';
+                this.form.purchase_price_display = '';
+                return;
+            }
+            
+            // فرمت کردن با کاماهای انگلیسی
+            let formatted = this.addCommas(numericValue);
+            
+            // اعمال فرمت مستقیم روی input
+            input.value = formatted;
+            this.form.purchase_price_display = formatted;
+            
+            // تنظیم کرسر در انتهای متن
+            setTimeout(() => {
+                input.setSelectionRange(formatted.length, formatted.length);
+            }, 0);
+        },
+        
+        addCommas(num) {
+            return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        }
+    }
+}
+</script>
+{% endblock %} 

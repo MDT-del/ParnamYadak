@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block page_title %}پروفایل مشتری: {{ customer.first_name or customer.username }}{% endblock %}
+
+{% block content %}
+    <div class="mb-4 flex gap-2">
+        <a href="{{ url_for('customers.index') }}" class="inline-block px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded hover:bg-gray-300 dark:hover:bg-gray-600 transition">بازگشت به لیست مشتریان</a>
+        <a href="{{ url_for('financial_reports.customer_orders_history', customer_id=customer.id) }}" class="inline-block px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">تاریخچه کامل سفارشات</a>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="md:col-span-1">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4 border-b dark:border-gray-700 pb-2">اطلاعات پروفایل</h3>
+                <div class="space-y-3 text-sm">
+                    <p><strong>نام:</strong> <span class="text-gray-700 dark:text-gray-300">{{ customer.first_name }} {{ customer.last_name or '' }}</span></p>
+                    <p><strong>نوع مشتری:</strong> 
+                        <span class="px-2 py-1 text-xs rounded-full 
+                            {% if customer.customer_type == 'مکانیک' %}bg-blue-100 text-blue-800{% endif %}
+                            {% if customer.customer_type == 'ربات' %}bg-green-100 text-green-800{% endif %}
+                            {% if customer.customer_type == 'حضوری' %}bg-gray-100 text-gray-800{% endif %}">
+                            {{ customer.customer_type or 'حضوری' }}
+                        </span>
+                    </p>
+                    <p><strong>نام کاربری:</strong> <span class="text-gray-700 dark:text-gray-300">{% if customer.username %}@{{ customer.username }}{% endif %}</span></p>
+                    <p><strong>شناسه تلگرام:</strong> <span class="text-gray-700 dark:text-gray-300">{{ customer.telegram_id|digits_to_persian }}</span></p>
+                    <p><strong>شماره تلفن:</strong> <span class="text-gray-700 dark:text-gray-300" dir="ltr">{{ customer.phone_number|digits_to_persian if customer.phone_number else 'ثبت نشده' }}</span></p>
+                    <p><strong>آدرس:</strong> <span class="text-gray-700 dark:text-gray-300">{{ customer.address or 'ثبت نشده' }}</span></p>
+                    <p><strong>شهر:</strong> <span class="text-gray-700 dark:text-gray-300">{{ customer.city or 'ثبت نشده' }}</span></p>
+                    <p><strong>استان:</strong> <span class="text-gray-700 dark:text-gray-300">{{ customer.province or 'ثبت نشده' }}</span></p>
+                    <p><strong>کد پستی:</strong> <span class="text-gray-700 dark:text-gray-300">{{ customer.postal_code or 'ثبت نشده' }}</span></p>
+                    <p><strong>آخرین آی‌پی:</strong> <span class="text-gray-700 dark:text-gray-300">{{ customer.last_known_ip or 'ثبت نشده' }}</span></p>
+                    <p><strong>شناسه دستگاه:</strong> <span class="text-gray-700 dark:text-gray-300">{{ customer.device_id or 'ثبت نشده' }}</span></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="md:col-span-2">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md">
+                <div class="p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">تاریخچه سفارشات مشتری</h3>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                            <thead class="bg-gray-50 dark:bg-gray-700">
+                                <tr>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">شماره سفارش</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">تاریخ</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">مبلغ کل</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">وضعیت</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">نوع سفارش</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"></th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                                {% for order in orders %}
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">#{{ order.id }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{{ order.date|to_shamsi }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{{ "{:,.0f}".format(order.total_price) }} تومان</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100">{{ order.status }}</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{{ order.type }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <a href="{{ order.view_url }}" class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300">جزئیات</a>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="6" class="text-center px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">این مشتری هیچ سفارشی ثبت نکرده است.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

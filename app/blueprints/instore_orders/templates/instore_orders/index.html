@@ -1,0 +1,609 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}ثبت سفارش حضوری{% endblock %}
+{% block content %}
+{% if status_filter is not defined %}
+    {% set status_filter = '' %}
+{% endif %}
+{% if products is not defined or products is none %}
+    {% set products = [] %}
+{% endif %}
+<div x-data="orderForm()" class="space-y-8 px-2 md:px-6">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div class="bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 p-4 rounded-xl shadow text-white transition hover:scale-105 duration-300 flex flex-col items-center justify-center min-h-[120px]">
+            <i class="bi bi-calendar2-day text-3xl mb-2"></i>
+            <h3 class="text-sm font-medium opacity-80 mb-2">سفارش امروز</h3>
+            <span class="text-4xl font-extrabold tracking-tight text-white drop-shadow-lg flex items-center justify-center">{{ stats.today|digits_to_persian }}</span>
+        </div>
+        <div class="bg-gradient-to-br from-green-400 via-blue-400 to-indigo-400 p-4 rounded-xl shadow text-white transition hover:scale-105 duration-300 flex flex-col items-center justify-center min-h-[120px]">
+            <i class="bi bi-bag-check text-3xl mb-2"></i>
+            <h3 class="text-sm font-medium opacity-80 mb-2">تحویل داده شده</h3>
+            <span class="text-4xl font-extrabold tracking-tight text-white drop-shadow-lg flex items-center justify-center">{{ stats.delivered|digits_to_persian }}</span>
+        </div>
+        <div class="bg-gradient-to-br from-yellow-400 via-pink-400 to-red-400 p-4 rounded-xl shadow text-white transition hover:scale-105 duration-300 flex flex-col items-center justify-center min-h-[120px]">
+            <i class="bi bi-cash-coin text-3xl mb-2"></i>
+            <h3 class="text-sm font-medium opacity-80 mb-2">مجموع درآمد</h3>
+            <span class="text-4xl font-extrabold tracking-tight text-white drop-shadow-lg flex items-center justify-center">{{ stats.total_income|digits_to_persian }}</span>
+        </div>
+    </div>
+    <div class="flex-1 w-full">
+        <form method="POST" class="bg-white dark:bg-gray-800 rounded-xl shadow p-6 space-y-4 w-full">
+                <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                    <div>
+                        <label class="block text-xs font-medium mb-1 dark:text-gray-200">نام مشتری</label>
+                        <input type="text" name="customer_name" class="w-full rounded-lg border-2 border-gray-300 focus:border-gray-400 dark:border-gray-600 dark:focus:border-gray-400 dark:bg-gray-700 dark:text-gray-200 bg-white text-sm transition-all" x-model="customer_name" placeholder="نام مشتری ...">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium mb-1 dark:text-gray-200">شماره تلفن</label>
+                        <input type="text" name="customer_phone" class="w-full rounded-lg border-2 border-gray-300 focus:border-gray-400 dark:border-gray-600 dark:focus:border-gray-400 dark:bg-gray-700 dark:text-gray-200 bg-white text-sm transition-all" x-model="customer_phone" placeholder="شماره تلفن ...">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium mb-1 dark:text-gray-200">مبلغ بیعانه (تومان)</label>
+                        <input
+                            type="text"
+                            class="w-full rounded-lg border-2 border-gray-300 focus:border-gray-400 dark:border-gray-600 dark:focus:border-gray-400 dark:bg-gray-700 dark:text-gray-200 bg-white text-sm transition-all"
+                            x-model="deposit_amount_formatted"
+                            @input="onDepositInput"
+                            inputmode="numeric"
+                            placeholder="0"
+                        >
+                    </div>
+                    <div class="flex items-center gap-2 mt-6 md:mt-0">
+                        <input type="checkbox" name="store_stock" id="store_stock" class="form-checkbox h-5 w-5 text-indigo-600" x-model="store_stock" @change="products = []" style="padding-top: 20px;border-top-width: 0px;margin-top: 20px;">
+                        <label for="store_stock" class="text-sm dark:text-gray-200" style="margin-top: 20px;margin-left: 30px;">انبار مغازه </label>
+                        <input type="checkbox" name="shipping_required" id="shipping_required" class="form-checkbox h-5 w-5 text-indigo-600" x-model="shipping_required" style="padding-top: 20px;border-top-width: 0px;margin-top: 20px;">
+                        <label for="shipping_required" class="text-sm dark:text-gray-200" style="margin-top: 20px;margin-left: 30px;">ارسال پستی </label>
+                    </div>
+                    <div></div>
+                </div>
+                <!-- افزودن محصول: بعد از فیلدهای بالا -->
+                <div class="mt-4">
+                    <label class="block text-sm font-medium mb-1 dark:text-gray-200">محصولات</label>
+                    <template x-if="store_stock">
+                        <div>
+                            <div class="relative w-1/2 mb-2">
+                                <input type="text" placeholder="جستجوی محصول..." class="w-full rounded-lg border-2 border-gray-300 focus:border-gray-400 dark:border-gray-600 dark:focus:border-gray-400 dark:bg-gray-700 dark:text-gray-200 bg-white text-sm transition-all px-3 py-2" x-model="productSearch" @input="searchProducts">
+                                <div class="absolute z-10 w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 max-h-48 overflow-y-auto" x-show="showSuggestions && suggestions.length">
+                                    <template x-for="(suggestion, sidx) in suggestions" :key="suggestion.id">
+                                        <div class="px-3 py-2 cursor-pointer hover:bg-indigo-100 dark:hover:bg-indigo-800" @click="selectProduct(suggestion)">
+                                            <span x-text="suggestion.name"></span>
+                                            <span class="text-xs text-gray-500">(کیفیت: <span x-text="suggestion.quality"></span> | موجودی: <span x-text="suggestion.stock"></span> | قیمت خرید: <span x-text="suggestion.price"></span> تومان)</span>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-2 space-x-reverse mb-2" x-show="selectedProduct">
+                                <span class="font-bold" x-text="selectedProduct.name + ' (' + selectedProduct.quality + ')' "></span>
+                                <input type="number" class="w-1/4 rounded-lg border-2 border-gray-300 focus:border-gray-400 dark:border-gray-600 dark:focus:border-gray-400 dark:bg-gray-700 dark:text-gray-200 bg-white transition-all" placeholder="تعداد" x-model.number="selectedQty" min="1">
+                                <div class="relative w-1/4">
+                                    <input
+                                        type="text"
+                                        class="w-full rounded-lg border-2 border-gray-300 focus:border-gray-400 dark:border-gray-600 dark:focus:border-gray-400 dark:bg-gray-700 dark:text-gray-200 bg-white transition-all pr-10"
+                                        placeholder="قیمت واحد"
+                                        x-model="selectedPriceFormatted"
+                                        @input="onPriceInput"
+                                        inputmode="numeric"
+                                    >
+                                    <span class="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-gray-500">تومان</span>
+                                </div>
+                                <button type="button" @click="addSelectedProduct" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded-lg">افزودن</button>
+                            </div>
+                            <table class="w-full text-sm mt-4" x-show="products.length">
+                                <thead>
+                                    <tr class="bg-gray-100 dark:bg-gray-700">
+                                        <th class="px-2 py-1">نام محصول</th>
+                                        <th class="px-2 py-1">کیفیت</th>
+                                        <th class="px-2 py-1">تعداد</th>
+                                        <th class="px-2 py-1">قیمت واحد</th>
+                                        <th class="px-2 py-1">حذف</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template x-for="(item, idx) in products" :key="item.id + '-' + item.quality">
+                                        <tr>
+                                            <td class="px-2 py-1" x-text="item.name"></td>
+                                            <td class="px-2 py-1" x-text="item.quality"></td>
+                                            <td class="px-2 py-1" x-text="item.qty"></td>
+                                            <td class="px-2 py-1" x-text="item.price"></td>
+                                            <td class="px-2 py-1">
+                                                <button type="button" @click="removeProduct(idx)" class="text-red-600 hover:text-red-800 transition-colors" title="حذف محصول">
+                                                    <i class="bi bi-trash-fill text-xl"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                    </template>
+                    <template x-if="!store_stock">
+                        <template x-for="(item, idx) in products" :key="idx">
+                            <div class="flex items-center space-x-2 space-x-reverse mb-2">
+                                <input type="text" class="w-1/3 rounded-lg border-2 border-gray-300 focus:border-gray-400 dark:border-gray-600 dark:focus:border-gray-400 dark:bg-gray-700 dark:text-gray-200 bg-white transition-all" placeholder="نام محصول" x-model="item.name" required>
+                                <input type="number" class="w-1/4 rounded-lg border-2 border-gray-300 focus:border-gray-400 dark:border-gray-600 dark:focus:border-gray-400 dark:bg-gray-700 dark:text-gray-200 bg-white transition-all" placeholder="تعداد" x-model.number="item.qty" min="1" required>
+                                <input type="number" class="w-1/4 rounded-lg border-2 border-gray-300 focus:border-gray-400 dark:border-gray-600 dark:focus:border-gray-400 dark:bg-gray-700 dark:text-gray-200 bg-white transition-all" placeholder="قیمت واحد" x-model.number="item.price" min="0" required>
+                                <button type="button" @click="removeProduct(idx)" class="text-red-600 hover:text-red-800 transition-colors" title="حذف محصول">
+                                    <i class="bi bi-trash-fill text-xl"></i>
+                                </button>
+                            </div>
+                        </template>
+                    </template>
+                </div>
+                <template x-if="shipping_required">
+                    <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 dark:bg-gray-700 p-4 rounded-lg border border-gray-200 dark:border-gray-400">
+                        <div>
+                            <label class="block text-sm font-medium mb-1 dark:text-gray-200">استان</label>
+                            <select name="province" x-model="province" @change="updateCities()" class="w-full rounded-lg border-2 border-gray-300 focus:border-gray-400 dark:border-gray-600 dark:focus:border-gray-400 bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:text-gray-200 transition-all z-10">
+                                <option value="">انتخاب استان</option>
+                                <template x-for="prov in provinces" :key="prov.name">
+                                    <option :value="prov.name" x-text="prov.name"></option>
+                                </template>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1 dark:text-gray-200">شهرستان</label>
+                            <select name="city" x-model="city" class="w-full rounded-lg border-2 border-gray-300 focus:border-gray-400 dark:border-gray-600 dark:focus:border-gray-400 bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:text-gray-200 transition-all z-10">
+                                <option value="">انتخاب شهرستان</option>
+                                <template x-for="c in cities" :key="c">
+                                    <option :value="c" x-text="c"></option>
+                                </template>
+                            </select>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium mb-1 dark:text-gray-200">آدرس کامل</label>
+                            <textarea name="address" rows="2" class="w-full rounded-lg border-2 border-gray-300 focus:border-gray-400 dark:border-gray-600 dark:focus:border-gray-400 dark:bg-gray-700 dark:text-gray-200 bg-white resize-none transition-all" placeholder="آدرس دقیق ..." x-model="address"></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1 dark:text-gray-200">کد پستی</label>
+                            <input type="text" name="postal_code" class="w-full rounded-lg border-2 border-gray-300 focus:border-gray-400 dark:border-gray-600 dark:focus:border-gray-400 dark:bg-gray-700 dark:text-gray-200 bg-white transition-all" x-model="postal_code">
+                        </div>
+                    </div>
+                </template>
+                <div class="mt-4">
+                    <label class="block text-sm font-medium mb-1 dark:text-gray-200">یادداشت</label>
+                    <textarea name="notes" rows="2" class="w-full rounded-lg border-2 border-gray-300 focus:border-gray-400 dark:border-gray-600 dark:focus:border-gray-400 dark:bg-gray-700 dark:text-gray-200 bg-white resize-none transition-all" placeholder="یادداشت اختیاری ..." x-model="notes"></textarea>
+                </div>
+                <input type="hidden" name="products_info" :value="JSON.stringify(products)">
+                <div class="flex justify-between items-center mt-4">
+                    <span class="font-bold">
+                        جمع کل: <span x-text="formatPrice(totalPrice())"></span> تومان
+                    </span>
+                    <span class="font-bold text-blue-700">
+                        بیعانه: <span x-text="formatPrice(deposit_amount)"></span> تومان
+                    </span>
+                    <span class="font-bold text-green-700">
+                        مبلغ باقی‌مانده: <span x-text="formatPrice(Math.max(totalPrice() - (parseInt(deposit_amount) || 0), 0))"></span> تومان
+                    </span>
+                    <input type="hidden" name="total_price" :value="totalPrice()">
+                    <input type="hidden" name="deposit_amount" :value="deposit_amount">
+                    <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg shadow transition-all">
+                        ثبت سفارش
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-6 w-full mt-8">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+            <form method="get" action="{{ url_for('instore_orders.print_invoices') }}" target="_blank" class="flex flex-wrap gap-2 items-center">
+                <input type="text" name="from_date" placeholder="از تاریخ (شمسی)" class="rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-indigo-500" id="from-date-picker">
+                <input type="text" name="to_date" placeholder="تا تاریخ (شمسی)" class="rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-indigo-500" id="to-date-picker">
+                <select name="status" class="rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-indigo-500">
+                    <option value="">همه وضعیت‌ها</option>
+                    <option value="جدید">جدید</option>
+                    <option value="در حال پیگیری">در حال پیگیری</option>
+                    <option value="خریداری شده">خریداری شده</option>
+                    <option value="تحویل داده شده">تحویل داده شده</option>
+                    <option value="لغو شده">لغو شده</option>
+                </select>
+                <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg">پرینت گروهی فاکتور</button>
+            </form>
+            <form method="get" class="flex flex-wrap gap-2 items-center w-full md:w-auto">
+                <input type="text" name="q" value="{{ search_query }}" placeholder="جستجو نام مشتری یا محصول..." class="rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-indigo-500">
+                <select name="status" class="rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-indigo-500" onchange="this.form.submit()">
+                    <option value="">همه وضعیت‌ها</option>
+                    <option value="جدید" {% if status_filter=='جدید'%}selected{% endif %}>جدید</option>
+                    <option value="در حال پیگیری" {% if status_filter=='در حال پیگیری'%}selected{% endif %}>در حال پیگیری</option>
+                    <option value="خریداری شده" {% if status_filter=='خریداری شده'%}selected{% endif %}>خریداری شده</option>
+                    <option value="تحویل داده شده" {% if status_filter=='تحویل داده شده'%}selected{% endif %}>تحویل داده شده</option>
+                    <option value="لغو شده" {% if status_filter=='لغو شده'%}selected{% endif %}>لغو شده</option>
+                </select>
+                <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg">جستجو</button>
+            </form>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
+                <thead class="bg-gray-50 dark:bg-gray-700">
+                    <tr>
+                        <th class="px-4 py-3 font-semibold dark:text-gray-200">#</th>
+                        <th class="px-4 py-3 font-semibold dark:text-gray-200">نام مشتری</th>
+                        <th class="px-4 py-3 font-semibold dark:text-gray-200">تلفن</th>
+                        <th class="px-4 py-3 font-semibold dark:text-gray-200">محصولات</th>
+                        <th class="px-4 py-3 font-semibold dark:text-gray-200">جمع کل</th>
+                        <th class="px-4 py-3 font-semibold dark:text-gray-200">بیعانه</th>
+                        <th class="px-4 py-3 font-semibold dark:text-gray-200">مبلغ باقی‌مانده</th>
+                        <th class="px-4 py-3 font-semibold dark:text-gray-200">تاریخ</th>
+                        <th class="px-4 py-3 font-semibold dark:text-gray-200">وضعیت</th>
+                        <th class="px-4 py-3 font-semibold dark:text-gray-200">ثبت کننده</th>
+                        <th class="px-4 py-3 font-semibold dark:text-gray-200">عملیات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in orders %}
+                    {% set status_colors = {
+                        'جدید': 'bg-blue-100 text-blue-800',
+                        'در حال پیگیری': 'bg-yellow-100 text-yellow-800',
+                        'خریداری شده': 'bg-green-100 text-green-800',
+                        'آماده تحویل': 'bg-cyan-100 text-cyan-800',
+                        'تحویل داده شده': 'bg-indigo-100 text-indigo-800',
+                        'لغو شده': 'bg-red-100 text-red-800'
+                    } %}
+                    {% set row_bg_colors = {
+                        'جدید': 'bg-blue-50',
+                        'در حال پیگیری': 'bg-yellow-50',
+                        'خریداری شده': 'bg-green-50',
+                        'آماده تحویل': 'bg-cyan-50',
+                        'تحویل داده شده': 'bg-indigo-50',
+                        'لغو شده': 'bg-red-50'
+                    } %}
+                    <tr class="hover:bg-gray-100 dark:hover:bg-gray-700 transition cursor-pointer {{ row_bg_colors[order.status] }}" @click="if(!$event.target.closest('.no-modal')) { $dispatch('show-order', {id: {{ order.id }}, customer_name: '{{ order.customer.full_name|e }}', customer_phone: '{{ order.customer.phone_number|e }}', products_info: `{{ order.products_info|e }}`, total_price: {{ order.total_price or 0 }}, deposit_amount: {{ order.deposit_amount or 0 }}, created_at: '{{ order.created_at|to_shamsi }} {{ order.created_at.strftime('%H:%M') if order.created_at else '' }}', status: '{{ order.status }}', admin_name: '{{ order.created_by_user.name or order.created_by_user.username if order.created_by_user else '-' }}', admin_username: '{{ order.created_by_user.username if order.created_by_user else '-' }}', notes: `{{ order.notes|e }}` }) }">
+                        <td class="px-4 py-2">{{ order.id }}</td>
+                        <td class="px-4 py-2">{{ order.customer.full_name or '-' }}</td>
+                        <td class="px-4 py-2">{{ order.customer.phone_number or '-' }}</td>
+                        <td class="px-4 py-2">
+                            {% set products = order.products_info | safe | loads %}
+                            <ul class="list-disc pr-2">
+                                {% for p in products %}
+                                <li>{{ p.name }} <span class="text-xs text-gray-500">({{ p.qty|digits_to_persian }})</span></li>
+                                {% endfor %}
+                            </ul>
+                        </td>
+                        <td class="px-4 py-2">{{ "{:,.0f}".format(order.total_price)|digits_to_persian }} تومان</td>
+                        <td class="px-4 py-2">
+                            {{ "{:,.0f}".format(order.deposit_amount or 0)|digits_to_persian }} تومان
+                        </td>
+                        <td class="px-4 py-2 text-green-700 font-bold">{{ "{:,.0f}".format((order.total_price or 0) - (order.deposit_amount or 0))|digits_to_persian }} تومان</td>
+                        <td class="px-4 py-2">{{ order.created_at|to_shamsi }} {% if order.created_at %}{{ order.created_at.strftime('%H:%M') }}{% endif %}</td>
+                        <td class="px-4 py-2">
+                            <form method="post" action="{{ url_for('instore_orders.change_status', order_id=order.id) }}" style="display:inline;" onChange="this.submit()">
+                                <select name="status" class="rounded border-gray-300 dark:bg-gray-800 dark:text-gray-200 no-modal">
+                                    {% for st in ['در حال پیگیری','آماده تحویل','تحویل داده شده','لغو شده'] %}
+                                        <option value="{{ st }}" {% if order.status == st %}selected{% endif %}>{{ st }}</option>
+                                    {% endfor %}
+                                </select>
+                            </form>
+                        </td>
+                        <td class="px-4 py-2">
+                            {% if order.created_by_user %}
+                                <div class="text-sm">
+                                    <div class="font-medium">{{ order.created_by_user.name or order.created_by_user.username }}</div>
+                                    {% if order.created_by_user.roles %}
+                                        <div class="text-xs text-gray-500">
+                                            {% for role in order.created_by_user.roles %}
+                                                {{ role.name }}{% if not loop.last %}, {% endif %}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            {% else %}
+                                <span class="text-gray-400">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-2 flex gap-2 justify-center no-modal">
+                            <a href="{{ url_for('instore_orders.invoice', order_id=order.id) }}" class="text-indigo-600 hover:text-indigo-900 mx-1" title="مشاهده و پرینت فاکتور"><i class="bi bi-printer"></i></a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="11" class="text-center py-6 text-gray-500">سفارشی ثبت نشده است.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination -->
+        {% if orders.pages > 1 %}
+        <div class="mt-6 flex justify-center">
+            <nav class="flex items-center space-x-2 space-x-reverse">
+                <!-- Previous Page -->
+                {% if orders.has_prev %}
+                    <a href="{{ url_for('instore_orders.index', page=orders.prev_num, q=search_query, status=status_filter) }}" 
+                       class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300">
+                        قبلی
+                    </a>
+                {% else %}
+                    <span class="px-3 py-2 text-sm font-medium text-gray-300 bg-gray-100 border border-gray-200 rounded-lg cursor-not-allowed dark:bg-gray-700 dark:border-gray-600 dark:text-gray-500">
+                        قبلی
+                    </span>
+                {% endif %}
+                
+                <!-- Page Numbers -->
+                {% for page_num in orders.iter_pages(left_edge=2, left_current=2, right_current=3, right_edge=2) %}
+                    {% if page_num %}
+                        {% if page_num != orders.page %}
+                            <a href="{{ url_for('instore_orders.index', page=page_num, q=search_query, status=status_filter) }}" 
+                               class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300">
+                                {{ page_num }}
+                            </a>
+                        {% else %}
+                            <span class="px-3 py-2 text-sm font-medium text-white bg-indigo-600 border border-indigo-600 rounded-lg">
+                                {{ page_num }}
+                            </span>
+                        {% endif %}
+                    {% else %}
+                        <span class="px-3 py-2 text-sm font-medium text-gray-300">...</span>
+                    {% endif %}
+                {% endfor %}
+                
+                <!-- Next Page -->
+                {% if orders.has_next %}
+                    <a href="{{ url_for('instore_orders.index', page=orders.next_num, q=search_query, status=status_filter) }}" 
+                       class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300">
+                        بعدی
+                    </a>
+                {% else %}
+                    <span class="px-3 py-2 text-sm font-medium text-gray-300 bg-gray-100 border border-gray-200 rounded-lg cursor-not-allowed dark:bg-gray-700 dark:border-gray-600 dark:text-gray-500">
+                        بعدی
+                    </span>
+                {% endif %}
+            </nav>
+        </div>
+        
+        <!-- Page Info -->
+        <div class="mt-4 text-center text-sm text-gray-600 dark:text-gray-400">
+            نمایش {{ orders.items|length }} از {{ orders.total }} سفارش
+            {% if orders.pages > 1 %}
+                (صفحه {{ orders.page }} از {{ orders.pages }})
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+<!-- مودال نمایش جزئیات سفارش -->
+<div x-data="{ showModal: false, order: null, parseProducts(info) { try { return JSON.parse(info); } catch { return []; } }, formatPrice(val) { if (!val) return '۰'; return val.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ','); } }" @show-order.window="order = $event.detail; showModal = true" x-cloak>
+    <div x-show="showModal" class="fixed inset-0 bg-black bg-opacity-40 z-50 flex items-center justify-center">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg w-full max-w-2xl p-6 relative">
+            <button @click="showModal = false" class="absolute left-4 top-4 text-gray-500 hover:text-red-600 text-xl">&times;</button>
+            <h3 class="text-lg font-bold mb-4">جزئیات سفارش حضوری</h3>
+            <template x-if="order">
+                <div class="space-y-2">
+                    <div><b>کد سفارش:</b> <span x-text="order.id"></span></div>
+                    <div><b>نام مشتری:</b> <span x-text="order.customer_name"></span></div>
+                    <div><b>تلفن:</b> <span x-text="order.customer_phone"></span></div>
+                    <div><b>محصولات:</b>
+                        <ul>
+                            <template x-for="p in parseProducts(order.products_info)" :key="p.name + p.qty + (p.quality || '')">
+                                <li>
+                                    <span x-text="p.name"></span>
+                                    <template x-if="p.quality">
+                                        <span class="text-xs text-gray-500"> ({{'نوع: '}}<span x-text="p.quality"></span>)</span>
+                                    </template>
+                                    <span class="text-xs text-gray-500"> (تعداد: <span x-text="p.qty"></span>)</span>
+                                </li>
+                            </template>
+                        </ul>
+                    </div>
+                    <div><b>جمع کل:</b> <span x-text="formatPrice(order.total_price)"></span> تومان</div>
+                    <div><b>بیعانه:</b> <span x-text="formatPrice(order.deposit_amount)"></span> تومان</div>
+                    <div><b>مبلغ باقی‌مانده:</b> <span x-text="formatPrice((order.total_price || 0) - (order.deposit_amount || 0))"></span> تومان</div>
+                    <div><b>تاریخ:</b> <span x-text="order.created_at"></span></div>
+                    <div><b>وضعیت:</b> <span x-text="order.status"></span></div>
+                    <div><b>ثبت‌کننده:</b> <span x-text="order.admin_name"></span> (<span x-text="order.admin_username"></span>)</div>
+                    <div><b>یادداشت:</b> <span x-text="order.notes"></span></div>
+                </div>
+            </template>
+        </div>
+    </div>
+</div>
+<script>
+// تابع مدیریت سفارش حضوری با Alpine.js
+function orderForm() {
+    return {
+        customer_name: '',
+        customer_phone: '',
+        products: [], // مقداردهی اولیه لیست محصولات
+        status: 'جدید',
+        deposit_amount: '',
+        deposit_amount_formatted: '',
+        product_type: '',
+        shipping_required: false,
+        store_stock: false,
+        notes: '',
+        province: '',
+        city: '',
+        address: '',
+        postal_code: '',
+        allProducts: window.allProducts || [], // مقداردهی محصولات از window
+        productSearch: '', // جهت جستجو در محصولات
+        suggestions: [],
+        showSuggestions: false,
+        selectedProduct: null,
+        selectedQty: 1,
+        selectedPrice: 0,
+        selectedPriceFormatted: '',
+        provinces: [
+            {name: 'آذربایجان شرقی'}, {name: 'آذربایجان غربی'}, {name: 'اردبیل'}, {name: 'اصفهان'}, {name: 'البرز'},
+            {name: 'ایلام'}, {name: 'بوشهر'}, {name: 'تهران'}, {name: 'چهارمحال و بختیاری'}, {name: 'خراسان جنوبی'},
+            {name: 'خراسان رضوی'}, {name: 'خراسان شمالی'}, {name: 'خوزستان'}, {name: 'زنجان'}, {name: 'سمنان'},
+            {name: 'سیستان و بلوچستان'}, {name: 'فارس'}, {name: 'قزوین'}, {name: 'قم'}, {name: 'کردستان'},
+            {name: 'کرمان'}, {name: 'کرمانشاه'}, {name: 'کهگیلویه و بویراحمد'}, {name: 'گلستان'}, {name: 'گیلان'},
+            {name: 'لرستان'}, {name: 'مازندران'}, {name: 'مرکزی'}, {name: 'هرمزگان'}, {name: 'همدان'}, {name: 'یزد'}
+        ],
+        cities: [],
+        allCities: {
+            'آذربایجان شرقی': ['تبریز', 'مراغه', 'مرند', 'میانه', 'اهر', 'بناب', 'شبستر', 'سراب', 'ملکان', 'هریس', 'بستان‌آباد', 'هشترود', 'جلفا', 'چاراویماق', 'کلیبر', 'ورزقان', 'اسکو', 'خدا آفرین'],
+            'آذربایجان غربی': ['ارومیه', 'خوی', 'میاندوآب', 'مهاباد', 'بوکان', 'سلماس', 'پیرانشهر', 'نقده', 'شاهین‌دژ', 'ماکو', 'اشنویه', 'چالدران', 'تکاب', 'شوط', 'چایپاره', 'پلدشت'],
+            'اردبیل': ['اردبیل', 'پارس‌آباد', 'مشگین‌شهر', 'خلخال', 'گرمی', 'بیله‌سوار', 'نمین', 'نیر', 'کوثر', 'سرعین'],
+            'اصفهان': ['اصفهان', 'کاشان', 'خمینی‌شهر', 'نجف‌آباد', 'لنجان', 'شاهین‌شهر و میمه', 'فلاورجان', 'مبارکه', 'آران و بیدگل', 'برخوار', 'شهرضا', 'فریدن', 'سمیرم', 'نائین', 'تیران و کرون', 'فریدون‌شهر', 'اردستان', 'دهاقان', 'خوانسار', 'گلپایگان', 'چادگان', 'خور و بیابانک', 'بوئین و میاندشت'],
+            'البرز': ['کرج', 'ساوجبلاغ', 'نظرآباد', 'طالقان', 'اشتهارد', 'فردیس'],
+            'ایلام': ['ایلام', 'دهلران', 'آبدانان', 'دره‌شهر', 'مهران', 'ملکشاهی', 'چرداول', 'ایوان', 'بدره'],
+            'بوشهر': ['بوشهر', 'دشتستان', 'کنگان', 'گناوه', 'دشتی', 'تنگستان', 'دیر', 'جم', 'عسلویه', 'دیلم'],
+            'تهران': ['تهران', 'شهریار', 'اسلامشهر', 'ملارد', 'بهارستان', 'پاکدشت', 'پردیس', 'پیشوا', 'دماوند', 'رباط‌کریم', 'ری', 'شمیرانات', 'فیروزکوه', 'قدس', 'قرچک', 'ورامین'],
+            'چهارمحال و بختیاری': ['شهرکرد', 'بروجن', 'لردگان', 'فارسان', 'اردل', 'کیار', 'سامان', 'کوهرنگ', 'بن', 'خانمیرزا'],
+            'خراسان جنوبی': ['بیرجند', 'قائنات', 'فردوس', 'نهبندان', 'سربیشه', 'طبس', 'درمیان', 'بشرویه', 'زیرکوه', 'خوسف'],
+            'خراسان رضوی': ['مشهد', 'نیشابور', 'سبزوار', 'تربت حیدریه', 'قوچان', 'تربت جام', 'کاشمر', 'چناران', 'خواف', 'بردسکن', 'درگز', 'گناباد', 'طرقبه شاندیز', 'سرخس', 'فیروزه', 'رشتخوار', 'خلیل‌آباد', 'مه‌ولات', 'باخرز', 'جغتای', 'جوین', 'زاوه', 'کلات', 'بجستان', 'داورزن'],
+            'خراسان شمالی': ['بجنورد', 'اسفراین', 'شیروان', 'جاجرم', 'مانه و سملقان', 'فاروج', 'گرمه', 'راز و جرگلان'],
+            'خوزستان': ['اهواز', 'دزفول', 'آبادان', 'خرمشهر', 'بهبهان', 'شادگان', 'شوشتر', 'شوش', 'ماهشهر', 'ایذه', 'مسجدسلیمان', 'رامهرمز', 'امیدیه', 'بندر امام خمینی', 'رامشیر', 'هندیجان', 'باوی', 'حمیدیه', 'لالی', 'اندیمشک', 'اندیکا', 'گتوند', 'کارون', 'هفتکل', 'آغاجاری'],
+            'زنجان': ['زنجان', 'ابهر', 'خرمدره', 'ماهنشان', 'ایجرود', 'طارم', 'سلطانیه', 'دندی'],
+            'سمنان': ['سمنان', 'شاهرود', 'دامغان', 'گرمسار', 'مهدی‌شهر', 'آرادان', 'میامی', 'سرخه'],
+            'سیستان و بلوچستان': ['زاهدان', 'چابهار', 'ایرانشهر', 'خاش', 'سراوان', 'نیک‌شهر', 'زهک', 'زابل', 'کنارک', 'دلگان', 'هیرمند', 'مهرستان', 'سیب و سوران', 'فنوج', 'قصرقند', 'نیمروز', 'میرجاوه', 'راسک'],
+            'فارس': ['شیراز', 'مرودشت', 'جهرم', 'کازرون', 'فسا', 'لارستان', 'داراب', 'آباده', 'سپیدان', 'ممسنی', 'نی‌ریز', 'استهبان', 'اقلید', 'خرم‌بید', 'زرین‌دشت', 'پاسارگاد', 'سروستان', 'کوار', 'فراشبند', 'فیروزآباد', 'قیر و کارزین', 'لامرد', 'مهر', 'بوانات', 'ارسنجان', 'بیضا', 'خنج'],
+            'قزوین': ['قزوین', 'البرز', 'آبیک', 'تاکستان', 'بوئین‌زهرا', 'آوج', 'سیردان'],
+            'قم': ['قم'],
+            'کردستان': ['سنندج', 'سقز', 'بانه', 'قروه', 'بیجار', 'کامیاران', 'دیواندره', 'مریوان', 'دهگلان'],
+            'کرمان': ['کرمان', 'رفسنجان', 'جیرفت', 'سیرجان', 'بم', 'زرند', 'بردسیر', 'راور', 'کهنوج', 'عنبرآباد', 'شهربابک', 'ریگان', 'فهرج', 'منوجان', 'ارزوئیه', 'انار'],
+            'کرمانشاه': ['کرمانشاه', 'اسلام‌آباد غرب', 'سنقر', 'هرسین', 'سرپل ذهاب', 'کنگاور', 'جوانرود', 'پاوه', 'گیلانغرب', 'صحنه', 'قصر شیرین', 'روانسر', 'دالاهو', 'ثلاث باباجانی']
+        },
+        updateCities() {
+            this.city = '';
+            this.cities = this.allCities[this.province] || [];
+        },
+        updateProductInfo(idx) {
+            const item = this.products[idx];
+            const selected = this.allProducts.find(p => p.id == item.product_id);
+            if (selected) {
+                item.name = selected.name;
+                item.price = selected.price;
+            } else {
+                item.name = '';
+                item.price = 0;
+            }
+        },
+        addProduct() {
+            this.products.push({name: '', qty: 1, price: 0});
+        },
+        removeProduct(idx) {
+            this.products.splice(idx, 1);
+        },
+        searchProducts() {
+            if (this.productSearch.length < 2) {
+                this.suggestions = [];
+                this.showSuggestions = false;
+                return;
+            }
+            fetch(`/inventory/api/search_products?q=${encodeURIComponent(this.productSearch)}`)
+                .then(res => res.json())
+                .then(data => {
+                    this.suggestions = data;
+                    this.showSuggestions = true;
+                });
+        },
+        selectProduct(product) {
+            this.selectedProduct = product;
+            this.selectedQty = 1;
+            this.selectedPrice = product.price;
+            this.selectedPriceFormatted = this.formatPrice(product.price);
+            this.productSearch = product.name;
+            this.suggestions = [];
+            this.showSuggestions = false;
+        },
+        onPriceInput(e) {
+            let raw = e.target.value.replace(/[^0-9]/g, '');
+            this.selectedPrice = Number(raw);
+            this.selectedPriceFormatted = this.formatPrice(this.selectedPrice);
+        },
+        formatPrice(val) {
+            if (!val) return '۰';
+            return val.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        },
+        onDepositInput(e) {
+            let raw = e.target.value.replace(/[^0-9]/g, '');
+            this.deposit_amount = raw;
+            this.deposit_amount_formatted = this.formatPrice(raw);
+        },
+        addSelectedProduct() {
+            if (!this.selectedProduct || !this.selectedQty || !this.selectedPrice) return;
+            this.products.push({
+                id: this.selectedProduct.id,
+                name: this.selectedProduct.name,
+                quality: this.selectedProduct.quality,
+                qty: this.selectedQty,
+                price: this.selectedPrice
+            });
+            this.selectedProduct = null;
+            this.selectedQty = 1;
+            this.selectedPrice = 0;
+            this.selectedPriceFormatted = '';
+            this.productSearch = '';
+        },
+        totalPrice() {
+            return this.products.reduce((sum, p) => sum + (p.qty * p.price), 0);
+        }
+    }
+}
+</script>
+{% block scripts %}
+    {{ super() }}
+    <!-- مقداردهی لیست محصولات به window.allProducts برای Alpine.js -->
+    <script>
+        window.allProducts = {{ products|tojson|safe }};
+    </script>
+{% endblock %}
+<!-- Pie Chart با نمایش عدد روی هر بخش -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+<script>
+    document.addEventListener('alpine:init', () => {
+        setTimeout(() => {
+            const ctx = document.getElementById('pie-chart-canvas');
+            if (!ctx) return;
+            const data = {
+                labels: ['جدید', 'در حال پیگیری', 'خریداری شده', 'آماده تحویل', 'تحویل داده شده', 'لغو شده'],
+                datasets: [{
+                    data: [
+                        {{ (stats.status_counts['جدید'] or 0)|digits_to_persian }},
+                        {{ (stats.status_counts['در حال پیگیری'] or 0)|digits_to_persian }},
+                        {{ (stats.status_counts['خریداری شده'] or 0)|digits_to_persian }},
+                        {{ (stats.status_counts['آماده تحویل'] or 0)|digits_to_persian }},
+                        {{ (stats.status_counts['تحویل داده شده'] or 0)|digits_to_persian }},
+                        {{ (stats.status_counts['لغو شده'] or 0)|digits_to_persian }}
+                    ],
+                    backgroundColor: [
+                        '#3b82f6', // آبی
+                        '#facc15', // زرد
+                        '#22c55e', // سبز
+                        '#38bdf8', // فیروزه‌ای (آماده تحویل)
+                        '#6366f1', // بنفش
+                        '#ef4444'  // قرمز
+                    ],
+                    borderWidth: 1
+                }]
+            };
+            new Chart(ctx, {
+                type: 'pie',
+                data: data,
+                options: {
+                    plugins: {
+                        legend: { display: false },
+                        datalabels: {
+                            color: '#222',
+                            font: { weight: 'bold', size: 16 },
+                            formatter: (value) => value > 0 ? value + ' عدد' : '',
+                        }
+                    }
+                },
+                plugins: [ChartDataLabels]
+            });
+        }, 300);
+    });
+</script>
+<style>
+#pie-chart-canvas { max-width: 180px; max-height: 180px; }
+</style>
+<!-- اسکریپت انتخابگر تاریخ شمسی (مثلاً با استفاده از persian-datepicker یا flatpickr jalali) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@majidh1/jalalidatepicker/dist/jalalidatepicker.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@majidh1/jalalidatepicker/dist/jalalidatepicker.min.js"></script>
+<script>
+    jalaliDatepicker.startWatch({
+        selector: '#from-date-picker',
+        time: false,
+        lang: 'fa',
+        theme: 'light',
+    });
+    jalaliDatepicker.startWatch({
+        selector: '#to-date-picker',
+        time: false,
+        lang: 'fa',
+        theme: 'light',
+    });
+</script>
+{% endblock %} 

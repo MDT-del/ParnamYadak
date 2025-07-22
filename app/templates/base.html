@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl" class="">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} - پنل مدیریت پرنام یدک</title>
+
+    <!-- استفاده از خروجی Tailwind سفارشی -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind.output.css') }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css"/>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block extra_css %}{% endblock %}
+    <script defer src="{{ url_for('static', filename='js/alpine.min.js') }}"></script>
+    <style>[x-cloak] { display: none !important; }</style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900">
+<div x-data="{ sidebarOpen: false, isMobile: window.innerWidth < 1024 }"
+     x-init="
+        const updateIsMobile = () => { isMobile = window.innerWidth < 1024 };
+        updateIsMobile();
+        window.addEventListener('resize', updateIsMobile);
+        $watch('sidebarOpen', value => {
+            if (isMobile && value) {
+                document.body.style.overflow = 'hidden';
+            } else {
+                document.body.style.overflow = '';
+            }
+        });
+     "
+     class="lg:flex lg:h-screen bg-gray-100 dark:bg-gray-900"
+     id="app-container"> 
+    <!-- دکمه همبرگری بالای سایدبار و سمت راست -->
+    <button x-show="isMobile && !sidebarOpen" @click.stop="sidebarOpen = true"
+        class="absolute right-4 top-24 z-50 block lg:hidden p-2 rounded-lg bg-white shadow border border-gray-200 dark:border-gray-700" style="margin-top: 55px;">
+        <i class="bi bi-list text-xl"></i>
+    </button>
+    <!-- Sidebar -->
+    <aside
+        class="fixed top-0 bottom-0 right-0 z-40 w-4/5 max-w-xs w-72 sm:w-80 lg:w-64 bg-white dark:bg-gray-800 shadow-xl transform transition-transform duration-300 ease-in-out h-full overflow-y-auto border-l border-gray-200 dark:border-gray-700 lg:static lg:shadow-none lg:translate-x-0"
+        :class="isMobile ? (sidebarOpen ? 'translate-x-0' : 'translate-x-full') : 'translate-x-0'"
+        x-show="!isMobile || sidebarOpen"
+        x-transition:enter="transition ease-out duration-300"
+        x-transition:enter-start="translate-x-full"
+        x-transition:enter-end="translate-x-0"
+        x-transition:leave="transition ease-in duration-200"
+        x-transition:leave-start="translate-x-0"
+        x-transition:leave-end="translate-x-full"
+        @keydown.escape.window="sidebarOpen = false"
+        @click.away="if(isMobile) sidebarOpen = false"
+    >
+        <!-- Header Sidebar و بقیه منو -->
+        <div class="flex items-center justify-between p-4 border-b dark:border-gray-700">
+            <a href="{{ url_for('dashboard.index') }}" class="text-gray-900 dark:text-white flex items-center space-x-2 space-x-reverse">
+                <i class="bi bi-truck text-xl sm:text-2xl lg:text-3xl text-indigo-600"></i>
+                <span class="text-lg sm:text-xl lg:text-2xl font-extrabold">پرنام یدک</span>
+            </a>
+            <!-- دکمه X کنار عنوان پرنام یدک -->
+            <button x-show="isMobile && sidebarOpen" @click="sidebarOpen = false"
+                class="z-50 p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 text-2xl focus:outline-none">
+                <i class="bi bi-x"></i>
+            </button>
+        </div>
+
+        <!-- Navigation -->
+        <nav class="p-4 space-y-1">
+            {% if current_user.is_authenticated and current_user.can('view_dashboard') %}
+            <a href="{{ url_for('dashboard.index') }}" class="flex items-center py-3 px-4 rounded-xl transition duration-200 hover:bg-indigo-600 hover:text-white {% if request.endpoint and request.endpoint.startswith('dashboard.') %}bg-indigo-700 text-white{% else %}text-gray-600 dark:text-gray-200{% endif %}">
+                <i class="bi bi-speedometer2 me-3 text-lg"></i><span class="text-sm lg:text-base">داشبورد</span>
+            </a>
+            {% if current_user.can('manage_tasks') %}
+            <a href="{{ url_for('tasks.index') }}" class="flex items-center py-3 px-4 rounded-xl transition duration-200 hover:bg-indigo-600 hover:text-white {% if request.endpoint and request.endpoint.startswith('tasks.') %}bg-indigo-700 text-white{% else %}text-gray-600 dark:text-gray-200{% endif %}">
+                <i class="bi bi-list-task me-3 text-lg"></i><span class="text-sm lg:text-base">کارتابل</span>
+            </a>
+            {% endif %}
+            {% endif %}
+
+            {% if current_user.is_authenticated and current_user.can('manage_products') %}
+            <a href="{{ url_for('inventory.index') }}" class="flex items-center py-3 px-4 rounded-xl transition duration-200 hover:bg-indigo-600 hover:text-white {% if request.endpoint and request.endpoint.startswith('inventory.') %}bg-indigo-700 text-white{% else %}text-gray-600 dark:text-gray-200{% endif %}">
+                <i class="bi bi-boxes me-3 text-lg"></i><span class="text-sm lg:text-base">مدیریت کالاها</span>
+            </a>
+            {% endif %}
+            {% if current_user.is_authenticated and current_user.can('manage_orders') %}
+            <a href="{{ url_for('orders.index') }}" class="flex items-center py-3 px-4 rounded-xl transition duration-200 hover:bg-indigo-600 hover:text-white {% if request.endpoint and request.endpoint.startswith('orders.') %}bg-indigo-700 text-white{% else %}text-gray-600 dark:text-gray-200{% endif %}">
+                <i class="bi bi-cart me-3 text-lg"></i><span class="text-sm lg:text-base">سفارشات</span>
+            </a>
+            <a href="{{ url_for('instore_orders.index') }}" class="flex items-center py-3 px-4 rounded-xl transition duration-200 hover:bg-indigo-600 hover:text-white {% if request.endpoint and request.endpoint.startswith('instore_orders.') %}bg-indigo-700 text-white{% else %}text-gray-600 dark:text-gray-200{% endif %}">
+                <i class="bi bi-person-lines-fill me-3 text-lg"></i><span class="text-sm lg:text-base">سفارش حضوری</span>
+            </a>
+            <a href="{{ url_for('bot_orders.index') }}" class="flex items-center py-3 px-4 rounded-xl transition duration-200 hover:bg-indigo-600 hover:text-white {% if request.endpoint and request.endpoint.startswith('bot_orders.') %}bg-indigo-700 text-white{% else %}text-gray-600 dark:text-gray-200{% endif %}">
+                <i class="bi bi-robot me-3 text-lg"></i><span class="text-sm lg:text-base">سفارش ربات</span>
+            </a>
+            {% endif %}
+
+            {% if current_user.is_authenticated and current_user.can('manage_customers') %}
+            <a href="{{ url_for('customers.index') }}" class="flex items-center py-3 px-4 rounded-xl transition duration-200 hover:bg-indigo-600 hover:text-white {% if request.endpoint and request.endpoint.startswith('customers.') %}bg-indigo-700 text-white{% else %}text-gray-600 dark:text-gray-200{% endif %}">
+                <i class="bi bi-people me-3 text-lg"></i><span class="text-sm lg:text-base">مشتریان</span>
+            </a>
+            {% endif %}
+            {% if current_user.is_authenticated and current_user.can('manage_products') %}
+            <a href="{{ url_for('mechanics.index') }}" class="flex items-center py-3 px-4 rounded-xl transition duration-200 hover:bg-indigo-600 hover:text-white {% if request.endpoint and request.endpoint.startswith('mechanics.') %}bg-indigo-700 text-white{% else %}text-gray-600 dark:text-gray-200{% endif %}">
+                <i class="bi bi-tools me-3 text-lg"></i><span class="text-sm lg:text-base">مدیریت مکانیک‌ها</span>
+            </a>
+            {% endif %}
+
+            {% if current_user.is_authenticated and current_user.can('view_financial_reports') %}
+<a href="{{ url_for('financial_reports.index') }}" class="flex items-center py-3 px-4 rounded-xl transition duration-200 hover:bg-indigo-600 hover:text-white {% if request.endpoint and request.endpoint.startswith('financial_reports.') %}bg-indigo-700 text-white{% else %}text-gray-600 dark:text-gray-200{% endif %}">
+    <i class="bi bi-graph-up me-3 text-lg"></i><span class="text-sm lg:text-base">گزارش‌های مالی</span>
+</a>
+{% endif %}
+
+            {% if current_user.is_authenticated and current_user.can('manage_broadcasts') %}
+            <a href="{{ url_for('broadcast.index') }}" class="flex items-center py-3 px-4 rounded-xl transition duration-200 hover:bg-indigo-600 hover:text-white {% if request.endpoint and request.endpoint.startswith('broadcast.') %}bg-indigo-700 text-white{% else %}text-gray-600 dark:text-gray-200{% endif %}">
+                <i class="bi bi-megaphone me-3 text-lg"></i><span class="text-sm lg:text-base">پیام‌های همگانی</span>
+            </a>
+            {% endif %}
+
+            
+
+            {% if current_user.is_authenticated and (current_user.can('manage_admins') or current_user.can('manage_roles')) %}
+            <hr class="my-4 border-gray-200 dark:border-gray-600">
+            <span class="px-4 text-xs font-semibold text-gray-400 uppercase">مدیریت سیستم</span>
+            <div x-data="{ open: false }" class="relative">
+                <button type="button" @click="open = !open" class="flex items-center w-full py-3 px-4 rounded-xl transition duration-200 hover:bg-indigo-600 hover:text-white text-gray-600 dark:text-gray-200 focus:outline-none">
+                    <i class="bi bi-gear me-3 text-lg"></i>
+                    <span class="text-sm lg:text-base">تنظیمات</span>
+                    <svg class="w-4 h-4 mr-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                </button>
+                <div x-show="open" @click.away="open = false" x-transition class="mt-2 w-full bg-white dark:bg-gray-800 shadow-lg rounded-xl border border-gray-200 dark:border-gray-700 flex flex-col z-20">
+                    {% if current_user.can('manage_admins') %}
+                    <a href="{{ url_for('admin_management.index') }}" class="block px-4 py-3 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm lg:text-base" @click="if(window.innerWidth<1024){sidebarOpen=false}">مدیریت ادمین‌ها</a>
+                    {% endif %}
+                    {% if current_user.can('manage_roles') %}
+                    <a href="{{ url_for('roles.index') }}" class="block px-4 py-3 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm lg:text-base" @click="if(window.innerWidth<1024){sidebarOpen=false}">مدیریت نقش‌ها</a>
+                    {% endif %}
+                    {% if current_user.can('manage_admins') %}
+                    <a href="{{ url_for('admin_management.backups') }}" class="block px-4 py-3 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm lg:text-base" @click="if(window.innerWidth<1024){sidebarOpen=false}">دانلود بک‌آپ</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <hr class="my-4 border-gray-200 dark:border-gray-600">
+            <a href="{{ url_for('auth.logout') }}" class="flex items-center py-3 px-4 rounded-xl transition duration-200 hover:bg-indigo-600 hover:text-white text-gray-600 dark:text-gray-200">
+                <i class="bi bi-box-arrow-left me-3 text-lg"></i><span class="text-sm lg:text-base">خروج</span>
+            </a>
+        </nav>
+    </aside>
+
+    <!-- Main Content Wrapper -->
+    <div class="flex-1 flex flex-col min-h-screen" @click="if(sidebarOpen && window.innerWidth < 1024) sidebarOpen = false">
+        <!-- Header: همیشه full width و بدون margin -->
+        <header class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 p-3 sm:p-4 lg:p-6 w-full">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-2 sm:space-x-4 space-x-reverse">
+                    <!-- دکمه همبرگری فقط در هدر و فقط موبایل -->
+                    <!-- Page title -->
+                    <div>
+                        <h1 class="text-base sm:text-lg lg:text-xl font-bold text-gray-900 dark:text-gray-100">{% block page_title %}{% endblock %}</h1>
+                    </div>
+                </div>
+
+                <!-- Header actions -->
+                <div class="flex items-center space-x-2 sm:space-x-3 space-x-reverse">
+                    <!-- Notifications -->
+                    {% if current_user.is_authenticated %}
+                    <div class="relative" x-data="notificationSystem()" x-init="loadNotifications()">
+                        <button @click="showDropdown = !showDropdown" class="relative p-2 text-gray-700 dark:text-gray-200 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="bi bi-bell text-lg lg:text-xl"></i>
+                            <span x-show="totalNotifications > 0" x-text="totalNotifications"
+                                  class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center animate-pulse"></span>
+                        </button>
+
+                        <!-- Notifications dropdown -->
+                        <div x-show="showDropdown" @click.away="showDropdown = false"
+                             class="absolute left-0 mt-2 w-72 sm:w-80 bg-white dark:bg-gray-700 rounded-xl shadow-lg py-1 z-20 max-h-96 overflow-y-auto border border-gray-200 dark:border-gray-600">
+                            <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-600">
+                                <h3 class="text-sm font-semibold text-gray-900 dark:text-white">اعلان‌ها</h3>
+                            </div>
+
+                            <template x-if="totalNotifications === 0">
+                                <div class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
+                                    اعلان جدیدی ندارید
+                                </div>
+                            </template>
+
+                            <template x-if="newMechanics > 0">
+                                <div class="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-600 border-b border-gray-100 dark:border-gray-600">
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <p class="text-sm text-gray-900 dark:text-white">
+                                                <i class="bi bi-person-plus text-green-500 ml-2"></i>
+                                                {{ newMechanics }} مکانیک جدید
+                                            </p>
+                                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">در انتظار تایید</p>
+                                        </div>
+                                        <a href="{{ url_for('notifications.all_notifications') }}" 
+                                           class="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-800">
+                                            مشاهده
+                                        </a>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <template x-if="newOrders > 0">
+                                <div class="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-600 border-b border-gray-100 dark:border-gray-600">
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <p class="text-sm text-gray-900 dark:text-white">
+                                                <i class="bi bi-cart-plus text-blue-500 ml-2"></i>
+                                                {{ newOrders }} سفارش جدید
+                                            </p>
+                                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">از ربات تلگرام</p>
+                                        </div>
+                                        <a href="{{ url_for('notifications.all_notifications') }}" 
+                                           class="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-800">
+                                            مشاهده
+                                        </a>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <template x-if="taskNotifications > 0">
+                                <div>
+                                    <div class="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-600 border-b border-gray-100 dark:border-gray-600">
+                                        <div class="flex items-center justify-between">
+                                            <div>
+                                                <p class="text-sm text-gray-900 dark:text-white">
+                                                    <i class="bi bi-clipboard-check text-orange-500 ml-2"></i>
+                                                    <span x-text="taskNotifications"></span> وظیفه جدید
+                                                </p>
+                                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">ارجاع داده شده به شما</p>
+                                            </div>
+                                            <a href="{{ url_for('notifications.all_notifications') }}"
+                                               class="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-800">
+                                                مشاهده
+                                            </a>
+                                        </div>
+                                    </div>
+                                    <!-- لیست جزئیات اعلان‌های وظیفه -->
+                                    <template x-for="notif in taskNotifList" :key="notif.id">
+                                        <div class="px-4 py-2 border-b border-gray-100 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600">
+                                            <div class="flex items-center justify-between">
+                                                <div>
+                                                    <span class="text-xs text-gray-700 dark:text-gray-200 font-bold" x-text="notif.task_title"></span>
+                                                    <span class="text-xs text-gray-500 ml-2" x-text="notif.created_at"></span>
+                                                    <div class="text-xs text-gray-600 dark:text-gray-300 mt-1" x-text="notif.message"></div>
+                                                </div>
+                                                <a :href="'/tasks/' + notif.task_id" class="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-800">جزئیات</a>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+
+                            <div class="px-4 py-2 border-t border-gray-200 dark:border-gray-600">
+                                <button @click="markAllRead()" class="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300">
+                                    علامت‌گذاری همه به عنوان خوانده شده
+                                </button>
+                                <a href="{{ url_for('notifications.all_notifications') }}" class="block mt-2 text-center text-xs text-gray-500 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">مشاهده همه اعلان‌ها</a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Theme toggler -->
+                    <div id="theme-toggler" class="theme-toggler cursor-pointer text-lg lg:text-xl text-gray-700 dark:text-gray-200 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
+                        <i class="bi bi-sun"></i>
+                        <i class="bi bi-moon hidden"></i>
+                    </div>
+
+                    <!-- User menu -->
+                    {% if current_user.is_authenticated %}
+                    <div class="relative">
+                        <button id="user-menu-button" class="flex items-center space-x-2 space-x-reverse p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <span class="text-gray-800 dark:text-gray-200 text-sm lg:text-base hidden sm:block">{{ current_user.name or current_user.username }}</span>
+                            <i class="bi bi-chevron-down text-gray-500"></i>
+                        </button>
+                        <div id="user-menu" class="hidden absolute left-0 mt-2 w-48 bg-white dark:bg-gray-700 rounded-xl shadow-lg py-1 z-20 border border-gray-200 dark:border-gray-600">
+                            <a href="{{ url_for('profile.index') }}" class="block px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">پروفایل من</a>
+                            {% if current_user.can('manage_admins') %}
+                            <a href="{{ url_for('admin_management.backups') }}" class="block px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">دانلود بک‌آپ</a>
+                            {% endif %}
+                            <a href="{{ url_for('auth.logout') }}" class="block px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">خروج</a>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </header>
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class="container mx-auto px-3 sm:px-4 mt-4">
+              {% for category, message in messages %}
+                <div class="p-4 mb-2 text-center font-bold rounded-xl {% if category == 'success' %}bg-green-50 border border-green-200 text-green-800 dark:bg-green-900/20 dark:border-green-500 dark:text-green-300{% else %}bg-red-50 border border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-500 dark:text-red-300{% endif %}">
+                  {{ message }}
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+
+        <!-- Main content area: فقط در دسکتاپ margin-left داشته باشد -->
+        <main class="flex-1 p-3 sm:p-4 lg:p-6 xl:p-8 overflow-y-auto w-full lg:ml-64">
+             {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <!-- Mobile overlay فقط ظاهر دارد و کلیک‌پذیر نیست -->
+    <!-- <div x-show="sidebarOpen && isMobile"
+         x-transition.opacity
+         class="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden pointer-events-none"></div>
+</div> -->
+
+<!-- سایر اسکریپت‌ها و بلوک‌های قالب -->
+{% block scripts %}{% endblock %}
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script>
+window.notificationSystem = function() {
+    return {
+        newMechanics: 0,
+        newOrders: 0,
+        pendingCommission: 0,
+        taskNotifications: 0,
+        totalNotifications: 0,
+        showDropdown: false,
+        taskNotifList: [], // New array to hold task notification details
+
+        loadNotifications() {
+            fetch('/notifications/api/count')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        this.newMechanics = data.data.new_mechanics;
+                        this.newOrders = data.data.new_orders;
+                        this.pendingCommission = data.data.pending_commission;
+                        this.taskNotifications = data.data.notifications;
+                        this.totalNotifications = data.data.total_notifications;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading notifications:', error);
+                });
+        },
+
+        markAllRead() {
+            // علامت‌گذاری همه نوتیفیکیشن‌ها به عنوان خوانده شده
+            fetch('/notifications/api/mark-read', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    type: 'all'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // بروزرسانی UI
+                    this.newMechanics = 0;
+                    this.newOrders = 0;
+                    this.pendingCommission = 0;
+                    this.taskNotifications = 0;
+                    this.totalNotifications = 0;
+                    this.showDropdown = false;
+                    
+                    // نمایش پیام موفقیت
+                    console.log('همه نوتیفیکیشن‌ها علامت‌گذاری شدند');
+                } else {
+                    console.error('خطا در علامت‌گذاری نوتیفیکیشن‌ها:', data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error marking notifications as read:', error);
+            });
+        }
+    }
+}
+
+// Update notifications every 10 seconds
+setInterval(() => {
+    const notificationComponent = document.querySelector('[x-data*="notificationSystem"]');
+    if (notificationComponent && notificationComponent.__x) {
+        notificationComponent.__x.$data.loadNotifications();
+    }
+}, 10000);
+
+// Theme toggler script
+(function() {
+    const toggler = document.getElementById('theme-toggler');
+    if (!toggler) return;
+    const sunIcon = toggler.querySelector('.bi-sun');
+    const moonIcon = toggler.querySelector('.bi-moon');
+    const html = document.documentElement;
+
+    function setTheme(dark) {
+        if (dark) {
+            html.classList.add('dark');
+            sunIcon.classList.add('hidden');
+            moonIcon.classList.remove('hidden');
+            localStorage.setItem('theme', 'dark');
+        } else {
+            html.classList.remove('dark');
+            sunIcon.classList.remove('hidden');
+            moonIcon.classList.add('hidden');
+            localStorage.setItem('theme', 'light');
+        }
+    }
+
+    // Initial theme
+    const userPref = localStorage.getItem('theme');
+    if (userPref === 'dark' || (!userPref && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        setTheme(true);
+    } else {
+        setTheme(false);
+    }
+
+    toggler.addEventListener('click', function() {
+        setTheme(!html.classList.contains('dark'));
+    });
+})();
+
+// User menu dropdown script
+(function() {
+    const userBtn = document.getElementById('user-menu-button');
+    const userMenu = document.getElementById('user-menu');
+    if (!userBtn || !userMenu) return;
+    userBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        userMenu.classList.toggle('hidden');
+    });
+    document.addEventListener('click', function(e) {
+        if (!userMenu.classList.contains('hidden')) {
+            userMenu.classList.add('hidden');
+        }
+    });
+    userMenu.addEventListener('click', function(e) {
+        e.stopPropagation();
+    });
+})();
+
+document.addEventListener('DOMContentLoaded', function() {
+    {% if current_user.is_authenticated %}
+    const socket = io();
+    socket.on('connect', function() {
+        socket.emit('join', {
+            user_id: {{ current_user.id }},
+            {% if current_user.roles and current_user.roles|length > 0 %}
+            role_id: {{ current_user.roles[0].id }}
+            {% else %}
+            role_id: null
+            {% endif %}
+        });
+    });
+    socket.on('notification', function(data) {
+        // نمایش اعلان real-time (toast ساده)
+        const msg = data.message || 'اعلان جدید';
+        const toast = document.createElement('div');
+        toast.innerText = msg;
+        toast.style.position = 'fixed';
+        toast.style.bottom = '30px';
+        toast.style.left = '30px';
+        toast.style.background = '#323232';
+        toast.style.color = 'white';
+        toast.style.padding = '16px 24px';
+        toast.style.borderRadius = '8px';
+        toast.style.zIndex = 9999;
+        toast.style.fontSize = '1rem';
+        document.body.appendChild(toast);
+        setTimeout(() => { toast.remove(); }, 5000);
+    });
+    {% endif %}
+});
+</script>
+</body>
+</html>

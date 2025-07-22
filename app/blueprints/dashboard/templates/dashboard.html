@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block page_title %}داشبورد مدیریتی{% endblock %}
+
+{% block content %}
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mb-6">
+        <div class="bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 p-4 rounded-xl shadow text-white transition hover:scale-105 duration-300 flex flex-col items-center justify-center min-h-[120px]">
+            <i class="bi bi-cash-coin text-3xl mb-2"></i>
+            <h3 class="text-sm font-medium opacity-80 mb-2">کل فروش</h3>
+            <span class="text-4xl font-extrabold tracking-tight text-white drop-shadow-lg flex items-center justify-center">{{ "{:,.0f}".format(total_revenue)|digits_to_persian }} تومان</span>
+        </div>
+        <div class="bg-gradient-to-br from-green-400 via-blue-400 to-indigo-400 p-4 rounded-xl shadow text-white transition hover:scale-105 duration-300 flex flex-col items-center justify-center min-h-[120px]">
+            <i class="bi bi-basket2 text-3xl mb-2"></i>
+            <h3 class="text-sm font-medium opacity-80 mb-2">تعداد سفارشات</h3>
+            <span class="text-4xl font-extrabold tracking-tight text-white drop-shadow-lg flex items-center justify-center">{{ order_count|digits_to_persian }}</span>
+        </div>
+        <div class="bg-gradient-to-br from-yellow-400 via-pink-400 to-red-400 p-4 rounded-xl shadow text-white transition hover:scale-105 duration-300 flex flex-col items-center justify-center min-h-[120px]">
+            <i class="bi bi-people text-3xl mb-2"></i>
+            <h3 class="text-sm font-medium opacity-80 mb-2">تعداد مشتریان</h3>
+            <span class="text-4xl font-extrabold tracking-tight text-white drop-shadow-lg flex items-center justify-center">{{ customer_count|digits_to_persian }}</span>
+        </div>
+        <div class="bg-gradient-to-br from-cyan-400 via-blue-400 to-indigo-500 p-4 rounded-xl shadow text-white transition hover:scale-105 duration-300 flex flex-col items-center justify-center min-h-[120px]">
+            <i class="bi bi-box-seam text-3xl mb-2"></i>
+            <h3 class="text-sm font-medium opacity-80 mb-2">تعداد محصولات</h3>
+            <span class="text-4xl font-extrabold tracking-tight text-white drop-shadow-lg flex items-center justify-center">{{ product_count|digits_to_persian }}</span>
+        </div>
+        <div class="bg-gradient-to-br from-green-400 via-blue-400 to-indigo-500 p-4 rounded-xl shadow text-white transition hover:scale-105 duration-300 flex flex-col items-center justify-center min-h-[120px]">
+            <i class="bi bi-shop text-3xl mb-2"></i>
+            <h3 class="text-sm font-medium opacity-80 mb-2">سفارش حضوری</h3>
+            <span class="text-4xl font-extrabold tracking-tight text-white drop-shadow-lg flex items-center justify-center">{{ instore_order_count|digits_to_persian }}</span>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 bg-white/80 dark:bg-gray-800/80 p-6 rounded-2xl shadow-xl backdrop-blur-md">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+                <i class="bi bi-graph-up-arrow text-indigo-500 text-2xl"></i>
+                نمودار فروش (۱۲ ماه گذشته)
+            </h3>
+            <canvas id="salesChart"></canvas>
+        </div>
+        <div class="lg:col-span-1 flex flex-col gap-6">
+            <div class="bg-white/80 dark:bg-gray-800/80 p-6 rounded-2xl shadow-xl backdrop-blur-md mb-6">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+                    <i class="bi bi-clock-history text-pink-500 text-2xl"></i>
+                    ۷ سفارش اخیر
+                </h3>
+                <div class="overflow-y-auto h-72">
+                    <ul class="divide-y divide-gray-200 dark:divide-gray-700">
+                        {% for order in recent_orders_combined %}
+                        <li class="py-3 transition hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-xl px-2">
+                            <div class="flex items-center justify-between">
+                                <p class="text-sm font-bold truncate flex items-center gap-2">
+                                    {% if order.type == 'instore' %}
+                                        <span class="px-2 py-1 rounded-lg text-xs font-bold bg-green-200 text-green-800">حضوری</span>
+                                        <span class="dark:text-gray-200">سفارش #{{ order.id|digits_to_persian }}</span>
+                                    {% else %}
+                                        <span class="px-2 py-1 rounded-lg text-xs font-bold bg-indigo-200 text-indigo-800">تلگرام</span>
+                                        <a href="{{ url_for('orders.view_order', order_id=order.id) }}" class="dark:text-gray-200">سفارش #{{ order.id|digits_to_persian }}</a>
+                                    {% endif %}
+                                </p>
+                                <p class="text-sm text-gray-700 dark:text-gray-300 font-extrabold">{{ "{:,.0f}".format(order.total_price)|digits_to_persian }} ت</p>
+                            </div>
+                            <div class="mt-1 text-xs flex flex-wrap items-center gap-2">
+                                {% if order.status %}
+                                    <span class="px-2 py-1 rounded-lg text-xs font-bold" style="background-color: {% if order.status == 'آماده تحویل' %}#facc15{% elif order.status == 'جدید' %}#38bdf8{% elif order.status == 'در حال پیگیری' %}#a3e635{% elif order.status == 'خریداری شده' %}#f472b6{% elif order.status == 'لغو شده' %}#fecaca{% else %}#e5e7eb{% endif %}; color: {% if order.status == 'لغو شده' %}#b91c1c{% else %}#222{% endif %};">{{ order.status }}</span>
+                                {% endif %}
+                                <i class="bi bi-person-circle"></i>
+                                <span class="dark:text-gray-200">{{ order.customer_name or '---' }}</span>
+                                <i class="bi bi-calendar3"></i>
+                                <span class="dark:text-gray-200">{{ order.date|to_shamsi|digits_to_persian }}</span>
+                            </div>
+                        </li>
+                        {% else %}
+                        <li class="py-4 text-center text-sm text-gray-500 dark:text-gray-400">سفارشی برای نمایش وجود ندارد.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const ctx = document.getElementById('salesChart').getContext('2d');
+            const salesChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: {{ chart_labels|safe }},
+                    datasets: [{
+                        label: 'میزان فروش (تومان)',
+                        data: {{ chart_values|safe }},
+                        backgroundColor: 'rgba(79, 70, 229, 0.2)',
+                        borderColor: 'rgba(79, 70, 229, 1)',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        fill: true
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+{% endblock %}

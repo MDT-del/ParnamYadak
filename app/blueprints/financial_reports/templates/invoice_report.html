@@ -1,0 +1,343 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block page_title %}گزارش فاکتورها{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <!-- کارت‌های آمار کلی -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <!-- کل فاکتورها -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-600 dark:text-gray-400">کل فاکتورها</p>
+                    <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ total_invoices or 0 }}</p>
+                </div>
+                <div class="p-3 bg-blue-100 dark:bg-blue-900 rounded-full">
+                    <i class="bi bi-receipt text-2xl text-blue-600 dark:text-blue-400"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- فاکتورهای پرداخت شده -->
+        <div class="bg-emerald-100 dark:bg-emerald-900 rounded-lg shadow-md p-6 border border-emerald-200 dark:border-emerald-700">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-emerald-800 dark:text-emerald-200">پرداخت شده</p>
+                    <p class="text-2xl font-bold text-emerald-900 dark:text-emerald-100">{{ paid_invoices or 0 }}</p>
+                </div>
+                <div class="p-3 bg-emerald-200 dark:bg-emerald-800 rounded-full">
+                    <i class="bi bi-check-circle text-2xl text-emerald-700 dark:text-emerald-300"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- فاکتورهای پرداخت نشده -->
+        <div class="bg-rose-100 dark:bg-rose-900 rounded-lg shadow-md p-6 border border-rose-200 dark:border-rose-700">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-rose-800 dark:text-rose-200">پرداخت نشده</p>
+                    <p class="text-2xl font-bold text-rose-900 dark:text-rose-100">{{ unpaid_invoices or 0 }}</p>
+                </div>
+                <div class="p-3 bg-rose-200 dark:bg-rose-800 rounded-full">
+                    <i class="bi bi-exclamation-triangle text-2xl text-rose-700 dark:text-rose-300"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- مجموع مبالغ -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-600 dark:text-gray-400">مجموع مبالغ</p>
+                    <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ "{:,.0f}".format((total_amount or 0)|float)|digits_to_persian }}</p>
+                </div>
+                <div class="p-3 bg-indigo-100 dark:bg-indigo-900 rounded-full">
+                    <i class="bi bi-currency-exchange text-2xl text-indigo-700 dark:text-indigo-300"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- آمار تفکیکی -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- آمار فاکتورهای ربات -->
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                <i class="bi bi-robot text-purple-500"></i>
+                فاکتورهای ربات
+            </h3>
+            <div class="space-y-3">
+                <div class="flex justify-between">
+                    <span class="text-gray-600 dark:text-gray-400">کل فاکتورها:</span>
+                    <span class="font-bold">{{ "{:,}".format(total_bot_invoices)|digits_to_persian }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600 dark:text-gray-400">مبلغ کل:</span>
+                    <span class="font-bold">{{ "{:,.0f}".format(total_bot_amount)|digits_to_persian }} تومان</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600 dark:text-gray-400">پرداخت شده:</span>
+                    <span class="text-green-600 font-bold">{{ "{:,}".format(paid_bot_invoices)|digits_to_persian }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600 dark:text-gray-400">پرداخت نشده:</span>
+                    <span class="text-red-600 font-bold">{{ "{:,}".format(unpaid_bot_invoices)|digits_to_persian }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- آمار فاکتورهای حضوری -->
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                <i class="bi bi-shop text-orange-500"></i>
+                فاکتورهای حضوری
+            </h3>
+            <div class="space-y-3">
+                <div class="flex justify-between">
+                    <span class="text-gray-600 dark:text-gray-400">کل فاکتورها:</span>
+                    <span class="font-bold">{{ "{:,}".format(total_instore_invoices)|digits_to_persian }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600 dark:text-gray-400">مبلغ کل:</span>
+                    <span class="font-bold">{{ "{:,.0f}".format(total_instore_amount)|digits_to_persian }} تومان</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600 dark:text-gray-400">پرداخت شده:</span>
+                    <span class="text-green-600 font-bold">{{ "{:,}".format(paid_instore_invoices)|digits_to_persian }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600 dark:text-gray-400">پرداخت نشده:</span>
+                    <span class="text-red-600 font-bold">{{ "{:,}".format(unpaid_instore_invoices)|digits_to_persian }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <!-- فاکتورهای اخیر -->
+    <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+            <i class="bi bi-clock-history text-indigo-500"></i>
+            فاکتورهای اخیر
+        </h3>
+        
+        <!-- تب‌های انواع فاکتور -->
+        <div class="mb-6">
+            <div class="border-b border-gray-200 dark:border-gray-700">
+                <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+                    <button onclick="showTab('bot')" id="tab-bot" class="tab-button border-b-2 border-blue-500 text-blue-600 dark:text-blue-400 whitespace-nowrap py-2 px-1 text-sm font-medium">
+                        <i class="bi bi-robot"></i>
+                        ربات ({{ recent_bot_invoices|length }})
+                    </button>
+                    <button onclick="showTab('instore')" id="tab-instore" class="tab-button border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 whitespace-nowrap py-2 px-1 text-sm font-medium">
+                        <i class="bi bi-shop"></i>
+                        حضوری ({{ recent_instore_invoices|length }})
+                    </button>
+                </nav>
+            </div>
+        </div>
+
+        <!-- محتوای تب ربات -->
+        <div id="bot-tab" class="tab-content">
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead>
+                        <tr class="border-b border-gray-200 dark:border-gray-700">
+                            <th class="text-right py-3 px-4 font-medium text-gray-900 dark:text-white">شماره فاکتور</th>
+                            <th class="text-right py-3 px-4 font-medium text-gray-900 dark:text-white">مشتری</th>
+                            <th class="text-right py-3 px-4 font-medium text-gray-900 dark:text-white">تاریخ ثبت</th>
+                            <th class="text-right py-3 px-4 font-medium text-gray-900 dark:text-white">مبلغ</th>
+                            <th class="text-right py-3 px-4 font-medium text-gray-900 dark:text-white">وضعیت</th>
+                            <th class="text-right py-3 px-4 font-medium text-gray-900 dark:text-white">عملیات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for invoice in recent_bot_invoices %}
+                        <tr class="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                            <td class="py-3 px-4">
+                                <div class="font-mono text-sm font-medium text-gray-900 dark:text-white">
+                                    {% if invoice.invoice_number %}
+                                        {{ invoice.invoice_number }}
+                                    {% else %}
+                                        BO-{{ invoice.id }}
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td class="py-3 px-4">
+                                <div>
+                                    <p class="font-medium text-gray-900 dark:text-white">{{ invoice.customer_name or 'نامشخص' }}</p>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">{{ invoice.customer_phone }}</p>
+                                </div>
+                            </td>
+                            <td class="py-3 px-4 text-gray-600 dark:text-gray-400">
+                                {{ invoice.created_at.strftime('%Y/%m/%d') }}
+                            </td>
+                            <td class="py-3 px-4 font-bold text-gray-900 dark:text-white">{{ "{:,.0f}".format(invoice.total_amount)|digits_to_persian }}</td>
+                            <td class="py-3 px-4">
+                                {% if invoice.status == 'پرداخت شده' %}
+                                    <span class="px-2 py-1 bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200 text-xs rounded-full">
+                                        <i class="bi bi-check-circle"></i>
+                                        پرداخت شده
+                                    </span>
+                                {% elif invoice.status == 'در انتظار پرداخت' %}
+                                    <span class="px-2 py-1 bg-rose-100 dark:bg-rose-900 text-rose-800 dark:text-rose-200 text-xs rounded-full">
+                                        <i class="bi bi-exclamation-triangle"></i>
+                                        پرداخت نشده
+                                    </span>
+                                {% else %}
+                                    <span class="px-2 py-1 bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 text-xs rounded-full">
+                                        <i class="bi bi-clock"></i>
+                                        {{ invoice.status }}
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="py-3 px-4">
+                                <div class="flex gap-2">
+                                    <a href="{{ url_for('bot_orders.detail', order_id=invoice.id) }}" 
+                                       class="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs rounded-full hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors">
+                                        <i class="bi bi-eye"></i>
+                                        مشاهده
+                                    </a>
+                                    <a href="{{ url_for('financial_reports.customer_single_order_print', customer_id=invoice.customer_id, order_type='bot', order_id=invoice.id) }}" 
+                                       class="px-3 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 text-xs rounded-full hover:bg-green-200 dark:hover:bg-green-800 transition-colors">
+                                        <i class="bi bi-printer"></i>
+                                        پرینت
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="py-8 text-center text-gray-500 dark:text-gray-400">
+                                <i class="bi bi-robot text-4xl mb-2 block"></i>
+                                <p>هیچ فاکتور رباتی یافت نشد</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- محتوای تب حضوری -->
+        <div id="instore-tab" class="tab-content hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead>
+                        <tr class="border-b border-gray-200 dark:border-gray-700">
+                            <th class="text-right py-3 px-4 font-medium text-gray-900 dark:text-white">شماره فاکتور</th>
+                            <th class="text-right py-3 px-4 font-medium text-gray-900 dark:text-white">مشتری</th>
+                            <th class="text-right py-3 px-4 font-medium text-gray-900 dark:text-white">تاریخ ثبت</th>
+                            <th class="text-right py-3 px-4 font-medium text-gray-900 dark:text-white">مبلغ</th>
+                            <th class="text-right py-3 px-4 font-medium text-gray-900 dark:text-white">وضعیت</th>
+                            <th class="text-right py-3 px-4 font-medium text-gray-900 dark:text-white">عملیات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for invoice in recent_instore_invoices %}
+                        <tr class="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                            <td class="py-3 px-4">
+                                <div class="font-mono text-sm font-medium text-gray-900 dark:text-white">
+                                    {% if invoice.invoice_number %}
+                                        {{ invoice.invoice_number }}
+                                    {% else %}
+                                        IS-{{ invoice.id }}
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td class="py-3 px-4">
+                                <div>
+                                    <p class="font-medium text-gray-900 dark:text-white">{{ invoice.customer.full_name if invoice.customer else 'نامشخص' }}</p>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">{{ invoice.customer.phone_number if invoice.customer else '' }}</p>
+                                </div>
+                            </td>
+                            <td class="py-3 px-4 text-gray-600 dark:text-gray-400">
+                                {{ invoice.created_at.strftime('%Y/%m/%d') }}
+                            </td>
+                            <td class="py-3 px-4 font-bold text-gray-900 dark:text-white">{{ "{:,.0f}".format(invoice.total_price)|digits_to_persian }}</td>
+                            <td class="py-3 px-4">
+                                {% if invoice.status == 'تکمیل شده' %}
+                                    <span class="px-2 py-1 bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200 text-xs rounded-full">
+                                        <i class="bi bi-check-circle"></i>
+                                        تکمیل شده
+                                    </span>
+                                {% elif invoice.status == 'جدید' %}
+                                    <span class="px-2 py-1 bg-rose-100 dark:bg-rose-900 text-rose-800 dark:text-rose-200 text-xs rounded-full">
+                                        <i class="bi bi-exclamation-triangle"></i>
+                                        جدید
+                                    </span>
+                                {% else %}
+                                    <span class="px-2 py-1 bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 text-xs rounded-full">
+                                        <i class="bi bi-clock"></i>
+                                        {{ invoice.status }}
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="py-3 px-4">
+                                <div class="flex gap-2">
+                                    <a href="{{ url_for('instore_orders.invoice', order_id=invoice.id) }}" 
+                                       class="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs rounded-full hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors">
+                                        <i class="bi bi-eye"></i>
+                                        مشاهده
+                                    </a>
+                                    <a href="{{ url_for('financial_reports.customer_single_order_print', customer_id=invoice.customer.id if invoice.customer else 0, order_type='instore', order_id=invoice.id) }}" 
+                                       class="px-3 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 text-xs rounded-full hover:bg-green-200 dark:hover:bg-green-800 transition-colors">
+                                        <i class="bi bi-printer"></i>
+                                        پرینت
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="py-8 text-center text-gray-500 dark:text-gray-400">
+                                <i class="bi bi-shop text-4xl mb-2 block"></i>
+                                <p>هیچ فاکتور حضوری یافت نشد</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- دکمه‌های عملیات -->
+    <div class="flex flex-wrap gap-4">
+        <a href="{{ url_for('financial_reports.index') }}" 
+           class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg transition-colors duration-200 flex items-center gap-2">
+            <i class="bi bi-arrow-right"></i>
+            بازگشت به داشبورد
+        </a>
+    </div>
+</div>
+
+<!-- تابع تغییر تب -->
+<script>
+function showTab(tabName) {
+    // مخفی کردن همه تب‌ها
+    const tabContents = document.querySelectorAll('.tab-content');
+    tabContents.forEach(function(content) {
+        content.classList.add('hidden');
+    });
+    
+    // حذف کلاس فعال از همه دکمه‌ها
+    const tabButtons = document.querySelectorAll('.tab-button');
+    tabButtons.forEach(function(button) {
+        button.classList.remove('border-blue-500', 'text-blue-600', 'dark:text-blue-400');
+        button.classList.add('border-transparent', 'text-gray-500', 'dark:text-gray-400');
+    });
+    
+    // نمایش تب انتخاب شده
+    document.getElementById(tabName + '-tab').classList.remove('hidden');
+    
+    // فعال کردن دکمه انتخاب شده
+    document.getElementById('tab-' + tabName).classList.remove('border-transparent', 'text-gray-500', 'dark:text-gray-400');
+    document.getElementById('tab-' + tabName).classList.add('border-blue-500', 'text-blue-600', 'dark:text-blue-400');
+}
+</script>
+{% endblock %} 

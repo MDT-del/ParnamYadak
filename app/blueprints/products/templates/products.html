@@ -1,0 +1,229 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block page_title %}
+<div class="flex items-center space-x-3 space-x-reverse">
+    <div class="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl text-white">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+        </svg>
+    </div>
+    <div>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">مدیریت محصولات</h1>
+        <p class="text-gray-600 dark:text-gray-400">افزودن، ویرایش و مدیریت محصولات فروشگاه</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="p-4 rounded-xl border-l-4 {% if category == 'success' %}bg-green-50 border-green-400 text-green-800 dark:bg-green-900/20 dark:border-green-500 dark:text-green-300{% else %}bg-red-50 border-red-400 text-red-800 dark:bg-red-900/20 dark:border-red-500 dark:text-red-300{% endif %}">
+                    <div class="flex items-center">
+                        <svg class="w-5 h-5 ml-2" fill="currentColor" viewBox="0 0 20 20">
+                            {% if category == 'success' %}
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                            {% else %}
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                            {% endif %}
+                        </svg>
+                        <span class="font-medium">{{ message }}</span>
+                    </div>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- بخش بارگذاری اکسل -->
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div class="bg-gradient-to-r from-teal-500 to-cyan-600 px-6 py-4">
+            <h2 class="text-xl font-semibold text-white flex items-center">
+                <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                </svg>
+                ورود دسته‌ای محصولات
+            </h2>
+        </div>
+        <div class="p-6">
+            <form action="{{ url_for('products.upload_excel') }}" method="POST" enctype="multipart/form-data" class="flex flex-col sm:flex-row items-center gap-4">
+                <div class="flex-1 w-full">
+                    <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">فایل اکسل محصولات</label>
+                    <input type="file" name="excel_file" required 
+                           class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent dark:bg-gray-700 dark:text-white transition-all duration-200" 
+                           accept=".xlsx">
+                </div>
+                <button type="submit" class="w-full sm:w-auto bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 text-white font-semibold py-3 px-8 rounded-xl transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2">
+                    <svg class="w-5 h-5 ml-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                    </svg>
+                    بارگذاری
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+        <!-- فرم افزودن محصول -->
+        <div class="xl:col-span-1">
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden sticky top-6">
+                <div class="bg-gradient-to-r from-purple-500 to-pink-600 px-6 py-4">
+                    <h2 class="text-xl font-semibold text-white flex items-center">
+                        <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                        </svg>
+                        افزودن محصول جدید
+                    </h2>
+                </div>
+                <div class="p-6">
+                    <form method="POST" action="{{ url_for('products.index') }}" class="space-y-6" enctype="multipart/form-data">
+                        {{ form.hidden_tag() }}
+                        
+                        <div>
+                            {{ form.name.label(class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2") }}
+                            {{ form.name(class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white transition-all duration-200", placeholder="نام محصول") }}
+                        </div>
+                        
+                        <div>
+                            {{ form.categories.label(class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2") }}
+                            {{ form.categories(class="choices-select w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white transition-all duration-200", size=5) }}
+                        </div>
+                        
+                        <div>
+                            {{ form.picture.label(class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2") }}
+                            {{ form.picture(class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white transition-all duration-200") }}
+                        </div>
+                        
+                        <div>
+                            {{ form.description.label(class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2") }}
+                            {{ form.description(class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white transition-all duration-200", rows="4", placeholder="توضیحات محصول") }}
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                {{ form.price.label(class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2") }}
+                                {{ form.price(class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white transition-all duration-200", placeholder="قیمت") }}
+                            </div>
+                            <div>
+                                {{ form.stock.label(class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2") }}
+                                {{ form.stock(class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white transition-all duration-200", placeholder="موجودی") }}
+                            </div>
+                        </div>
+                        
+                        {{ form.submit(class="w-full bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2") }}
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- لیست محصولات -->
+        <div class="xl:col-span-2">
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="bg-gradient-to-r from-indigo-500 to-purple-600 px-6 py-4">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-xl font-semibold text-white flex items-center">
+                            <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                            </svg>
+                            لیست محصولات
+                        </h2>
+                        <span class="bg-white/20 text-white px-3 py-1 rounded-full text-sm font-medium">
+                            {{ products|length }} محصول
+                        </span>
+                    </div>
+                </div>
+                <div class="p-6">
+                    {% if products %}
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {% for product in products %}
+                            <div class="bg-gray-50 dark:bg-gray-700 rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 border border-gray-200 dark:border-gray-600 group">
+                                <div class="relative">
+                                    <img class="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300" 
+                                         src="{{ url_for('static', filename='product_pics/' + product.image_file) }}" 
+                                         alt="{{ product.name }}">
+                                    <div class="absolute top-2 right-2">
+                                        <span class="bg-green-500 text-white px-2 py-1 rounded-full text-xs font-semibold">
+                                            {{ "{:,.0f}".format(product.price)|digits_to_persian }} تومان
+                                        </span>
+                                    </div>
+                                    <div class="absolute top-2 left-2">
+                                        <span class="bg-blue-500 text-white px-2 py-1 rounded-full text-xs font-semibold">
+                                            {{ product.stock }} عدد
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="p-4">
+                                    <h3 class="font-semibold text-gray-900 dark:text-white text-lg mb-2 line-clamp-2">{{ product.name }}</h3>
+                                    
+                                    <div class="mb-3">
+                                        {% for category in product.categories %}
+                                            <span class="inline-block bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 text-xs px-2 py-1 rounded-full font-medium mb-1">
+                                                {{ category.name }}
+                                            </span>
+                                        {% endfor %}
+                                    </div>
+                                    
+                                    {% if product.description %}
+                                        <p class="text-gray-600 dark:text-gray-400 text-sm mb-4 line-clamp-2">{{ product.description }}</p>
+                                    {% endif %}
+                                    
+                                    <div class="flex items-center justify-between pt-3 border-t border-gray-200 dark:border-gray-600">
+                                        <div class="flex space-x-2 space-x-reverse">
+                                            <a href="{{ url_for('products.edit_product', product_id=product.id) }}" 
+                                               class="inline-flex items-center px-3 py-2 text-sm font-medium text-blue-700 bg-blue-100 hover:bg-blue-200 dark:text-blue-300 dark:bg-blue-900 dark:hover:bg-blue-800 rounded-lg transition-colors duration-200">
+                                                <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                                </svg>
+                                                ویرایش
+                                            </a>
+                                            <form method="POST" action="{{ url_for('products.delete_product', product_id=product.id) }}" 
+                                                  class="inline-block" 
+                                                  onsubmit="return confirm('⚠️ آیا از حذف این محصول اطمینان دارید؟');">
+                                                <button type="submit" 
+                                                        class="inline-flex items-center px-3 py-2 text-sm font-medium text-red-700 bg-red-100 hover:bg-red-200 dark:text-red-300 dark:bg-red-900 dark:hover:bg-red-800 rounded-lg transition-colors duration-200">
+                                                    <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                                    </svg>
+                                                    حذف
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-12">
+                            <div class="w-24 h-24 mx-auto mb-4 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
+                                <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                                </svg>
+                            </div>
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">هیچ محصولی یافت نشد</h3>
+                            <p class="text-gray-600 dark:text-gray-400">برای شروع، یک محصول جدید اضافه کنید</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .line-clamp-2 {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    
+    .sticky {
+        position: sticky;
+        top: 1.5rem;
+    }
+</style>
+{% endblock %}

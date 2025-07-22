@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <style>
+        @media print {
+            body { margin: 0; }
+            .no-print { display: none !important; }
+        }
+        
+        body {
+            font-family: 'Tahoma', 'Arial', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: white;
+            color: #333;
+        }
+        
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #333;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            color: #333;
+        }
+        
+        .header p {
+            margin: 5px 0;
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .customer-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        
+        .customer-info h3 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+        
+        .customer-info p {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .stat-item {
+            background: #e9ecef;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+            min-width: 120px;
+            margin: 5px;
+        }
+        
+        .stat-item h4 {
+            margin: 0;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .stat-item p {
+            margin: 5px 0 0 0;
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .orders-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        .orders-table th,
+        .orders-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: right;
+            font-size: 12px;
+        }
+        
+        .orders-table th {
+            background: #f8f9fa;
+            font-weight: bold;
+        }
+        
+        .orders-table tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+        
+        .order-type {
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: bold;
+        }
+        
+        .type-telegram { background: #d1ecf1; color: #0c5460; }
+        .type-instore { background: #d4edda; color: #155724; }
+        .type-bot { background: #e2d9f3; color: #6f42c1; }
+        
+        .status {
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: bold;
+        }
+        
+        .status-completed { background: #d4edda; color: #155724; }
+        .status-pending { background: #fff3cd; color: #856404; }
+        .status-cancelled { background: #f8d7da; color: #721c24; }
+        
+        .footer {
+            margin-top: 30px;
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+            border-top: 1px solid #ddd;
+            padding-top: 20px;
+        }
+        
+        .print-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .print-btn:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <button onclick="window.print()" class="print-btn no-print">پرینت</button>
+    
+    <div class="header">
+        <h1>تاریخچه سفارشات مشتری</h1>
+        <p>تاریخ گزارش: {{ moment().format('jYYYY/jMM/jDD - HH:mm') }}</p>
+    </div>
+    
+    <div class="customer-info">
+        <h3>اطلاعات مشتری</h3>
+        <p><strong>نام:</strong> {{ customer.full_name }}</p>
+        <p><strong>شماره تلفن:</strong> {{ customer.phone_number or 'نامشخص' }}</p>
+        <p><strong>آدرس:</strong> {{ customer.address or 'نامشخص' }}</p>
+        <p><strong>تاریخ ثبت‌نام:</strong> {{ customer.registration_date|to_shamsi('%Y/%m/%d') }}</p>
+        <p><strong>سطح مشتری:</strong> {{ customer.customer_level }}</p>
+    </div>
+    
+    <div class="stats">
+        <div class="stat-item">
+            <h4>کل سفارشات</h4>
+            <p>{{ total_orders }}</p>
+        </div>
+        <div class="stat-item">
+            <h4>سفارشات تکمیل شده</h4>
+            <p>{{ completed_orders }}</p>
+        </div>
+        <div class="stat-item">
+            <h4>کل مبلغ</h4>
+            <p>{{ "{:,}".format(total_amount|int) }} تومان</p>
+        </div>
+        <div class="stat-item">
+            <h4>مبلغ تکمیل شده</h4>
+            <p>{{ "{:,}".format(completed_amount|int) }} تومان</p>
+        </div>
+    </div>
+    
+    {% if orders %}
+    <table class="orders-table">
+        <thead>
+            <tr>
+                <th>شماره سفارش</th>
+                <th>تاریخ</th>
+                <th>نوع</th>
+                <th>مبلغ</th>
+                <th>وضعیت</th>
+                <th>جزئیات</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for order in orders %}
+            <tr>
+                <td>#{{ order.id }}</td>
+                <td>{{ order.date|to_shamsi('%Y/%m/%d - %H:%M') }}</td>
+                <td>
+                    <span class="order-type type-{{ order.type|lower }}">
+                        {{ order.type }}
+                    </span>
+                </td>
+                <td>{{ "{:,}".format(order.total_price|int) }} تومان</td>
+                <td>
+                    <span class="status 
+                        {% if order.status in ['تکمیل شده', 'تحویل داده شده', 'پرداخت شده'] %}status-completed
+                        {% elif order.status in ['در حال بررسی', 'تایید شده'] %}status-pending
+                        {% else %}status-cancelled{% endif %}">
+                        {{ order.status }}
+                    </span>
+                </td>
+                <td>
+                    {% if order.items %}
+                        {% for item in order.items %}
+                            {% if order.type == 'تلگرام' %}
+                                {{ item.product.name }} ({{ item.quantity }} عدد)
+                            {% elif order.type == 'حضوری' %}
+                                {{ item.name }} ({{ item.qty }} عدد)
+                            {% else %}
+                                {{ item.name }} ({{ item.quantity }} عدد)
+                            {% endif %}
+                            {% if not loop.last %}<br>{% endif %}
+                        {% endfor %}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div style="text-align: center; padding: 40px; color: #666;">
+        <h3>هیچ سفارشی یافت نشد</h3>
+        <p>این مشتری هنوز سفارشی ثبت نکرده است.</p>
+    </div>
+    {% endif %}
+    
+    <div class="footer">
+        <p>این گزارش در تاریخ {{ moment().format('jYYYY/jMM/jDD - HH:mm') }} تولید شده است.</p>
+        <p>سیستم مدیریت فروش نیکا یدک</p>
+    </div>
+</body>
+</html> 

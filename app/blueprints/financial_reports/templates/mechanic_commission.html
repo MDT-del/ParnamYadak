@@ -1,0 +1,306 @@
+{% extends "base.html" %}
+
+{% block title %}جزییات کمیسیون مکانیک{% endblock %}
+
+{% block page_title %}جزییات کمیسیون مکانیک{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <a href="{{ url_for('financial_reports.commission_payments') }}" class="inline-flex items-center px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 mb-4">
+        <i class="bi bi-arrow-right ml-2"></i> بازگشت
+    </a>
+    <!-- اطلاعات مکانیک -->
+    <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg flex flex-col items-center gap-4">
+        <div class="flex-shrink-0 h-20 w-20 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-3xl mb-2">
+            {{ mechanic.first_name[0] }}{% if mechanic.last_name %}{{ mechanic.last_name[0] }}{% endif %}
+        </div>
+        <div class="flex flex-col items-center gap-1">
+            <div class="text-xl font-bold text-gray-900 dark:text-white">{{ mechanic.full_name }}</div>
+            <div class="text-gray-600 dark:text-gray-300">شماره تماس: <span dir="ltr">{{ mechanic.phone_number|digits_to_persian }}</span></div>
+            <div class="text-gray-600 dark:text-gray-300">درصد کمیسیون: {{ mechanic.commission_percentage|digits_to_persian }}%</div>
+            {% if mechanic.card_number %}
+            <div class="text-gray-600 dark:text-gray-300">کارت: {{ mechanic.card_number|digits_to_persian }}</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- آمار کلی -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-blue-100 dark:bg-blue-900/30 p-4 rounded-xl text-center">
+            <div class="text-sm text-blue-700 dark:text-blue-300">تعداد سفارشات</div>
+            <div class="text-2xl font-bold">{{ total_orders|format_price_fa|digits_to_persian }}</div>
+        </div>
+        <div class="bg-orange-100 dark:bg-orange-900/30 p-4 rounded-xl text-center">
+            <div class="text-sm text-orange-700 dark:text-orange-300">جمع کمیسیون سفارشات</div>
+            <div class="text-2xl font-bold">{{ total_commission|format_price|digits_to_persian }} تومان</div>
+        </div>
+        <div class="bg-green-100 dark:bg-green-900/30 p-4 rounded-xl text-center">
+            <div class="text-sm text-green-700 dark:text-green-300">جمع پرداخت شده</div>
+            <div class="text-2xl font-bold">{{ transactions|selectattr('transaction_type', 'equalto', 'commission_payment')|map(attribute='amount')|sum|format_price|digits_to_persian }} تومان</div>
+        </div>
+    </div>
+
+    <!-- لیست سفارشات -->
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4">
+        <h3 class="text-lg font-bold mb-4">سفارشات مکانیک (۳۰ روز اخیر)</h3>
+        {% if orders %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700" dir="rtl">
+                <thead class="bg-gray-50 dark:bg-gray-700">
+                    <tr>
+                        <th class="px-4 py-2 text-center">#</th>
+                        <th class="px-4 py-2 text-center">تاریخ</th>
+                        <th class="px-4 py-2 text-center">مبلغ سفارش</th>
+                        <th class="px-4 py-2 text-center">کمیسیون</th>
+                        <th class="px-4 py-2 text-center">وضعیت</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700" dir="rtl">
+                    {% for order in orders %}
+                    <tr>
+                        <td class="px-4 py-2 text-center">{{ loop.index }}</td>
+                        <td class="px-4 py-2 text-center">{{ order.created_at|to_shamsi|digits_to_persian }}</td>
+                        <td class="px-4 py-2 text-center">{{ order.total_amount|format_price|digits_to_persian }} تومان</td>
+                        <td class="px-4 py-2 text-center">{{ order.commission_amount|format_price|digits_to_persian }} تومان</td>
+                        <td class="px-4 py-2 text-center">
+                            {% if order.commission_amount and order.commission_amount > 0 %}
+                                <span class="text-orange-600">معوق</span>
+                            {% else %}
+                                <span class="text-green-600">پرداخت شده</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center text-gray-500 dark:text-gray-400 py-8">سفارشی یافت نشد.</div>
+        {% endif %}
+    </div>
+
+    <!-- لیست پرداخت‌ها -->
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4">
+        <h3 class="text-lg font-bold mb-4">پرداخت‌های انجام شده</h3>
+        {% if transactions %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700" dir="rtl">
+                <thead class="bg-gray-50 dark:bg-gray-700">
+                    <tr>
+                        <th class="px-4 py-2 text-center">#</th>
+                        <th class="px-4 py-2 text-center">تاریخ</th>
+                        <th class="px-4 py-2 text-center">مبلغ</th>
+                        <th class="px-4 py-2 text-center">روش پرداخت</th>
+                        <th class="px-4 py-2 text-center">توضیحات</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700" dir="rtl">
+                    {% for t in transactions if t.transaction_type == 'commission_payment' %}
+                    <tr>
+                        <td class="px-4 py-2 text-center">{{ loop.index }}</td>
+                        <td class="px-4 py-2 text-center">{{ t.created_at|to_shamsi|digits_to_persian }}</td>
+                        <td class="px-4 py-2 text-center">{{ t.amount|format_price|digits_to_persian }} تومان</td>
+                        <td class="px-4 py-2 text-center">{{ t.payment_method|payment_method_fa }}</td>
+                        <td class="px-4 py-2 text-center">{{ t.notes or '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center text-gray-500 dark:text-gray-400 py-8">پرداختی ثبت نشده است.</div>
+        {% endif %}
+    </div>
+
+    <!-- دکمه ثبت پرداخت جدید -->
+    <div class="flex justify-end">
+        <button onclick="openPaymentModal()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors mb-4 flex items-center gap-2">
+            <i class="bi bi-plus-circle"></i>
+            ثبت پرداخت جدید
+        </button>
+    </div>
+
+    <!-- مودال ثبت پرداخت -->
+    <div id="paymentModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50 flex items-center justify-center">
+        <div class="relative mx-auto p-6 border w-full max-w-md shadow-lg rounded-md bg-white dark:bg-gray-800">
+            <div class="mt-3">
+                <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">ثبت پرداخت کمیسیون</h3>
+                <form id="paymentForm" enctype="multipart/form-data" action="{{ url_for('financial_reports.pay_commission_detailed', mechanic_id=mechanic.id) }}" method="POST">
+                    <!-- انتخاب سفارشات معوق -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">انتخاب سفارش/سفارشات معوق <span class="text-red-500">*</span></label>
+                        <div id="ordersList" class="flex flex-col gap-2 max-h-32 overflow-y-auto">
+                            {% for order in orders if order.commission_amount and order.commission_amount > 0 %}
+                            <label class="flex items-center gap-2">
+                                <input type="checkbox" name="order_ids" value="{{ order.id }}" class="order-checkbox" data-commission="{{ order.commission_amount }}">
+                                سفارش #{{ order.id }} - {{ order.commission_amount|format_price|digits_to_persian }} تومان
+                            </label>
+                            {% endfor %}
+                        </div>
+                        <div class="text-xs text-gray-500 mt-1">جمع کمیسیون انتخاب‌شده: <span id="selectedCommissionSum">۰</span> تومان</div>
+                    </div>
+                    <!-- مبلغ پرداختی -->
+                    <div class="mb-4">
+                        <label for="amount" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">مبلغ پرداختی <span class="text-red-500">*</span></label>
+                        <input type="number" id="amount" name="amount" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white" min="0" required>
+                    </div>
+                    <!-- روش پرداخت -->
+                    <div class="mb-4">
+                        <label for="paymentMethod" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">روش پرداخت <span class="text-red-500">*</span></label>
+                        <select id="paymentMethod" name="payment_method" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white" required>
+                            <option value="">انتخاب کنید...</option>
+                            <option value="bank_transfer">انتقال بانکی</option>
+                            <option value="cash">نقدی</option>
+                            <option value="check">چک</option>
+                            <option value="other">سایر</option>
+                        </select>
+                    </div>
+                    <!-- شماره کارت مبدا (در صورت انتقال بانکی) -->
+                    <div class="mb-4 hidden" id="cardNumberBox">
+                        <label for="cardNumber" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">شماره کارت مبدا <span class="text-red-500">*</span></label>
+                        <input type="text" id="cardNumber" name="card_number" maxlength="16" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white">
+                    </div>
+                    <!-- شماره چک (در صورت چک) -->
+                    <div class="mb-4 hidden" id="checkNumberBox">
+                        <label for="checkNumber" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">شماره چک <span class="text-red-500">*</span></label>
+                        <input type="text" id="checkNumber" name="check_number" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white">
+                    </div>
+                    <!-- بارگذاری فیش واریز -->
+                    <div class="mb-4">
+                        <label for="receiptImage" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">بارگذاری فیش واریز (اختیاری)</label>
+                        <input type="file" id="receiptImage" name="receipt_image" accept="image/*" class="w-full">
+                    </div>
+                    <!-- شماره پیگیری -->
+                    <div class="mb-4">
+                        <label for="trackingNumber" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">شماره پیگیری <span class="text-red-500">*</span></label>
+                        <input type="text" id="trackingNumber" name="tracking_number" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white" required>
+                    </div>
+                    <!-- تاریخ واریز -->
+                    <div class="mb-4">
+                        <label for="paymentDate" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">تاریخ واریز <span class="text-red-500">*</span></label>
+                        <input type="text" id="paymentDate" name="payment_date" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white" placeholder="تاریخ شمسی" required>
+                    </div>
+                    <!-- توضیحات -->
+                    <div class="mb-4">
+                        <label for="notes" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">توضیحات (اختیاری)</label>
+                        <textarea id="notes" name="notes" rows="2" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"></textarea>
+                    </div>
+                    <div class="flex justify-end gap-2">
+                        <button type="button" onclick="closePaymentModal()" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors">انصراف</button>
+                        <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors">ثبت پرداخت</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    function openPaymentModal() {
+        document.getElementById('paymentModal').classList.remove('hidden');
+    }
+    function closePaymentModal() {
+        document.getElementById('paymentModal').classList.add('hidden');
+    }
+    
+    // جمع کمیسیون انتخاب‌شده
+    function updateSelectedCommissionSum() {
+        let sum = 0;
+        document.querySelectorAll('.order-checkbox:checked').forEach(cb => {
+            const commission = parseInt(cb.getAttribute('data-commission') || '0');
+            sum += commission;
+        });
+        selectedCommissionSum.textContent = sum.toLocaleString('fa-IR').replace(/\.0$/, '');
+        amountInput.value = sum;
+    }
+    
+    const selectedCommissionSum = document.getElementById('selectedCommissionSum');
+    const amountInput = document.getElementById('amount');
+    
+    // اضافه کردن event listener به هر checkbox
+    document.querySelectorAll('.order-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', updateSelectedCommissionSum);
+    });
+    
+    // اعتبارسنجی داینامیک روش پرداخت
+    const paymentMethod = document.getElementById('paymentMethod');
+    const cardNumberBox = document.getElementById('cardNumberBox');
+    const checkNumberBox = document.getElementById('checkNumberBox');
+    paymentMethod.addEventListener('change', function() {
+        cardNumberBox.classList.add('hidden');
+        checkNumberBox.classList.add('hidden');
+        document.getElementById('cardNumber').required = false;
+        document.getElementById('checkNumber').required = false;
+        if (this.value === 'bank_transfer') {
+            cardNumberBox.classList.remove('hidden');
+            document.getElementById('cardNumber').required = true;
+        } else if (this.value === 'check') {
+            checkNumberBox.classList.remove('hidden');
+            document.getElementById('checkNumber').required = true;
+        }
+    });
+    
+    // بستن مودال با کلیک بیرون
+    document.getElementById('paymentModal').addEventListener('click', function(e) {
+        if (e.target === this) closePaymentModal();
+    });
+    
+    // ارسال فرم پرداخت
+    document.getElementById('paymentForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // بررسی انتخاب حداقل یک سفارش
+        const selectedOrders = document.querySelectorAll('.order-checkbox:checked');
+        if (selectedOrders.length === 0) {
+            alert('لطفاً حداقل یک سفارش معوق انتخاب کنید');
+            return;
+        }
+        
+        // نمایش loading
+        const submitBtn = this.querySelector('button[type="submit"]');
+        const originalText = submitBtn.textContent;
+        submitBtn.textContent = 'در حال ثبت...';
+        submitBtn.disabled = true;
+        
+        // ارسال فرم
+        const formData = new FormData(this);
+        
+        fetch(this.action, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                closePaymentModal();
+                // رفرش صفحه برای نمایش تغییرات
+                window.location.reload();
+            } else {
+                alert('خطا: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('خطا در ارتباط با سرور');
+        })
+        .finally(() => {
+            submitBtn.textContent = originalText;
+            submitBtn.disabled = false;
+        });
+    });
+    </script>
+
+    <!-- تقویم شمسی -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@majidh1/jalalidatepicker/dist/jalalidatepicker.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@majidh1/jalalidatepicker/dist/jalalidatepicker.min.js"></script>
+    <script>
+        // راه‌اندازی تقویم شمسی برای فیلد تاریخ
+        jalaliDatepicker.startWatch({
+            selector: '#paymentDate',
+            time: false,
+            lang: 'fa',
+            theme: 'light',
+        });
+    </script>
+</div>
+{% endblock %} 

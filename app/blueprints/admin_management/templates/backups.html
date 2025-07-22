@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block page_title %}بک‌آپ‌های دیتابیس{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8">
+        <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-6">لیست بک‌آپ‌ها</h2>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead>
+                    <tr>
+                        <th class="px-4 py-2">نام فایل</th>
+                        <th class="px-4 py-2">زمان ایجاد</th>
+                        <th class="px-4 py-2">وضعیت دانلود</th>
+                        <th class="px-4 py-2">دانلودکننده</th>
+                        <th class="px-4 py-2">عملیات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for b in backups %}
+                    <tr class="bg-white dark:bg-gray-800">
+                        <td class="px-4 py-2">{{ b.filename }}</td>
+                        <td class="px-4 py-2">{{ b.created_at|to_jalali_datetime }}</td>
+                        <td class="px-4 py-2">
+                            {% if b.is_downloaded %}
+                                <span class="text-green-600 font-bold">دانلود شده</span>
+                            {% else %}
+                                <span class="text-yellow-600 font-bold">دانلود نشده</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-2">{{ b.downloader.username if b.downloader else '-' }}</td>
+                        <td class="px-4 py-2">
+                            <a href="{{ url_for('admin_management.download_backup', backup_id=b.id) }}" class="text-indigo-600 hover:text-indigo-800 font-bold">دانلود</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %} 

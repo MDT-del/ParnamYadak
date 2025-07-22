@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <style>
+        @media print {
+            body { margin: 0; }
+            .no-print { display: none !important; }
+        }
+        
+        body {
+            font-family: 'Tahoma', 'Arial', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: white;
+            color: #333;
+        }
+        
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #333;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            color: #333;
+        }
+        
+        .header p {
+            margin: 5px 0;
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .order-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .customer-details, .order-details {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            flex: 1;
+            margin: 5px;
+        }
+        
+        .customer-details h3, .order-details h3 {
+            margin: 0 0 10px 0;
+            color: #333;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+        }
+        
+        .customer-details p, .order-details p {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+        
+        .order-type {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .type-telegram { background: #d1ecf1; color: #0c5460; }
+        .type-instore { background: #d4edda; color: #155724; }
+        .type-bot { background: #e2d9f3; color: #6f42c1; }
+        
+        .status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .status-completed { background: #d4edda; color: #155724; }
+        .status-pending { background: #fff3cd; color: #856404; }
+        .status-cancelled { background: #f8d7da; color: #721c24; }
+        
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .items-table th,
+        .items-table td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: right;
+            font-size: 14px;
+        }
+        
+        .items-table th {
+            background: #2c3e50;
+            color: white;
+            font-weight: bold;
+            text-align: center;
+        }
+        
+        .items-table tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+        
+        .items-table tr:hover {
+            background: #e9ecef;
+        }
+        
+        .total-section {
+            margin-top: 20px;
+            text-align: left;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            border: 2px solid #dee2e6;
+        }
+        
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #dee2e6;
+            font-size: 16px;
+        }
+        
+        .total-row:last-child {
+            border-bottom: 2px solid #2c3e50;
+            font-weight: bold;
+            font-size: 18px;
+            color: #2c3e50;
+        }
+        
+        .footer {
+            margin-top: 30px;
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+            border-top: 1px solid #ddd;
+            padding-top: 20px;
+        }
+        
+        .print-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            box-shadow: 0 4px 8px rgba(0,123,255,0.3);
+            transition: all 0.3s ease;
+        }
+        
+        .print-btn:hover {
+            background: linear-gradient(135deg, #0056b3, #004085);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,123,255,0.4);
+        }
+    </style>
+</head>
+<body>
+    <button onclick="window.print()" class="print-btn no-print">پرینت</button>
+    
+    <div class="header">
+        <h1>فاکتور سفارش {{ order.type }}</h1>
+        <p>شماره فاکتور: {{ order.id }}</p>
+        <p>تاریخ فاکتور: {{ order.date|to_shamsi('%Y/%m/%d - %H:%M') }}</p>
+    </div>
+    
+    <div class="order-info">
+        <div class="customer-details">
+            <h3>اطلاعات مشتری</h3>
+            <p><strong>نام:</strong> {{ customer.full_name }}</p>
+            <p><strong>شماره تلفن:</strong> {{ customer.phone_number or 'نامشخص' }}</p>
+            <p><strong>آدرس:</strong>
+                {% if customer.address %}
+                    {{ customer.address }}
+                {% elif mechanic and mechanic.shop_address %}
+                    {{ mechanic.shop_address }}
+                {% else %}
+                    نامشخص
+                {% endif %}
+            </p>
+        </div>
+        
+        <div class="order-details">
+            <h3>اطلاعات سفارش</h3>
+            <span class="order-type type-{{ order.type|lower }}">{{ order.type }}</span>
+            <p><strong>شماره سفارش:</strong> #{{ order.id }}</p>
+            <p><strong>شماره فاکتور:</strong> #{{ order.id }}</p>
+            <p><strong>تاریخ سفارش:</strong> {{ order.date|to_shamsi('%Y/%m/%d - %H:%M') }}</p>
+            <p><strong>وضعیت:</strong> 
+                <span class="status 
+                    {% if order.status in ['تکمیل شده', 'تحویل داده شده', 'پرداخت شده'] %}status-completed
+                    {% elif order.status in ['در حال بررسی', 'تایید شده'] %}status-pending
+                    {% else %}status-cancelled{% endif %}">
+                    {{ order.status }}
+                </span>
+            </p>
+        </div>
+    </div>
+    
+    {% if order.items %}
+    <table class="items-table">
+        <thead>
+            <tr>
+                <th>ردیف</th>
+                <th>نام محصول</th>
+                <th>تعداد</th>
+                <th>قیمت واحد</th>
+                <th>قیمت کل</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in order['items'] %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>
+                    {% if order.type == 'حضوری' %}
+                        {{ item.name if item.name is defined else item['name'] if item['name'] is defined else 'نامشخص' }}
+                    {% else %}
+                        {{ item.product_name if item.product_name is defined else item['product_name'] if item['product_name'] is defined else 'نامشخص' }}
+                    {% endif %}
+                </td>
+                <td>
+                    {% if order.type == 'حضوری' %}
+                        {{ item.qty if item.qty is defined else item['qty'] if item['qty'] is defined else 0 }}
+                    {% else %}
+                        {{ item.quantity if item.quantity is defined else item['quantity'] if item['quantity'] is defined else 0 }}
+                    {% endif %}
+                </td>
+                <td>
+                    {% if order.type == 'حضوری' %}
+                        {% set price = item.price if item.price is defined else item['price'] if item['price'] is defined else 0 %}
+                    {% else %}
+                        {% set price = item.unit_price if item.unit_price is defined else item['unit_price'] if item['unit_price'] is defined else 0 %}
+                    {% endif %}
+                    {{ "{:,}".format(price|int) }} تومان
+                </td>
+                <td>
+                    {% if order.type == 'حضوری' %}
+                        {% set price = item.price if item.price is defined else item['price'] if item['price'] is defined else 0 %}
+                        {% set qty = item.qty if item.qty is defined else item['qty'] if item['qty'] is defined else 0 %}
+                        {% set total = price * qty %}
+                    {% else %}
+                        {% set total = item.total_price if item.total_price is defined else item['total_price'] if item['total_price'] is defined else 0 %}
+                    {% endif %}
+                    {{ "{:,}".format(total|int) }} تومان
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <div class="total-section">
+        <div class="total-row">
+            <span>مجموع:</span>
+            <span>{{ "{:,}".format(order.total_price|int) }} تومان</span>
+        </div>
+        <div class="total-row">
+            <span>مبلغ کل:</span>
+            <span>{{ "{:,}".format(order.total_price|int) }} تومان</span>
+        </div>
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 40px; color: #666;">
+        <h3>هیچ محصولی در این سفارش یافت نشد</h3>
+    </div>
+    {% endif %}
+    
+    <div class="footer">
+        <p>این فاکتور در تاریخ {{ now|to_shamsi('%Y/%m/%d - %H:%M') }} تولید شده است.</p>
+        <p>سیستم مدیریت فروش پرنام یدک</p>
+        <p style="margin-top: 20px; font-size: 16px; color: #2c3e50; font-weight: bold;">از اعتماد شما سپاسگزاریم</p>
+    </div>
+</body>
+</html> 

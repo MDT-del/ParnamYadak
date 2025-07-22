@@ -1,0 +1,345 @@
+{% extends "base.html" %}
+
+{% block title %}پرداخت کمیسیون مکانیک‌ها{% endblock %}
+
+{% block page_title %}پرداخت کمیسیون مکانیک‌ها{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- آمار کلی -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-gradient-to-br from-blue-500 to-blue-600 p-6 rounded-2xl shadow-lg text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-blue-100 text-sm font-medium">کل مکانیک‌ها</p>
+                    <p class="text-3xl font-bold">{{ total_mechanics|digits_to_persian }}</p>
+                </div>
+                <div class="p-3 bg-blue-400/30 rounded-xl">
+                    <i class="bi bi-people text-2xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-gradient-to-br from-orange-500 to-orange-600 p-6 rounded-2xl shadow-lg text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-orange-100 text-sm font-medium">کمیسیون معوق</p>
+                    <p class="text-3xl font-bold">{{ total_pending_commission|format_price|digits_to_persian }} تومان</p>
+                </div>
+                <div class="p-3 bg-orange-400/30 rounded-xl">
+                    <i class="bi bi-currency-dollar text-2xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-gradient-to-br from-green-500 to-green-600 p-6 rounded-2xl shadow-lg text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-green-100 text-sm font-medium">آماده پرداخت</p>
+                    <p class="text-3xl font-bold">{{ mechanics.items|selectattr('total_commission', 'gt', 0)|list|length|digits_to_persian }}</p>
+                </div>
+                <div class="p-3 bg-green-400/30 rounded-xl">
+                    <i class="bi bi-check-circle text-2xl"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- فیلترها -->
+    <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg">
+        <form method="GET" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">جستجو</label>
+                <input type="text" name="search" value="{{ search }}" placeholder="نام یا شماره تلفن..." 
+                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">وضعیت</label>
+                <select name="status" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white">
+                    <option value="">همه</option>
+                    <option value="pending" {% if status == 'pending' %}selected{% endif %}>دارای کمیسیون معوق</option>
+                    <option value="paid" {% if status == 'paid' %}selected{% endif %}>پرداخت شده</option>
+                </select>
+            </div>
+            
+            <div class="flex items-end">
+                <button type="submit" class="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+                    <i class="bi bi-search ml-2"></i>جستجو
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- لیست مکانیک‌ها -->
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
+        {% if mechanics.items %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead class="bg-gray-50 dark:bg-gray-700">
+                    <tr>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">مکانیک</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">اطلاعات تماس</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">درصد کمیسیون</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">کمیسیون معوق</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">آخرین پرداخت</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">عملیات</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                    {% for mechanic in mechanics.items %}
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0 h-10 w-10">
+                                    <div class="h-10 w-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg">
+                                        {{ mechanic.first_name[0] }}{% if mechanic.last_name %}{{ mechanic.last_name[0] }}{% endif %}
+                                    </div>
+                                </div>
+                                <div class="mr-4">
+                                    <div class="text-sm font-medium text-gray-900 dark:text-white">
+                                        {{ mechanic.full_name }}
+                                    </div>
+                                    <div class="text-sm text-gray-500 dark:text-gray-400">
+                                        {{ mechanic.total_orders|digits_to_persian }} سفارش
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-900 dark:text-white">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <i class="bi bi-telephone text-blue-500"></i>
+                                    <span dir="ltr">{{ mechanic.phone_number|digits_to_persian }}</span>
+                                </div>
+                                {% if mechanic.card_number %}
+                                <div class="text-xs text-gray-500 dark:text-gray-400">
+                                    کارت: {{ mechanic.card_number|digits_to_persian }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-medium text-gray-900 dark:text-white">
+                                {{ mechanic.commission_percentage|digits_to_persian }}%
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if mechanic.total_commission > 0 %}
+                                <div class="text-sm font-medium text-orange-600 dark:text-orange-400">
+                                    {{ mechanic.total_commission|format_price|digits_to_persian }} تومان
+                                </div>
+                                <div class="text-xs text-gray-500 dark:text-gray-400">
+                                    معوق
+                                </div>
+                            {% else %}
+                                <div class="text-sm font-medium text-green-600 dark:text-green-400">
+                                    0 تومان
+                                </div>
+                                <div class="text-xs text-gray-500 dark:text-gray-400">
+                                    پرداخت شده
+                                </div>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                            {% if mechanic.last_payment_date %}
+                                {{ mechanic.last_payment_date|to_shamsi('%Y/%m/%d')|digits_to_persian }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <div class="flex space-x-2 space-x-reverse">
+                                {% if mechanic.total_commission > 0 %}
+                                <button onclick="showPaymentModal({{ mechanic.id }}, '{{ mechanic.full_name }}', {{ mechanic.total_commission }})" 
+                                        class="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300">
+                                    <i class="bi bi-currency-dollar"></i>
+                                </button>
+                                {% endif %}
+                                <a href="{{ url_for('financial_reports.mechanic_commission', mechanic_id=mechanic.id) }}" 
+                                   class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- صفحه‌بندی -->
+        {% if mechanics.pages > 1 %}
+        <div class="bg-white dark:bg-gray-800 px-4 py-3 flex items-center justify-between border-t border-gray-200 dark:border-gray-700 sm:px-6">
+            <div class="flex-1 flex justify-between sm:hidden">
+                {% if mechanics.has_prev %}
+                <a href="{{ url_for('financial_reports.commission_payments', page=mechanics.prev_num, status=status, search=search) }}" 
+                   class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                    قبلی
+                </a>
+                {% endif %}
+                {% if mechanics.has_next %}
+                <a href="{{ url_for('financial_reports.commission_payments', page=mechanics.next_num, status=status, search=search) }}" 
+                   class="mr-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                    بعدی
+                </a>
+                {% endif %}
+            </div>
+            <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                <div>
+                    <p class="text-sm text-gray-700 dark:text-gray-300">
+                        نمایش <span class="font-medium">{{ mechanics.first|digits_to_persian }}</span> تا <span class="font-medium">{{ mechanics.last|digits_to_persian }}</span> از <span class="font-medium">{{ mechanics.total|digits_to_persian }}</span> نتیجه
+                    </p>
+                </div>
+                <div>
+                    <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                        {% if mechanics.has_prev %}
+                        <a href="{{ url_for('financial_reports.commission_payments', page=mechanics.prev_num, status=status, search=search) }}" 
+                           class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                            <i class="bi bi-chevron-right"></i>
+                        </a>
+                        {% endif %}
+
+                        {% for page_num in mechanics.iter_pages() %}
+                            {% if page_num %}
+                                {% if page_num != mechanics.page %}
+                                <a href="{{ url_for('financial_reports.commission_payments', page=page_num, status=status, search=search) }}" 
+                                   class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                    {{ page_num|digits_to_persian }}
+                                </a>
+                                {% else %}
+                                <span class="relative inline-flex items-center px-4 py-2 border border-indigo-500 bg-indigo-50 text-sm font-medium text-indigo-600">
+                                    {{ page_num|digits_to_persian }}
+                                </span>
+                                {% endif %}
+                            {% else %}
+                            <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
+                                ...
+                            </span>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if mechanics.has_next %}
+                        <a href="{{ url_for('financial_reports.commission_payments', page=mechanics.next_num, status=status, search=search) }}" 
+                           class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                            <i class="bi bi-chevron-left"></i>
+                        </a>
+                        {% endif %}
+                    </nav>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        {% else %}
+        <div class="text-center py-12">
+            <i class="bi bi-currency-dollar text-4xl text-gray-400 mb-4"></i>
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">مکانیکی یافت نشد</h3>
+            <p class="text-gray-500 dark:text-gray-400">هیچ مکانیکی با این شرایط یافت نشد.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- مودال پرداخت -->
+<div id="paymentModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
+        <div class="mt-3">
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">پرداخت کمیسیون</h3>
+            <form id="paymentForm">
+                <input type="hidden" id="mechanicId" name="mechanic_id">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        مکانیک
+                    </label>
+                    <p id="mechanicName" class="text-sm text-gray-900 dark:text-white"></p>
+                </div>
+                <div class="mb-4">
+                    <label for="amount" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        مبلغ پرداختی (تومان)
+                    </label>
+                    <input type="number" id="amount" name="amount" 
+                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                           min="0" step="1000" required>
+                    <p class="text-xs text-gray-500 mt-1">حداکثر: <span id="maxAmount"></span> تومان</p>
+                </div>
+                <div class="mb-4">
+                    <label for="paymentMethod" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        روش پرداخت
+                    </label>
+                    <select id="paymentMethod" name="payment_method" 
+                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white">
+                        <option value="bank_transfer">انتقال بانکی</option>
+                        <option value="cash">نقدی</option>
+                        <option value="check">چک</option>
+                        <option value="other">سایر</option>
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label for="notes" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        توضیحات (اختیاری)
+                    </label>
+                    <textarea id="notes" name="notes" rows="3"
+                              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"></textarea>
+                </div>
+                <div class="flex justify-end space-x-3 space-x-reverse">
+                    <button type="button" onclick="closePaymentModal()" 
+                            class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors">
+                        انصراف
+                    </button>
+                    <button type="submit" 
+                            class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors">
+                        پرداخت
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function showPaymentModal(mechanicId, mechanicName, maxAmount) {
+    document.getElementById('mechanicId').value = mechanicId;
+    document.getElementById('mechanicName').textContent = mechanicName;
+    document.getElementById('maxAmount').textContent = maxAmount.toLocaleString('fa-IR').replace(/\.0$/, '');
+    document.getElementById('amount').value = maxAmount;
+    document.getElementById('amount').max = maxAmount;
+    document.getElementById('paymentModal').classList.remove('hidden');
+}
+
+function closePaymentModal() {
+    document.getElementById('paymentModal').classList.add('hidden');
+}
+
+document.getElementById('paymentForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const mechanicId = document.getElementById('mechanicId').value;
+    const amount = document.getElementById('amount').value;
+    const paymentMethod = document.getElementById('paymentMethod').value;
+    const notes = document.getElementById('notes').value;
+    
+    fetch(`/financial-reports/pay-commission/${mechanicId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `amount=${amount}&payment_method=${paymentMethod}&notes=${encodeURIComponent(notes)}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            closePaymentModal();
+            window.location.reload();
+        } else {
+            alert(data.message);
+        }
+    })
+    .catch(error => {
+        console.error('خطا:', error);
+        alert('خطا در پرداخت کمیسیون');
+    });
+});
+</script>
+{% endblock %} 

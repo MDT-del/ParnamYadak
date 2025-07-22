@@ -1,0 +1,491 @@
+{% extends "base.html" %}
+
+{% block title %}{{ product.name }} - جزئیات محصول{% endblock %}
+
+{% block page_title %}<span class="font-bold">مدیریت کالاها</span>{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8" x-data="productDetail()">
+    <!-- هدر صفحه با دکمه بازگشت -->
+    <div class="mb-8">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center">
+                <a href="{{ url_for('inventory.index') }}" 
+                   class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white text-sm font-medium rounded-lg shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-105">
+                    <i class="fas fa-arrow-right ml-2 text-lg"></i>
+                    بازگشت به انبار
+                </a>
+            </div>
+            <div class="flex items-center gap-4">
+                <button id="deleteProductBtn" class="px-4 py-2 bg-red-600 text-white rounded-lg shadow-md hover:bg-red-700 transition-colors text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed" {% if product.reserved_quantity > 0 %}disabled title="محصول رزرو شده قابل حذف نیست"{% endif %} @click="deleteProduct({{ product.id }})">
+                    <i class="fas fa-trash-alt ml-2"></i> حذف محصول
+                </button>
+                <div class="text-right">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-1">{{ product.name }}</h2>
+                    <p class="text-sm text-gray-500">جزئیات محصول</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- اطلاعات کلی محصول -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <!-- کارت اطلاعات اصلی -->
+        <div class="lg:col-span-2">
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">اطلاعات محصول</h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <p class="text-sm font-medium text-gray-500">شماره محصول</p>
+                        <p class="text-sm font-bold text-blue-600">{{ product.product_number }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-500">نام محصول</p>
+                        <p class="text-sm text-gray-900">{{ product.name }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-500">کیفیت</p>
+                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full
+                            {% if product.quality == 'ایرانی' %}bg-blue-100 text-blue-800
+                            {% elif product.quality == 'شرکتی' %}bg-green-100 text-green-800
+                            {% else %}bg-purple-100 text-purple-800{% endif %}">
+                            {{ product.quality }}
+                        </span>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-500">تاریخ ثبت</p>
+                        <p class="text-sm text-gray-900">{{ product.created_at|to_shamsi if product.created_at else '' }}</p>
+                        {% if product.created_at %}
+                        <p class="text-xs text-gray-400">{{ product.created_at.strftime('%H:%M') }}</p>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-500">آخرین بروزرسانی</p>
+                        <p class="text-sm text-gray-900">{{ product.updated_at|to_shamsi if product.updated_at else '' }}</p>
+                        {% if product.updated_at %}
+                        <p class="text-xs text-gray-400">{{ product.updated_at.strftime('%H:%M') }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- کارت آمار موجودی -->
+        <div>
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">آمار موجودی</h3>
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm font-medium text-gray-500">موجودی کل</span>
+                        <span class="text-lg font-bold text-gray-900">{{ product.total_quantity }}</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm font-medium text-gray-500">فروخته شده</span>
+                        <span class="text-lg font-bold text-blue-600">{{ product.sold_quantity }}</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm font-medium text-gray-500">قابل فروش</span>
+                        <span class="text-lg font-bold 
+                            {% if product.available_quantity > 10 %}text-green-600
+                            {% elif product.available_quantity > 0 %}text-yellow-600
+                            {% else %}text-red-600{% endif %}">
+                            {{ product.available_quantity }}
+                        </span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm font-medium text-gray-500">رزرو شده</span>
+                        <span class="text-lg font-bold text-blue-600">{{ product.reserved_quantity }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- افزودن پارت جدید -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">افزودن پارت جدید</h3>
+        <form @submit.prevent="addBatch">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">موجودی پارت</label>
+                    <input type="number" 
+                           x-model="newBatch.initial_quantity"
+                           min="1"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           placeholder="تعداد">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">قیمت خرید (تومان)</label>
+                    <input type="text"
+                           x-ref="priceInput"
+                           @input="formatPriceInput($event)"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-left"
+                           placeholder="0">
+                </div>
+                <div class="flex items-end">
+                    <button type="submit" 
+                            :disabled="!newBatch.initial_quantity || newBatch.initial_quantity <= 0"
+                            class="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                        <i class="fas fa-plus ml-2"></i>
+                        افزودن پارت
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- پارت‌های فعال -->
+    <div class="bg-white rounded-lg shadow-md overflow-hidden mb-8">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-lg font-medium text-gray-900">پارت‌های فعال (موجودی > 0)</h3>
+        </div>
+        
+        {% if active_batches %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">شماره پارت</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">موجودی اولیه</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">موجودی باقی‌مانده</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">فروخته شده</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">قیمت خرید</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">تاریخ ورود</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">ثبت‌کننده</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">عملیات</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for batch in active_batches %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {{ batch.batch_number }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            <span class="font-bold text-green-700">{{ batch.initial_quantity|digits_to_persian }}</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            <span class="font-bold text-green-700">{{ batch.remaining_quantity|digits_to_persian }}</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
+                            <span class="font-bold">{{ (batch.initial_quantity - batch.remaining_quantity)|digits_to_persian }}</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-left">
+                            {% if batch.purchase_price %}
+                                <span class="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-bold">
+                                    {{ "{:,}".format(batch.purchase_price|int)|digits_to_persian }} تومان
+                                </span>
+                            {% else %}
+                                <span class="text-gray-400">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {{ batch.created_at|to_shamsi if batch.created_at else '' }}
+                            {% if batch.created_at %}
+                            <br><span class="text-xs text-gray-400">{{ batch.created_at.strftime('%H:%M') }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {{ batch.created_by_user.name if batch.created_by_user else 'نامشخص' }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {% if not batch.purchase_price %}
+                                <button @click="openEditPriceModal({{ batch.id }}, {{ batch.initial_quantity }}, {{ batch.remaining_quantity }}, '{{ batch.created_at|to_shamsi }}', '{{ batch.created_at.strftime('%H:%M') if batch.created_at else '' }}', '{{ batch.created_by_user.name if batch.created_by_user else 'نامشخص' }}')" class="text-yellow-600 hover:text-yellow-800 ml-2">ویرایش قیمت خرید</button>
+                            {% endif %}
+                            {% if batch.remaining_quantity == batch.initial_quantity %}
+                                <button @click="deleteBatch({{ batch.id }})" class="text-red-600 hover:text-red-800" {% if product.reserved_quantity > 0 %}disabled title="پارت قابل حذف نیست چون محصول رزرو شده دارد"{% endif %}>حذف</button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-8">
+            <i class="fas fa-box-open text-3xl text-gray-400 mb-3"></i>
+            <p class="text-gray-500">هیچ پارت فعالی وجود ندارد</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- تمام پارت‌ها -->
+    <div class="bg-white rounded-lg shadow-md overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-lg font-medium text-gray-900">تاریخچه تمام پارت‌ها</h3>
+        </div>
+        
+        {% if all_batches %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">شماره پارت</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">موجودی اولیه</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">موجودی باقی‌مانده</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">وضعیت</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">قیمت خرید</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">تاریخ ورود</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">ثبت‌کننده</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for batch in all_batches %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {{ batch.batch_number }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            <span class="font-bold text-green-700">{{ batch.initial_quantity|digits_to_persian }}</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            <span class="font-bold text-green-700">{{ batch.remaining_quantity|digits_to_persian }}</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full
+                                {% if batch.remaining_quantity > 0 %}bg-green-100 text-green-800
+                                {% else %}bg-red-100 text-red-800{% endif %}">
+                                {% if batch.remaining_quantity > 0 %}فعال{% else %}تمام شده{% endif %}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-left">
+                            {% if batch.purchase_price %}
+                                <span class="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-bold">
+                                    {{ "{:,}".format(batch.purchase_price|int)|digits_to_persian }} تومان
+                                </span>
+                            {% else %}
+                                <span class="text-gray-400">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {{ batch.created_at|to_shamsi if batch.created_at else '' }}
+                            {% if batch.created_at %}
+                            <br><span class="text-xs text-gray-400">{{ batch.created_at.strftime('%H:%M') }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {{ batch.created_by_user.name if batch.created_by_user else 'نامشخص' }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-8">
+            <i class="fas fa-history text-3xl text-gray-400 mb-3"></i>
+            <p class="text-gray-500">هیچ پارتی ثبت نشده است</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- مودال ویرایش قیمت خرید -->
+    <div x-show="showEditPriceModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+            <h3 class="text-lg font-bold mb-4">ویرایش قیمت خرید پارت</h3>
+            <form @submit.prevent="submitEditPrice">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">قیمت خرید (تومان)</label>
+                    <input type="text" 
+                           x-ref="editPriceInput"
+                           @input="formatEditPriceInput($event)"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-left" 
+                           placeholder="0"
+                           required>
+                </div>
+                <div class="mb-2 grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-xs text-gray-500">تاریخ ثبت</label>
+                        <input type="text" x-model="editPriceDate" class="w-full px-2 py-1 border border-gray-200 rounded bg-gray-100 text-gray-700" readonly>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500">ساعت ثبت</label>
+                        <input type="text" x-model="editPriceTime" class="w-full px-2 py-1 border border-gray-200 rounded bg-gray-100 text-gray-700" readonly>
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-xs text-gray-500">ثبت‌کننده</label>
+                        <input type="text" x-model="editPriceUser" class="w-full px-2 py-1 border border-gray-200 rounded bg-gray-100 text-gray-700" readonly>
+                    </div>
+                </div>
+                <div class="flex justify-end mt-4">
+                    <button type="button" @click="closeEditPriceModal" class="px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 ml-2">انصراف</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">ذخیره</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function productDetail() {
+    return {
+        reservedQuantity: {{ product.reserved_quantity|int }},
+        newBatch: {
+            initial_quantity: '',
+            purchase_price_display: ''
+        },
+        showEditPriceModal: false,
+        editBatchId: null,
+        editPriceValue: '',
+        editPriceDate: '',
+        editPriceTime: '',
+        editPriceUser: '',
+        openEditPriceModal(id, initial, remaining, date, time, user) {
+            this.editBatchId = id;
+            this.editPriceValue = '';
+            this.editPriceDate = date;
+            this.editPriceTime = time;
+            this.editPriceUser = user;
+            this.showEditPriceModal = true;
+        },
+        closeEditPriceModal() {
+            this.showEditPriceModal = false;
+        },
+        async submitEditPrice() {
+            if (!this.editPriceValue || this.editPriceValue <= 0) {
+                alert('قیمت خرید معتبر وارد کنید');
+                return;
+            }
+            try {
+                const response = await fetch(`/inventory/batch/${this.editBatchId}/edit_price`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ purchase_price: parseInt(this.editPriceValue) })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    alert('قیمت خرید با موفقیت ثبت شد');
+                    window.location.reload();
+                } else {
+                    alert(result.message || 'خطا در ثبت قیمت خرید');
+                }
+            } catch (e) {
+                alert('خطا در ثبت قیمت خرید');
+            }
+            this.showEditPriceModal = false;
+        },
+        async deleteBatch(id) {
+            if (this.reservedQuantity > 0) {
+                alert('محصول رزرو شده قابل حذف نیست');
+                return;
+            }
+            if (!confirm('آیا از حذف این پارت مطمئن هستید؟')) return;
+            try {
+                const response = await fetch(`/inventory/batch/${id}/delete`, { method: 'POST' });
+                const result = await response.json();
+                if (result.success) {
+                    alert('پارت با موفقیت حذف شد');
+                    window.location.reload();
+                } else {
+                    alert(result.message || 'خطا در حذف پارت');
+                }
+            } catch (e) {
+                alert('خطا در حذف پارت');
+            }
+        },
+        formatPriceInput(event) {
+            let input = event.target;
+            let value = input.value;
+            
+            // حذف همه کاراکترهای غیر عددی
+            let numericValue = value.replace(/[^\d]/g, '');
+            
+            if (!numericValue) {
+                input.value = '';
+                this.newBatch.purchase_price_display = '';
+                return;
+            }
+            
+            // فرمت کردن با کاماهای انگلیسی
+            let formatted = this.addCommas(numericValue);
+            
+            // اعمال فرمت مستقیم روی input
+            input.value = formatted;
+            this.newBatch.purchase_price_display = formatted;
+            
+            // تنظیم کرسر در انتهای متن
+            setTimeout(() => {
+                input.setSelectionRange(formatted.length, formatted.length);
+            }, 0);
+        },
+        
+        addCommas(num) {
+            return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        },
+        
+        formatEditPriceInput(event) {
+            let input = event.target;
+            let value = input.value;
+            
+            // حذف همه کاراکترهای غیر عددی
+            let numericValue = value.replace(/[^\d]/g, '');
+            
+            if (!numericValue) {
+                input.value = '';
+                this.editPriceValue = '';
+                return;
+            }
+            
+            // فرمت کردن با کاماهای انگلیسی
+            let formatted = this.addCommas(numericValue);
+            
+            // اعمال فرمت مستقیم روی input
+            input.value = formatted;
+            this.editPriceValue = numericValue; // ذخیره مقدار عددی خام
+            
+            // تنظیم کرسر در انتهای متن
+            setTimeout(() => {
+                input.setSelectionRange(formatted.length, formatted.length);
+            }, 0);
+        },
+        
+        async addBatch() {
+            if (!this.newBatch.initial_quantity || this.newBatch.initial_quantity <= 0) {
+                alert('موجودی پارت باید بیشتر از صفر باشد');
+                return;
+            }
+            const formData = new FormData();
+            formData.append('initial_quantity', this.newBatch.initial_quantity);
+            let price = this.newBatch.purchase_price_display.replace(/[^\d]/g, '');
+            if (price) {
+                formData.append('purchase_price', price);
+            }
+            try {
+                const response = await fetch(`{{ url_for('inventory.add_batch', product_id=product.id) }}`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+                if (result.success) {
+                    alert(result.message);
+                    window.location.reload();
+                } else {
+                    alert(result.message);
+                }
+            } catch (error) {
+                alert('خطا در افزودن پارت');
+            }
+        },
+        async deleteProduct(id) {
+            if (this.reservedQuantity > 0) {
+                alert('محصول رزرو شده قابل حذف نیست');
+                return;
+            }
+            if (!confirm('آیا از حذف این محصول مطمئن هستید؟')) return;
+            try {
+                const response = await fetch(`/inventory/product/${id}/delete`, { method: 'POST' });
+                const result = await response.json();
+                if (result.success) {
+                    alert('محصول با موفقیت حذف شد');
+                    window.location.href = '/inventory/';
+                } else {
+                    alert(result.message || 'خطا در حذف محصول');
+                }
+            } catch (e) {
+                alert('خطا در حذف محصول');
+            }
+        }
+    }
+}
+</script>
+{% endblock %} 

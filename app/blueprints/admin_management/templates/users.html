@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block page_title %}مدیریت ادمین‌ها{% endblock %}
+
+{% block content %}
+
+    <div class="my-4">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="p-4 mb-4 text-sm text-{{ 'green' if category == 'success' else 'red' }}-800 rounded-lg bg-{{ 'green' if category == 'success' else 'red' }}-50 dark:bg-gray-700 dark:text-{{ 'green' if category == 'success' else 'red' }}-400" role="alert">
+                    <span class="font-medium">{{ message }}</span>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+    </div>
+
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md">
+        <div class="p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100">لیست کاربران پنل</h2>
+                <a href="{{ url_for('admin_management.create_user') }}" class="py-2 px-4 rounded-md text-white bg-green-600 hover:bg-green-700">
+                    <i class="bi bi-plus-lg mr-2"></i> افزودن کاربر جدید
+                </a>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <thead class="bg-gray-50 dark:bg-gray-700">
+                        <tr>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">#</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">نام کامل</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">نام کاربری</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">نقش‌ها</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">عملیات</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                        {% for user in users %}
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">{{ user.id|digits_to_persian }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{{ user.name }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{{ user.username }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
+                                {% for role in user.roles %}
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-200 text-gray-800 dark:bg-gray-600 dark:text-gray-100">
+                                        {{ role.name }}
+                                    </span>
+                                {% endfor %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2 space-x-reverse">
+                                <a href="{{ url_for('admin_management.edit_user', user_id=user.id) }}" class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300">ویرایش</a>
+                                <form method="POST" action="{{ url_for('admin_management.delete_user', user_id=user.id) }}" class="inline-block" onsubmit="return confirm('آیا از حذف این کاربر مطمئن هستید؟');">
+                                    <button type="submit" class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">حذف</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">هیچ کاربر دیگری یافت نشد.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+{% endblock %}

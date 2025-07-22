@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-4">ایجاد پیام همگانی جدید</h1>
+    </div>
+
+    <div class="max-w-4xl mx-auto">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+            <form method="POST" class="space-y-6">
+                {{ form.hidden_tag() }}
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="{{ form.title.id }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            {{ form.title.label }}
+                        </label>
+                        {{ form.title(class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white") }}
+                        {% if form.title.errors %}
+                            <div class="text-red-600 text-sm mt-1">
+                                {% for error in form.title.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div>
+                        <label for="{{ form.message_type.id }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            {{ form.message_type.label }}
+                        </label>
+                        {{ form.message_type(class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white") }}
+                    </div>
+                </div>
+
+                <div>
+                    <label for="{{ form.message.id }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        {{ form.message.label }}
+                    </label>
+                    {{ form.message(class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white", rows="6") }}
+                    {% if form.message.errors %}
+                        <div class="text-red-600 text-sm mt-1">
+                            {% for error in form.message.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="{{ form.target_type.id }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            مخاطب هدف
+                        </label>
+                        <select id="{{ form.target_type.id }}" name="{{ form.target_type.name }}" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white">
+                            <option value="all">همه مشتریان</option>
+                            <option value="mechanic_all">همه مکانیک‌ها</option>
+                            <option value="specific">مشتری خاص</option>
+                            <option value="mechanic_specific">مکانیک خاص</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="{{ form.status.id }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            {{ form.status.label }}
+                        </label>
+                        {{ form.status(class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white") }}
+                    </div>
+                </div>
+
+                <div id="specific-customers" class="hidden">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        انتخاب مشتری خاص
+                    </label>
+                    <input type="text" id="customer-search" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white" placeholder="جستجو نام یا شماره تلفن مشتری...">
+                    <div id="customer-results" class="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded mt-2 max-h-40 overflow-y-auto hidden"></div>
+                    <input type="hidden" name="target_customers" id="target_customers_hidden">
+                </div>
+
+                <div id="specific-mechanic" class="hidden">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        انتخاب مکانیک خاص
+                    </label>
+                    <input type="text" id="mechanic-search" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white" placeholder="جستجو نام یا شماره تلفن مکانیک...">
+                    <div id="mechanic-results" class="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded mt-2 max-h-40 overflow-y-auto hidden"></div>
+                    <input type="hidden" name="target_mechanic" id="target_mechanic_hidden">
+                </div>
+
+                <div id="scheduled-time" class="hidden">
+                    <label for="{{ form.scheduled_at.id }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        {{ form.scheduled_at.label }}
+                    </label>
+                    <input type="text" name="scheduled_at" id="scheduled-at-picker" data-jdp class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white" placeholder="مثال: 1403-05-20" autocomplete="off">
+                </div>
+
+                <div class="flex justify-end space-x-4 space-x-reverse">
+                    <a href="{{ url_for('broadcast.index') }}" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200">
+                        انصراف
+                    </a>
+                    {{ form.submit(class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200") }}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const targetTypeSelect = document.getElementById('{{ form.target_type.id }}');
+    const specificCustomersDiv = document.getElementById('specific-customers');
+    const statusSelect = document.getElementById('{{ form.status.id }}');
+    const scheduledTimeDiv = document.getElementById('scheduled-time');
+    const customerSearch = document.getElementById('customer-search');
+    const customerResults = document.getElementById('customer-results');
+    const targetCustomersHidden = document.getElementById('target_customers_hidden');
+    const specificMechanicDiv = document.getElementById('specific-mechanic');
+    const mechanicSearch = document.getElementById('mechanic-search');
+    const mechanicResults = document.getElementById('mechanic-results');
+    const targetMechanicHidden = document.getElementById('target_mechanic_hidden');
+
+    // نمایش/مخفی کردن فیلد مشتریان خاص
+    function toggleSpecificCustomers() {
+        if (targetTypeSelect.value === 'specific') {
+            specificCustomersDiv.classList.remove('hidden');
+        } else {
+            specificCustomersDiv.classList.add('hidden');
+        }
+    }
+
+    // نمایش/مخفی کردن فیلد زمان‌بندی
+    function toggleScheduledTime() {
+        if (statusSelect.value === 'scheduled') {
+            scheduledTimeDiv.classList.remove('hidden');
+        } else {
+            scheduledTimeDiv.classList.add('hidden');
+        }
+    }
+
+    // نمایش/مخفی کردن فیلد مکانیک خاص
+    function toggleSpecificMechanic() {
+        if (targetTypeSelect.value === 'mechanic_specific') {
+            specificMechanicDiv.classList.remove('hidden');
+        } else {
+            specificMechanicDiv.classList.add('hidden');
+        }
+    }
+
+    targetTypeSelect.addEventListener('change', function() {
+        toggleSpecificCustomers();
+        toggleSpecificMechanic();
+    });
+    statusSelect.addEventListener('change', toggleScheduledTime);
+    toggleSpecificCustomers();
+    toggleScheduledTime();
+    toggleSpecificMechanic();
+
+    // جستجوی مشتری خاص (AJAX)
+    if (customerSearch) {
+        customerSearch.addEventListener('input', function() {
+            const q = customerSearch.value.trim();
+            if (q.length < 2) {
+                customerResults.classList.add('hidden');
+                customerResults.innerHTML = '';
+                return;
+            }
+            fetch(`/customers/?q=${encodeURIComponent(q)}&ajax=1`)
+                .then(res => res.json())
+                .then(data => {
+                    customerResults.innerHTML = '';
+                    if (data.customers && data.customers.length > 0) {
+                        data.customers.forEach(function(cust) {
+                            const div = document.createElement('div');
+                            div.className = 'px-3 py-2 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900';
+                            div.textContent = `${cust.first_name} ${cust.last_name || ''} - ${cust.phone_number}`;
+                            div.addEventListener('click', function() {
+                                targetCustomersHidden.value = JSON.stringify([cust.id]);
+                                customerSearch.value = `${cust.first_name} ${cust.last_name || ''} - ${cust.phone_number}`;
+                                customerResults.classList.add('hidden');
+                            });
+                            customerResults.appendChild(div);
+                        });
+                        customerResults.classList.remove('hidden');
+                    } else {
+                        customerResults.innerHTML = '<div class="px-3 py-2 text-gray-500">مشتری یافت نشد.</div>';
+                        customerResults.classList.remove('hidden');
+                    }
+                });
+        });
+    }
+
+    // جستجوی مکانیک خاص (AJAX)
+    if (mechanicSearch) {
+        mechanicSearch.addEventListener('input', function() {
+            const q = mechanicSearch.value.trim();
+            if (q.length < 2) {
+                mechanicResults.classList.add('hidden');
+                mechanicResults.innerHTML = '';
+                return;
+            }
+            fetch(`{{ url_for('broadcast.api_mechanics') }}?q=${encodeURIComponent(q)}`)
+                .then(res => res.json())
+                .then(data => {
+                    mechanicResults.innerHTML = '';
+                    if (data && data.length > 0) {
+                        data.forEach(function(mec) {
+                            const div = document.createElement('div');
+                            div.className = 'px-3 py-2 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900';
+                            div.textContent = `${mec.first_name} - ${mec.phone_number}`;
+                            div.addEventListener('click', function() {
+                                targetMechanicHidden.value = JSON.stringify([mec.id]);
+                                mechanicSearch.value = `${mec.first_name} - ${mec.phone_number}`;
+                                mechanicResults.classList.add('hidden');
+                            });
+                            mechanicResults.appendChild(div);
+                        });
+                        mechanicResults.classList.remove('hidden');
+                    } else {
+                        mechanicResults.innerHTML = '<div class="px-3 py-2 text-gray-500">مکانیک یافت نشد.</div>';
+                        mechanicResults.classList.remove('hidden');
+                    }
+                });
+        });
+    }
+
+    // هنگام ارسال فرم، مقدار target_mechanic_hidden را در target_customers بریز
+    const form = document.querySelector('form');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            if (targetTypeSelect.value === 'mechanic_specific') {
+                targetCustomersHidden.value = targetMechanicHidden.value;
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@majidh1/jalalidatepicker/dist/jalalidatepicker.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@majidh1/jalalidatepicker/dist/jalalidatepicker.min.js"></script>
+    <script>
+        jalaliDatepicker.startWatch();
+    </script>
+{% endblock %} 

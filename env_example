@@ -1,0 +1,42 @@
+# -----------------------------
+# امنیت و تنظیمات اصلی
+SECRET_KEY=your-super-secret-key-here
+LICENSE_SECRET_KEY=your-super-secret-license-key-2024
+FLASK_ENV=production  # یا development
+LOG_LEVEL=INFO  # یا ERROR
+
+# -----------------------------
+# تنظیمات دیتابیس
+DATABASE_URL=sqlite:///app.db  # یا postgresql://user:pass@localhost/dbname
+
+# -----------------------------
+# کش (اختیاری)
+REDIS_URL=redis://localhost:6379/0
+
+# -----------------------------
+# تنظیمات ایمیل (برای ارسال اعلان و بازیابی رمز)
+DEVELOPER_EMAIL=developer@example.com
+MAIL_SERVER=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USE_TLS=True
+MAIL_USERNAME=your_email@gmail.com
+MAIL_PASSWORD=your_app_password
+
+# -----------------------------
+# تنظیمات ربات تلگرام
+TELEGRAM_BOT_TOKEN=7122602887:AAFZfFjUfxIpnU36iKvsViV_6Wj7b254bcQ
+
+# -----------------------------
+# مانیتورینگ و رهگیری خطا
+SENTRY_DSN=your-sentry-dsn-here  # اختیاری، برای فعال‌سازی Sentry
+
+# -----------------------------
+# سایر تنظیمات (در صورت نیاز)
+# ALLOWED_HOSTS=localhost,127.0.0.1
+# SESSION_COOKIE_SECURE=True
+# SESSION_COOKIE_HTTPONLY=True
+# SESSION_COOKIE_SAMESITE=Lax
+
+# -----------------------------
+# کلیدهای API یا سرویس‌های خارجی (در صورت نیاز)
+# EXTERNAL_API_KEY=your-api-key 

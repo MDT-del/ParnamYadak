@@ -1,0 +1,98 @@
+version: '3.8'
+
+services:
+  # سرویس اپلیکیشن اصلی
+  app:
+    build: .
+    container_name: parnamyadak_app
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=production
+      - DATABASE_URL=postgresql://parnamyadak_user:parnamyadak_pass@db:5432/parnamyadak_db
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-here}
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - ./uploads:/app/uploads
+      - ./logs:/app/logs
+      - ./static/receipts:/app/static/receipts
+      - ./static/product_pics:/app/static/product_pics
+      - ./static/mechanic_licenses:/app/static/mechanic_licenses
+      - ./static/bot_receipts:/app/static/bot_receipts
+    depends_on:
+      - db
+      - redis
+    networks:
+      - parnamyadak_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/auth/login"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # سرویس دیتابیس PostgreSQL
+  db:
+    image: postgres:15-alpine
+    container_name: parnamyadak_db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=parnamyadak_db
+      - POSTGRES_USER=parnamyadak_user
+      - POSTGRES_PASSWORD=parnamyadak_pass
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backups:/backups
+    ports:
+      - "5432:5432"
+    networks:
+      - parnamyadak_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U parnamyadak_user -d parnamyadak_db"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # سرویس Redis برای کش
+  redis:
+    image: redis:7-alpine
+    container_name: parnamyadak_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - parnamyadak_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # سرویس Nginx برای reverse proxy (اختیاری)
+  nginx:
+    image: nginx:alpine
+    container_name: parnamyadak_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+      - ./static:/var/www/static:ro
+    depends_on:
+      - app
+    networks:
+      - parnamyadak_network
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  parnamyadak_network:
+    driver: bridge

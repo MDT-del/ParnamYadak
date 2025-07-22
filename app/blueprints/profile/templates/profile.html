@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block page_title %}پروفایل من{% endblock %}
+
+{% block content %}
+    <div class="max-w-6xl mx-auto">
+        <div class="flex flex-col md:flex-row gap-0 md:gap-0">
+            <div class="flex-1 bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 md:rounded-none md:rounded-r-lg">
+                <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-6">تغییر رمز عبور</h2>
+                <form method="POST" action="" class="space-y-6">
+                    {{ form.hidden_tag() }}
+                    <div>
+                        {{ form.current_password.label(class="block text-sm font-medium text-gray-700 dark:text-gray-300") }}
+                        {{ form.current_password(class="text-gray-900 py-2 mt-1 block w-full rounded-md border-gray-400 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm") }}
+                    </div>
+                    <div>
+                        {{ form.new_password.label(class="block text-sm font-medium text-gray-700 dark:text-gray-300") }}
+                        {{ form.new_password(class="text-gray-900 py-2 mt-1 block w-full rounded-md border-gray-400 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm") }}
+                    </div>
+                    <div>
+                        {{ form.confirm.label(class="block text-sm font-medium text-gray-700 dark:text-gray-300") }}
+                        {{ form.confirm(class="text-gray-900 py-2 mt-1 block w-full rounded-md border-gray-400 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm") }}
+                    </div>
+                    <div class="flex justify-end pt-4">
+                        {{ form.submit(class="py-2 px-6 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 cursor-pointer") }}
+                    </div>
+                </form>
+            </div>
+            <div class="flex-1 bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 md:rounded-none md:rounded-l-lg">
+                <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-6">نشست‌های فعال</h2>
+                {% if sessions and sessions|length > 0 %}
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <thead>
+                            <tr>
+                                <th class="px-4 py-2">آی‌پی</th>
+                                <th class="px-4 py-2">سیستم عامل</th>
+                                <th class="px-4 py-2">مرورگر</th>
+                                <th class="px-4 py-2">شناسه دستگاه</th>
+                                <th class="px-4 py-2">زمان ورود</th>
+                                <th class="px-4 py-2">کاربر</th>
+                                <th class="px-4 py-2">عملیات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for s in sessions %}
+                            <tr class="bg-white dark:bg-gray-800">
+                                <td class="px-4 py-2">{{ s.ip_address or '-' }}</td>
+                                <td class="px-4 py-2">{{ s.user_agent|os_name }}</td>
+                                <td class="px-4 py-2">{{ s.user_agent|browser_name }}</td>
+                                <td class="px-4 py-2">{{ s.device_id or '-' }}</td>
+                                <td class="px-4 py-2">{{ s.login_time|to_jalali_datetime }}</td>
+                                <td class="px-4 py-2">{{ s.user.username if s.user else '-' }}</td>
+                                <td class="px-4 py-2">
+                                    <form method="POST" action="{{ url_for('profile.terminate_session', session_id=s.id) }}" style="display:inline;">
+                                        <button type="submit" class="text-red-600 hover:text-red-800 font-bold">خاتمه</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                    <p class="text-gray-500 dark:text-gray-400">نشست فعالی یافت نشد.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+{% endblock %}

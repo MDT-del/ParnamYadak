@@ -1,0 +1,393 @@
+{% extends "base.html" %}
+
+{% block title %}مدیریت مکانیک‌ها{% endblock %}
+
+{% block page_title %}مدیریت مکانیک‌ها{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- آمار کلی -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="bg-gradient-to-br from-blue-500 to-blue-600 p-6 rounded-2xl shadow-lg text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-blue-100 text-sm font-medium">کل مکانیک‌ها</p>
+                    <p class="text-3xl font-bold">{{ mechanics.total|digits_to_persian }}</p>
+                </div>
+                <div class="p-3 bg-blue-400/30 rounded-xl">
+                    <i class="bi bi-people text-2xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-gradient-to-br from-green-500 to-green-600 p-6 rounded-2xl shadow-lg text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-green-100 text-sm font-medium">تایید شده</p>
+                    <p class="text-3xl font-bold">{{ mechanics.items|selectattr('is_approved', 'equalto', true)|list|length|digits_to_persian }}</p>
+                </div>
+                <div class="p-3 bg-green-400/30 rounded-xl">
+                    <i class="bi bi-check-circle text-2xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-gradient-to-br from-orange-500 to-orange-600 p-6 rounded-2xl shadow-lg text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-orange-100 text-sm font-medium">در انتظار تایید</p>
+                    <p class="text-3xl font-bold">{{ mechanics.items|selectattr('is_approved', 'equalto', false)|list|length|digits_to_persian }}</p>
+                </div>
+                <div class="p-3 bg-orange-400/30 rounded-xl">
+                    <i class="bi bi-clock text-2xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-gradient-to-br from-purple-500 to-purple-600 p-6 rounded-2xl shadow-lg text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-purple-100 text-sm font-medium">مجموع کمیسیون</p>
+                    <p class="text-3xl font-bold">{{ mechanics.items|sum(attribute='total_commission')|digits_to_persian }} تومان</p>
+                </div>
+                <div class="p-3 bg-purple-400/30 rounded-xl">
+                    <i class="bi bi-currency-dollar text-2xl"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- فیلترهای پیشرفته -->
+    <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg">
+        <div class="flex flex-col md:flex-row gap-4 items-end">
+            <!-- جستجو -->
+            <div class="flex-1">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">جستجو</label>
+                <input type="text" id="searchInput" placeholder="نام، شماره تلفن یا آیدی تلگرام..." 
+                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white">
+            </div>
+            
+            <!-- دکمه‌ها -->
+            <div class="flex flex-wrap gap-2">
+                <button onclick="applyFilters()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+                    <i class="bi bi-search ml-2"></i>اعمال فیلتر
+                </button>
+                <button onclick="clearFilters()" class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors">
+                    <i class="bi bi-x-circle ml-2"></i>پاک کردن
+                </button>
+                <button onclick="exportData()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                    <i class="bi bi-download ml-2"></i>خروجی اکسل
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- فیلترهای سریع -->
+    <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-lg">
+        <div class="flex flex-wrap gap-4">
+            <a href="{{ url_for('mechanics.index') }}" 
+               class="px-4 py-2 rounded-lg {% if not status %}bg-indigo-600 text-white{% else %}bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300{% endif %} transition-colors">
+                همه
+            </a>
+            <a href="{{ url_for('mechanics.index', status='approved') }}" 
+               class="px-4 py-2 rounded-lg {% if status == 'approved' %}bg-green-600 text-white{% else %}bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300{% endif %} transition-colors">
+                تایید شده
+            </a>
+            <a href="{{ url_for('mechanics.index', status='pending') }}" 
+               class="px-4 py-2 rounded-lg {% if status == 'pending' %}bg-yellow-600 text-white{% else %}bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300{% endif %} transition-colors">
+                در انتظار تایید
+            </a>
+            <a href="{{ url_for('mechanics.index', sort='commission') }}" 
+               class="px-4 py-2 rounded-lg {% if request.args.get('sort') == 'commission' %}bg-purple-600 text-white{% else %}bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300{% endif %} transition-colors">
+                برتر از نظر کمیسیون
+            </a>
+            <a href="{{ url_for('mechanics.index', sort='orders') }}" 
+               class="px-4 py-2 rounded-lg {% if request.args.get('sort') == 'orders' %}bg-blue-600 text-white{% else %}bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300{% endif %} transition-colors">
+                برتر از نظر سفارش
+            </a>
+        </div>
+    </div>
+
+    <!-- لیست مکانیک‌ها -->
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
+        {% if mechanics.items %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead class="bg-gray-50 dark:bg-gray-700">
+                    <tr>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">مکانیک</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">اطلاعات تماس</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">وضعیت</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">کمیسیون</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">آمار</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">تاریخ ثبت</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">عملیات</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                    {% for mechanic in mechanics.items %}
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0 h-10 w-10">
+                                    <div class="h-10 w-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg">
+                                        {{ mechanic.first_name[0] }}{% if mechanic.last_name %}{{ mechanic.last_name[0] }}{% endif %}
+                                    </div>
+                                </div>
+                                <div class="mr-4">
+                                    <div class="text-sm font-medium text-gray-900 dark:text-white">
+                                        {{ mechanic.full_name }}
+                                    </div>
+                                    <div class="text-sm text-gray-500 dark:text-gray-400">
+                                        ID: {{ mechanic.telegram_id|digits_to_persian }}
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-900 dark:text-white">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <i class="bi bi-telephone text-blue-500"></i>
+                                    <span dir="ltr">{{ mechanic.phone_number|digits_to_persian }}</span>
+                                </div>
+                                {% if mechanic.shop_address %}
+                                <div class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                                    <i class="bi bi-geo-alt text-green-500"></i>
+                                    <span class="truncate max-w-xs">{{ mechanic.shop_address[:50] }}{% if mechanic.shop_address|length > 50 %}...{% endif %}</span>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if mechanic.is_approved %}
+                                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                    <i class="bi bi-check-circle ml-1"></i>
+                                    تایید شده
+                                </span>
+                            {% else %}
+                                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">
+                                    <i class="bi bi-clock ml-1"></i>
+                                    در انتظار تایید
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if mechanic.is_approved %}
+                                <div class="text-sm font-medium text-gray-900 dark:text-white">
+                                    {{ mechanic.commission_percentage|digits_to_persian }}%
+                                </div>
+                                <div class="text-xs text-gray-500 dark:text-gray-400">
+                                    {{ mechanic.total_commission|digits_to_persian }} تومان
+                                </div>
+                            {% else %}
+                                <span class="text-sm text-gray-400">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-900 dark:text-white">
+                                <div class="flex items-center gap-2">
+                                    <i class="bi bi-bag-check text-indigo-500"></i>
+                                    <span>{{ mechanic.total_orders|digits_to_persian }} سفارش</span>
+                                </div>
+                                {% if mechanic.total_orders > 0 %}
+                                <div class="text-xs text-gray-500 dark:text-gray-400">
+                                    میانگین: {{ (mechanic.total_commission / mechanic.total_orders)|round(0)|digits_to_persian }} تومان
+                                </div>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                            {{ mechanic.created_at|to_shamsi|digits_to_persian if mechanic.created_at else '' }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <div class="flex space-x-2 space-x-reverse">
+                                <a href="{{ url_for('mechanics.detail', mechanic_id=mechanic.id) }}" 
+                                   class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- صفحه‌بندی -->
+        {% if mechanics.pages > 1 %}
+        <div class="bg-white dark:bg-gray-800 px-4 py-3 flex items-center justify-between border-t border-gray-200 dark:border-gray-700 sm:px-6">
+            <div class="flex-1 flex justify-between sm:hidden">
+                {% if mechanics.has_prev %}
+                <a href="{{ url_for('mechanics.index', page=mechanics.prev_num, status=status) }}" 
+                   class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                    قبلی
+                </a>
+                {% endif %}
+                {% if mechanics.has_next %}
+                <a href="{{ url_for('mechanics.index', page=mechanics.next_num, status=status) }}" 
+                   class="mr-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                    بعدی
+                </a>
+                {% endif %}
+            </div>
+            <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                <div>
+                    <p class="text-sm text-gray-700 dark:text-gray-300">
+                        نمایش <span class="font-medium">{{ mechanics.first|digits_to_persian }}</span> تا <span class="font-medium">{{ mechanics.last|digits_to_persian }}</span> از <span class="font-medium">{{ mechanics.total|digits_to_persian }}</span> نتیجه
+                    </p>
+                </div>
+                <div>
+                    <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                        {% if mechanics.has_prev %}
+                        <a href="{{ url_for('mechanics.index', page=mechanics.prev_num, status=status) }}" 
+                           class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                            <i class="bi bi-chevron-right"></i>
+                        </a>
+                        {% endif %}
+
+                        {% for page_num in mechanics.iter_pages() %}
+                            {% if page_num %}
+                                {% if page_num != mechanics.page %}
+                                <a href="{{ url_for('mechanics.index', page=page_num, status=status) }}" 
+                                   class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                    {{ page_num|digits_to_persian }}
+                                </a>
+                                {% else %}
+                                <span class="relative inline-flex items-center px-4 py-2 border border-indigo-500 bg-indigo-50 text-sm font-medium text-indigo-600">
+                                    {{ page_num|digits_to_persian }}
+                                </span>
+                                {% endif %}
+                            {% else %}
+                            <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
+                                ...
+                            </span>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if mechanics.has_next %}
+                        <a href="{{ url_for('mechanics.index', page=mechanics.next_num, status=status) }}" 
+                           class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                            <i class="bi bi-chevron-left"></i>
+                        </a>
+                        {% endif %}
+                    </nav>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        {% else %}
+        <div class="text-center py-12">
+            <i class="bi bi-people text-4xl text-gray-400 mb-4"></i>
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">مکانیکی یافت نشد</h3>
+            <p class="text-gray-500 dark:text-gray-400">هنوز هیچ مکانیکی ثبت‌نام نکرده است.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function applyFilters() {
+    const search = document.getElementById('searchInput').value;
+    
+    let url = new URL(window.location);
+    if (search) url.searchParams.set('search', search);
+    
+    window.location.href = url.toString();
+}
+
+function clearFilters() {
+    window.location.href = "{{ url_for('mechanics.index') }}";
+}
+
+function exportData() {
+    const search = document.getElementById('searchInput').value;
+    
+    let url = "{{ url_for('mechanics.export') }}?";
+    if (search) url += `search=${encodeURIComponent(search)}&`;
+    
+    window.open(url, '_blank');
+}
+
+function approveMechanic(mechanicId) {
+    if (confirm('آیا از تایید این مکانیک مطمئن هستید؟')) {
+        const commission = prompt('درصد کمیسیون را وارد کنید (مثال: 10):');
+        if (commission && !isNaN(commission)) {
+            fetch(`/mechanics/${mechanicId}/approve`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `commission_percentage=${commission}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('مکانیک با موفقیت تایید شد');
+                    window.location.reload();
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('خطا:', error);
+                alert('خطا در تایید مکانیک');
+            });
+        }
+    }
+}
+
+function rejectMechanic(mechanicId) {
+    if (confirm('آیا از رد این مکانیک مطمئن هستید؟')) {
+        fetch(`/mechanics/${mechanicId}/reject`, {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('مکانیک رد شد');
+                window.location.reload();
+            } else {
+                alert(data.message);
+            }
+        })
+        .catch(error => {
+            console.error('خطا:', error);
+            alert('خطا در رد مکانیک');
+        });
+    }
+}
+
+function updateCommission(mechanicId) {
+    const commission = prompt('درصد کمیسیون جدید را وارد کنید:');
+    if (commission && !isNaN(commission)) {
+        fetch(`/mechanics/${mechanicId}/update_commission`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `commission_percentage=${commission}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('کمیسیون با موفقیت بروزرسانی شد');
+                window.location.reload();
+            } else {
+                alert(data.message);
+            }
+        })
+        .catch(error => {
+            console.error('خطا:', error);
+            alert('خطا در بروزرسانی کمیسیون');
+        });
+    }
+}
+
+// تنظیم مقادیر فیلترها بر اساس URL
+document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('search')) document.getElementById('searchInput').value = urlParams.get('search');
+});
+</script>
+{% endblock %} 

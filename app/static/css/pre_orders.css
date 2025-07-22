@@ -1,0 +1,352 @@
+/* استایل‌های اختصاصی برای صفحات پیش سفارشات */
+
+/* گرادیان‌های زیبا */
+.gradient-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.gradient-success {
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+}
+
+.gradient-warning {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.gradient-info {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+
+.gradient-danger {
+    background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+}
+
+/* کارت‌های آمار با انیمیشن */
+.stat-card {
+    @apply transition-all duration-300 ease-in-out border-none rounded-2xl overflow-hidden relative;
+}
+
+.stat-card:hover {
+    @apply transform -translate-y-1 shadow-xl;
+}
+
+.stat-card::before {
+    content: '';
+    @apply absolute top-0 left-0 right-0 h-1;
+    background: linear-gradient(90deg, #667eea, #4facfe);
+}
+
+.stat-card .card-body {
+    @apply p-6;
+}
+
+.stat-icon {
+    @apply w-15 h-15 rounded-full flex items-center justify-center text-2xl text-white mb-4;
+}
+
+/* جدول پیش سفارشات */
+.pre-orders-table {
+    @apply rounded-2xl overflow-hidden shadow-lg;
+}
+
+.pre-orders-table .table {
+    @apply mb-0;
+}
+
+.pre-orders-table .table thead th {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    @apply border-none p-4 font-semibold text-gray-700 text-center;
+}
+
+.pre-orders-table .table tbody tr {
+    @apply transition-all duration-200 ease-in-out;
+}
+
+.pre-orders-table .table tbody tr:hover {
+    background-color: rgba(102, 126, 234, 0.05);
+    @apply transform scale-105;
+}
+
+.pre-orders-table .table tbody td {
+    @apply p-4 align-middle border-gray-100;
+}
+
+/* بج‌های وضعیت */
+.status-badge {
+    @apply px-4 py-2 rounded-full font-medium text-sm uppercase tracking-wider shadow-md;
+}
+
+/* دکمه‌های عملیات */
+.action-btn {
+    @apply w-9 h-9 rounded-full inline-flex items-center justify-center transition-all duration-300 ease-in-out border-none mx-1;
+}
+
+.action-btn:hover {
+    @apply transform scale-110 shadow-lg;
+}
+
+/* مودال زیبا */
+.modal-content {
+    @apply rounded-3xl border-none shadow-2xl;
+}
+
+.modal-header {
+    @apply rounded-t-3xl p-6;
+}
+
+.modal-body {
+    @apply p-8;
+}
+
+.modal-footer {
+    @apply rounded-b-3xl p-6;
+}
+
+/* فرم‌های زیبا */
+.form-floating {
+    @apply mb-4;
+}
+
+.form-floating .form-control,
+.form-floating .form-select {
+    @apply rounded-xl border-2 border-indigo-400 transition-all duration-300 ease-in-out;
+    border-width: 2px !important;
+    border-color: #6366f1 !important; /* indigo-500 */
+}
+
+.form-floating .form-control:focus,
+.form-floating .form-select:focus {
+    @apply border-indigo-500 shadow-lg;
+}
+
+.form-floating label {
+    @apply text-gray-600 font-medium;
+}
+
+/* سوئیچ زیبا */
+.form-check-input {
+    @apply w-12 h-6 rounded-full border-2 border-gray-300 bg-gray-100 transition-all duration-300 ease-in-out;
+}
+
+.form-check-input:checked {
+    @apply bg-indigo-600 border-indigo-600;
+}
+
+/* فیلترهای وضعیت */
+.status-filter {
+    @apply rounded-full overflow-hidden shadow-lg;
+}
+
+.status-filter .btn {
+    @apply border-none px-6 py-3 font-medium transition-all duration-300 ease-in-out;
+}
+
+.status-filter .btn.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    @apply text-white transform scale-105;
+}
+
+/* کارت‌های جزئیات */
+.detail-card {
+    @apply rounded-2xl border-none shadow-lg transition-all duration-300 ease-in-out;
+}
+
+.detail-card:hover {
+    @apply transform -translate-y-1 shadow-xl;
+}
+
+.detail-card .card-header {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    @apply border-b-2 border-gray-200 rounded-t-2xl p-5;
+}
+
+/* لیست اطلاعات */
+.info-list {
+    @apply list-none p-0 m-0;
+}
+
+.info-list li {
+    @apply py-3 border-b border-gray-100 flex justify-between items-center;
+}
+
+.info-list li:last-child {
+    @apply border-b-0;
+}
+
+.info-list .label {
+    @apply font-semibold text-gray-700;
+}
+
+.info-list .value {
+    @apply text-gray-600;
+}
+
+/* هشدار زیبا */
+.alert-warning {
+    background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+    @apply border-none rounded-2xl text-yellow-800 p-6;
+}
+
+/* انیمیشن‌های ورود */
+.fade-in {
+    animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* استایل برای حالت خالی */
+.empty-state {
+    @apply text-center py-12 px-4 text-gray-600;
+}
+
+.empty-state i {
+    @apply text-6xl mb-4 opacity-50;
+}
+
+/* ریسپانسیو */
+@media (max-width: 768px) {
+    .stat-card .card-body {
+        @apply p-4;
+    }
+    
+    .modal-dialog {
+        @apply m-4;
+    }
+    
+    .action-btn {
+        @apply w-8 h-8 text-sm;
+    }
+    
+    .status-filter .btn {
+        @apply px-4 py-2 text-sm;
+    }
+}
+
+/* استایل برای اسکرول */
+.table-responsive::-webkit-scrollbar {
+    @apply h-2;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+    @apply bg-gray-100 rounded;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 rounded;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-400;
+}
+
+/* استایل‌های اضافی برای Tailwind */
+.focused {
+    @apply ring-2 ring-indigo-500 ring-opacity-50;
+}
+
+.is-valid {
+    @apply border-green-500;
+}
+
+.is-invalid {
+    @apply border-red-500;
+}
+
+/* انیمیشن‌های اضافی */
+@keyframes slideInFromLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes slideInFromRight {
+    from {
+        opacity: 0;
+        transform: translateX(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes scaleIn {
+    from {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.slide-in-left {
+    animation: slideInFromLeft 0.6s ease-out;
+}
+
+.slide-in-right {
+    animation: slideInFromRight 0.6s ease-out;
+}
+
+.scale-in {
+    animation: scaleIn 0.5s ease-out;
+}
+
+/* استایل‌های برای حالت تاریک */
+.dark .stat-card {
+    @apply bg-gray-800 border-gray-700;
+}
+
+.dark .detail-card {
+    @apply bg-gray-800 border-gray-700;
+}
+
+.dark .pre-orders-table {
+    @apply bg-gray-800;
+}
+
+.dark .pre-orders-table .table thead th {
+    background: linear-gradient(135deg, #374151 0%, #4b5563 100%);
+    @apply text-gray-200;
+}
+
+.dark .pre-orders-table .table tbody td {
+    @apply border-gray-700;
+}
+
+.dark .info-list .label {
+    @apply text-gray-300;
+}
+
+.dark .info-list .value {
+    @apply text-gray-400;
+}
+
+.dark .form-floating label {
+    @apply text-gray-400;
+}
+
+.dark .form-control,
+.dark .form-select {
+    @apply bg-gray-700 border-gray-600 text-gray-200;
+}
+
+.dark .form-control:focus,
+.dark .form-select:focus {
+    @apply border-indigo-400;
+} 

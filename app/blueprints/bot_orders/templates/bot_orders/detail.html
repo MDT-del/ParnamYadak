@@ -1,0 +1,526 @@
+{% extends "base.html" %}
+
+{% block title %}جزئیات سفارش ربات - #{{ order.id }}{% endblock %}
+
+{% block page_title %}جزئیات سفارش ربات{% endblock %}
+
+{% block content %}
+<div x-data="productSearchModal()">
+    <div class="space-y-6">
+        <!-- دکمه بازگشت -->
+        <div class="flex justify-between items-center">
+            <a href="{{ url_for('bot_orders.index') }}" 
+               class="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
+                <i class="bi bi-arrow-right ml-2"></i>
+                بازگشت به لیست
+            </a>
+            
+            <div class="flex space-x-3 space-x-reverse">
+                {% if order.status == 'در انتظار بررسی' %}
+                <!-- حذف فرم ارسال وضعیت به مکانیک -->
+                <button onclick="processOrder({{ order.id }}, 'approve')" 
+                        class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                    <i class="bi bi-check-lg ml-2"></i>
+                    تایید سفارش
+                </button>
+                <button onclick="processOrder({{ order.id }}, 'reject')" 
+                        class="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+                    <i class="bi bi-x-lg ml-2"></i>
+                    رد سفارش
+                </button>
+                {% elif order.status == 'تایید شده' and not order.payment_confirmed %}
+                <button onclick="processOrder({{ order.id }}, 'confirm_payment')" 
+                        class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                    <i class="bi bi-credit-card ml-2"></i>
+                    تایید پرداخت
+                </button>
+                {% elif order.status == 'در انتظار پرداخت' and order.receipt_image %}
+                <button onclick="processOrder({{ order.id }}, 'confirm_payment')" 
+                        class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                    <i class="bi bi-check-lg ml-2"></i>
+                    تایید پرداخت
+                </button>
+                <button onclick="processOrder({{ order.id }}, 'reject')" 
+                        class="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+                    <i class="bi bi-x-lg ml-2"></i>
+                    رد پرداخت
+                </button>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- اطلاعات اصلی -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- کارت شماره سفارش -->
+            <div class="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-700 dark:to-gray-800 rounded-2xl shadow-md border border-blue-100 dark:border-gray-700 p-6 mb-6 transition-all duration-300 hover:shadow-xl flex flex-col items-center">
+                <div class="flex items-center gap-2 mb-4">
+                    <div class="h-12 w-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-2xl">
+                        #
+                    </div>
+                    <span class="text-2xl font-extrabold text-gray-800 dark:text-white">سفارش #{{ order.id|digits_to_persian }}</span>
+                </div>
+                <div class="text-lg text-gray-600 dark:text-gray-300 font-bold mb-2 flex items-center gap-2">
+                    <i class="bi bi-person-circle text-blue-400 text-xl"></i>
+                    {{ order.customer_name or 'نامشخص' }}
+                </div>
+                <span class="inline-flex px-3 py-1 text-sm font-semibold rounded-full mt-2
+                    {% if order.status == 'تکمیل شده' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+                    {% elif order.status == 'پرداخت شده' %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200
+                    {% elif order.status == 'تایید شده' %}bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200
+                    {% elif order.status == 'در انتظار بررسی' %}bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200
+                    {% elif order.status == 'لغو شده' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200
+                    {% else %}bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200{% endif %}">
+                    {{ order.status }}
+                </span>
+            </div>
+            <!-- کارت اطلاعات مشتری -->
+            <div class="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-700 dark:to-gray-800 rounded-2xl shadow-md border border-blue-100 dark:border-gray-700 p-6 mb-6 transition-all duration-300 hover:shadow-xl">
+                <h3 class="text-xl font-extrabold text-blue-700 dark:text-white mb-6 flex items-center gap-2">
+                    <i class="bi bi-person-badge-fill text-2xl text-blue-500"></i>
+                    اطلاعات مشتری
+                </h3>
+                <div class="space-y-5">
+                    <div class="flex items-center gap-4">
+                        <i class="bi bi-person-circle text-2xl text-blue-400"></i>
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">نام مشتری</p>
+                            <p class="text-lg text-gray-900 dark:text-white font-bold">{{ customer.full_name if customer else (order.customer_name or 'نامشخص') }}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <i class="bi bi-telephone-fill text-2xl text-green-400"></i>
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">شماره تلفن</p>
+                            <p class="text-lg text-gray-900 dark:text-white font-bold" dir="ltr">{{ customer.phone_number|digits_to_persian if customer else (order.customer_phone|digits_to_persian) }}</p>
+                        </div>
+                    </div>
+                    {% if customer and customer.telegram_id %}
+                    <div class="flex items-center gap-4">
+                        <i class="bi bi-telegram text-2xl text-indigo-400"></i>
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">آیدی تلگرام</p>
+                            <p class="text-lg text-gray-900 dark:text-white font-bold">{{ customer.telegram_id|digits_to_persian }}</p>
+                        </div>
+                    </div>
+                    {% elif order.telegram_id %}
+                    <div class="flex items-center gap-4">
+                        <i class="bi bi-telegram text-2xl text-indigo-400"></i>
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">آیدی تلگرام</p>
+                            <p class="text-lg text-gray-900 dark:text-white font-bold">{{ order.telegram_id|digits_to_persian }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if customer and customer.address %}
+                    <div class="flex items-center gap-4">
+                        <i class="bi bi-geo-alt-fill text-2xl text-red-400"></i>
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">آدرس</p>
+                            <p class="text-lg text-gray-900 dark:text-white font-bold">{{ customer.address }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            <!-- کارت اطلاعات مکانیک -->
+            <div class="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-700 dark:to-gray-800 rounded-2xl shadow-md border border-blue-100 dark:border-gray-700 p-6 mb-6 transition-all duration-300 hover:shadow-xl">
+                <h3 class="text-xl font-extrabold text-purple-700 dark:text-white mb-6 flex items-center gap-2">
+                    <i class="bi bi-person-gear text-2xl text-purple-500"></i>
+                    اطلاعات مکانیک
+                </h3>
+                <div class="space-y-5">
+                    <div class="flex items-center gap-4">
+                        <i class="bi bi-person-circle text-2xl text-purple-400"></i>
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">نام مکانیک</p>
+                            <p class="text-lg text-gray-900 dark:text-white font-bold">{{ mechanic_info.name if mechanic_info else (order.mechanic.first_name ~ ' ' ~ order.mechanic.last_name if order.mechanic else 'نامشخص') }}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <i class="bi bi-telephone-fill text-2xl text-green-400"></i>
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">شماره تلفن</p>
+                            <p class="text-lg text-gray-900 dark:text-white font-bold" dir="ltr">{{ mechanic_info.phone if mechanic_info else (order.mechanic.phone_number if order.mechanic else '') }}</p>
+                        </div>
+                    </div>
+                    {% if mechanic_info and mechanic_info.commission_percentage %}
+                    <div class="flex items-center gap-4">
+                        <i class="bi bi-percent text-2xl text-orange-400"></i>
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">درصد کمیسیون</p>
+                            <p class="text-lg text-gray-900 dark:text-white font-bold">{{ mechanic_info.commission_percentage|digits_to_persian }}٪</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            <!-- کارت اطلاعات مالی -->
+            <div class="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-700 dark:to-gray-800 rounded-2xl shadow-md border border-blue-100 dark:border-gray-700 p-6 mb-6 transition-all duration-300 hover:shadow-xl flex flex-col items-center">
+                <h3 class="text-xl font-extrabold text-green-700 dark:text-white mb-6 flex items-center gap-2">
+                    <i class="bi bi-cash-stack text-2xl text-green-500"></i>
+                    اطلاعات مالی
+                </h3>
+                <div class="space-y-5 w-full">
+                    <div class="flex items-center gap-4">
+                        <i class="bi bi-currency-exchange text-2xl text-blue-400"></i>
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">مبلغ کل</p>
+                            <p class="text-lg text-gray-900 dark:text-white font-bold">{{ order.total_amount|format_price|digits_to_persian }} تومان</p>
+                        </div>
+                    </div>
+                    {% if order.mechanic %}
+                    <div class="flex items-center gap-4">
+                        <i class="bi bi-percent text-2xl text-orange-400"></i>
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">درصد کمیسیون مکانیک</p>
+                            <p class="text-lg text-gray-900 dark:text-white font-bold">{{ order.mechanic.commission_percentage|digits_to_persian }}٪</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <i class="bi bi-cash text-2xl text-green-400"></i>
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">مبلغ کمیسیون مکانیک</p>
+                            <p class="text-lg text-gray-900 dark:text-white font-bold">{{ order.commission_amount|format_price|digits_to_persian }} تومان</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if order.payment_confirmed %}
+                    <div class="flex items-center gap-4">
+                        <i class="bi bi-check-circle text-2xl text-green-400"></i>
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">پرداخت تایید شده</p>
+                            <p class="text-lg text-gray-900 dark:text-white font-bold">{{ order.payment_confirmed_at|to_shamsi|digits_to_persian if order.payment_confirmed_at else '' }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- لیست محصولات -->
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">محصولات سفارش</h3>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <thead class="bg-gray-50 dark:bg-gray-700">
+                        <tr>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">محصول</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">تعداد</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">قیمت واحد</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">قیمت کل</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">وضعیت</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">عکس محصول</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">عملیات</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                        {% for item in order.items %}
+                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-medium text-gray-900 dark:text-white">{{ item.product_name }}</div>
+                                {% if item.product %}
+                                <div class="text-xs text-gray-500 dark:text-gray-400">{{ item.product.product_number }}</div>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                                {{ item.quantity|digits_to_persian }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                                {{ item.unit_price|format_price|digits_to_persian }} تومان
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                                {{ item.total_price|format_price|digits_to_persian }} تومان
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full 
+                                    {% if item.status == 'موجود' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+                                    {% elif item.status == 'در انتظار بررسی' %}bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200
+                                    {% elif item.status == 'عدم موجودی' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200
+                                    {% else %}bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200{% endif %}">
+                                    {{ item.status }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-center">
+                                {% if item.photo %}
+                                    <img src="{{ url_for('static', filename='product_pics/' + item.photo) }}" alt="عکس محصول" class="w-12 h-12 object-cover rounded cursor-pointer border border-gray-300 hover:shadow-lg transition" @click="modalPhoto = '{{ url_for('static', filename='product_pics/' + item.photo) }}'; showPhotoModal = true">
+                                {% else %}
+                                    <span class="text-xs text-gray-400">—</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <div class="flex items-center gap-2">
+                                    <button type="button" class="px-2 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-400 dark:bg-indigo-500 dark:hover:bg-indigo-300 text-xs transition-colors duration-150" @click="openModal({{ item.id }})">جستجو در محصولات</button>
+                                    <!-- نمایش محصول متصل شده -->
+                                    {% if item.product %}
+                                    <div class="text-xs text-green-600 bg-green-100 px-2 py-1 rounded">
+                                        متصل: {{ item.product.name }}
+                                    </div>
+                                    {% endif %}
+                                    <!-- فرم بروزرسانی -->
+                                    <form method="post" action="{{ url_for('bot_orders.update_item', order_id=order.id, item_id=item.id) }}" class="flex items-center gap-2">
+                                        <select name="status" class="form-select rounded-md border-gray-300 text-sm">
+                                            <option value="موجود" {% if item.status == 'موجود' %}selected{% endif %}>موجود</option>
+                                            <option value="عدم موجودی" {% if item.status == 'عدم موجودی' %}selected{% endif %}>عدم موجودی</option>
+                                            <option value="در انتظار بررسی" {% if item.status == 'در انتظار بررسی' %}selected{% endif %}>در انتظار بررسی</option>
+                                        </select>
+                                        <input type="number" name="unit_price" value="{{ item.unit_price }}" min="0" step="1000" class="form-input w-24 rounded-md border-gray-300 text-sm" required>
+                                        <button type="submit" class="px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-xs">ذخیره</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- بخش رسید پرداخت -->
+        {% if order.receipt_image %}
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                    <i class="bi bi-receipt text-green-500"></i>
+                    رسید پرداخت
+                </h3>
+            </div>
+            <div class="p-6">
+                <div class="flex items-center gap-6">
+                    <!-- نمایش رسید پرداخت -->
+                    <div class="flex-shrink-0">
+                        <img src="{{ url_for('static', filename=order.receipt_image) }}" 
+                             alt="رسید پرداخت" 
+                             class="w-64 h-48 object-cover rounded-lg border border-gray-300 shadow-md cursor-pointer hover:shadow-lg transition-shadow"
+                             @click="modalPhoto = '{{ url_for('static', filename=order.receipt_image) }}'; showPhotoModal = true">
+                    </div>
+                    
+                    <!-- اطلاعات و دکمه‌های عملیات -->
+                    <div class="flex-1">
+                        <div class="space-y-4">
+                            <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                                <h4 class="font-semibold text-blue-800 dark:text-blue-200 mb-2">وضعیت پرداخت</h4>
+                                <p class="text-sm text-blue-700 dark:text-blue-300">
+                                    {% if order.status == 'در انتظار پرداخت' %}
+                                        مشتری رسید پرداخت را ارسال کرده است. لطفاً رسید را بررسی و تایید کنید.
+                                    {% elif order.status == 'در انتظار تایید پرداخت' %}
+                                        رسید پرداخت دریافت شده و منتظر تایید نهایی است.
+                                    {% elif order.status == 'پرداخت شده' %}
+                                        پرداخت تایید شده است.
+                                    {% else %}
+                                        رسید پرداخت ثبت شده است.
+                                    {% endif %}
+                                </p>
+                            </div>
+                            
+                            <!-- دکمه‌های عملیات -->
+                            <div class="flex gap-3">
+                                {% if order.status == 'در انتظار پرداخت' or order.status == 'در انتظار تایید پرداخت' %}
+                                <button onclick="processOrder({{ order.id }}, 'confirm_payment')" 
+                                        class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                                    <i class="bi bi-check-lg ml-2"></i>
+                                    تایید پرداخت
+                                </button>
+                                <button onclick="processOrder({{ order.id }}, 'reject')" 
+                                        class="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+                                    <i class="bi bi-x-lg ml-2"></i>
+                                    رد پرداخت
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <!-- عدم وجود رسید پرداخت -->
+        <div class="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg mt-4">
+            <h4 class="font-semibold text-yellow-800 dark:text-yellow-200 mb-2">رسید پرداخت</h4>
+            <p class="text-sm text-yellow-700 dark:text-yellow-300">
+                هنوز رسید پرداختی برای این سفارش آپلود نشده است.
+            </p>
+        </div>
+        {% endif %}
+        
+
+    </div>
+    <!-- Product Search Modal -->
+    <div x-show="show" class="fixed inset-0 bg-black bg-opacity-40 z-50 flex items-center justify-center" style="display: none;" @keydown.escape.window="closeModal()">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg w-full max-w-md p-6 relative">
+            <button class="absolute left-4 top-4 text-gray-500 hover:text-red-600 text-xl" @click="closeModal()">&times;</button>
+            <h3 class="text-lg font-bold mb-4">جستجو و انتخاب محصول</h3>
+            <input type="text" x-model="searchQuery" @input="searchProducts()" placeholder="نام یا شماره محصول..." class="form-input w-full mb-4 rounded-md border-gray-300 text-sm" autofocus>
+            <div class="max-h-64 overflow-y-auto">
+                <template x-if="loading">
+                    <div class="text-center text-gray-500 py-4">در حال جستجو...</div>
+                </template>
+                <template x-if="!loading && products.length === 0 && searchQuery.length > 1">
+                    <div class="text-center text-gray-500 py-4">محصولی یافت نشد</div>
+                </template>
+                <template x-for="product in products" :key="product.id">
+                    <div class="p-2 hover:bg-gray-100 cursor-pointer border-b border-gray-200" @click="showPriceModal(product)">
+                        <div class="font-medium flex items-center gap-2">
+                            <span x-text="product.name"></span>
+                            <span class="text-xs text-gray-500">| شماره: <span x-text="product.product_number"></span></span>
+                            <span class="text-xs text-purple-600 font-bold" x-text="product.quality ? 'کیفیت: ' + product.quality : ''"></span>
+                        </div>
+                        <div class="text-xs text-gray-500">موجودی: <span x-text="product.available_quantity"></span></div>
+                    </div>
+                </template>
+            </div>
+        </div>
+        <!-- Modal for entering price -->
+        <div x-show="showPrice" class="fixed inset-0 bg-black bg-opacity-40 z-50 flex items-center justify-center" style="display: none;">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg w-full max-w-xs p-6 relative flex flex-col items-center">
+                <button class="absolute left-4 top-4 text-gray-500 hover:text-red-600 text-xl" @click="closePriceModal()">&times;</button>
+                <h3 class="text-lg font-bold mb-4">قیمت فروش را وارد کنید</h3>
+                <input type="text" x-model="priceInput" @input="formatPriceInput" placeholder="مثلاً 1.200.000" class="form-input w-full mb-4 rounded-md border-blue-400 text-lg text-center font-bold tracking-widest" autofocus>
+                <button class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors w-full font-bold text-lg" @click="confirmPrice">تایید</button>
+            </div>
+        </div>
+    </div>
+    <!-- مودال نمایش عکس محصول -->
+    <div x-show="showPhotoModal" style="display: none;" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
+        <div class="bg-white dark:bg-gray-900 rounded-lg shadow-lg p-4 relative max-w-2xl w-full flex flex-col items-center">
+            <button class="absolute left-4 top-4 text-gray-500 hover:text-red-600 text-2xl" @click="showPhotoModal = false">&times;</button>
+            <img :src="modalPhoto" alt="عکس محصول" class="max-h-[70vh] max-w-full rounded border border-gray-300">
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <script>
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('productSearchModal', () => ({
+            ...productSearchModal(),
+            showPhotoModal: false,
+            modalPhoto: '',
+        }));
+    });
+    function processOrder(orderId, action) {
+        let message = '';
+        let confirmMessage = '';
+        
+        switch(action) {
+            case 'approve':
+                confirmMessage = 'آیا از تایید این سفارش مطمئن هستید؟';
+                message = 'تایید سفارش';
+                break;
+            case 'reject':
+                confirmMessage = 'آیا از رد این سفارش مطمئن هستید؟';
+                message = 'رد سفارش';
+                break;
+            case 'confirm_payment':
+                confirmMessage = 'آیا از تایید پرداخت این سفارش مطمئن هستید؟';
+                message = 'تایید پرداخت';
+                break;
+        }
+        
+        if (confirm(confirmMessage)) {
+            fetch(`/bot-orders/${orderId}/process`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `action=${action}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    window.location.reload();
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('خطا:', error);
+                alert('خطا در انجام عملیات');
+            });
+        }
+    }
+
+    function productSearchModal() {
+        return {
+            show: false,
+            showPrice: false,
+            activeItemId: null,
+            searchQuery: '',
+            products: [],
+            loading: false,
+            selectedProduct: null,
+            priceInput: '',
+            openModal(itemId) {
+                this.activeItemId = itemId;
+                this.show = true;
+                this.searchQuery = '';
+                this.products = [];
+                this.loading = false;
+            },
+            closeModal() {
+                this.show = false;
+                this.activeItemId = null;
+                this.searchQuery = '';
+                this.products = [];
+                this.loading = false;
+            },
+            showPriceModal(product) {
+                this.selectedProduct = product;
+                this.priceInput = product.unit_price ? this.formatNumber(product.unit_price) : '';
+                this.showPrice = true;
+            },
+            closePriceModal() {
+                this.showPrice = false;
+                this.selectedProduct = null;
+                this.priceInput = '';
+            },
+            searchProducts() {
+                if (this.searchQuery.length < 2) {
+                    this.products = [];
+                    return;
+                }
+                this.loading = true;
+                fetch(`/bot-orders/api/search_products?q=${encodeURIComponent(this.searchQuery)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        this.products = data.success ? data.products : [];
+                        this.loading = false;
+                    })
+                    .catch(() => { this.loading = false; });
+            },
+            formatNumber(val) {
+                val = val.toString().replace(/\D/g, '');
+                return val.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+            },
+            formatPriceInput() {
+                this.priceInput = this.formatNumber(this.priceInput);
+            },
+            confirmPrice() {
+                if (!this.priceInput) return;
+                const price = parseInt(this.priceInput.replace(/\./g, ''));
+                this.showPrice = false;
+                this.selectProduct(this.selectedProduct, price);
+            },
+            selectProduct(product, priceOverride) {
+                const newPrice = priceOverride !== undefined ? priceOverride : (product.unit_price || 0);
+                fetch(`/bot-orders/api/link_product/${this.activeItemId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ product_id: product.id, unit_price: parseFloat(newPrice) })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert(data.message);
+                        window.location.reload();
+                    } else {
+                        alert(data.message);
+                    }
+                })
+                .catch(() => { alert('خطا در اتصال محصول'); });
+                this.closeModal();
+            }
+        }
+    }
+    </script>
+{% endblock %} 

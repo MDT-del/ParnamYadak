@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>فعال‌سازی لایسنس - نیکایدک</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .license-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+        .license-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 20px 20px 0 0;
+            padding: 2rem;
+        }
+        .form-control {
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+            padding: 12px 15px;
+            font-size: 16px;
+        }
+        .form-control:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+        .btn-activate {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 10px;
+            padding: 12px 30px;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .btn-activate:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        .security-badge {
+            background: #28a745;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+        .feature-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid #f8f9fa;
+        }
+        .feature-list li:before {
+            content: "✓";
+            color: #28a745;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row justify-content-center align-items-center min-vh-100">
+            <div class="col-md-8 col-lg-6">
+                <div class="license-container">
+                    <!-- Header -->
+                    <div class="license-header text-center">
+                        <i class="fas fa-shield-alt fa-3x mb-3"></i>
+                        <h2 class="mb-2">فعال‌سازی لایسنس</h2>
+                        <p class="mb-0">سیستم مدیریت فروشگاه نیکایدک</p>
+                        <span class="security-badge mt-2">
+                            <i class="fas fa-lock"></i> امن و رمزنگاری شده
+                        </span>
+                    </div>
+
+                    <!-- Content -->
+                    <div class="p-4">
+                        {% with messages = get_flashed_messages(with_categories=true) %}
+                            {% if messages %}
+                                {% for category, message in messages %}
+                                    <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                                        {{ message }}
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                        {% endwith %}
+
+                        <form method="POST" class="mb-4">
+                            <div class="mb-4">
+                                <label for="license_key" class="form-label fw-bold">
+                                    <i class="fas fa-key"></i> کد لایسنس
+                                </label>
+                                <input type="text" 
+                                       class="form-control form-control-lg" 
+                                       id="license_key" 
+                                       name="license_key" 
+                                       placeholder="مثال: NIKADEK-2024-PRO"
+                                       required>
+                                <div class="form-text">
+                                    <i class="fas fa-info-circle"></i> کد لایسنس معتبر خود را وارد کنید
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-activate btn-lg w-100 text-white">
+                                <i class="fas fa-check-circle"></i> فعال‌سازی لایسنس
+                            </button>
+                        </form>
+
+                        <!-- Features -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h5 class="fw-bold mb-3">
+                                    <i class="fas fa-star text-warning"></i> قابلیت‌های Pro
+                                </h5>
+                                <ul class="feature-list">
+                                    <li>مدیریت کامل محصولات</li>
+                                    <li>سیستم سفارشات پیشرفته</li>
+                                    <li>گزارش‌های مالی</li>
+                                    <li>مدیریت مشتریان</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <h5 class="fw-bold mb-3">
+                                    <i class="fas fa-crown text-warning"></i> قابلیت‌های Enterprise
+                                </h5>
+                                <ul class="feature-list">
+                                    <li>همه قابلیت‌های Pro</li>
+                                    <li>آنالیتیکس پیشرفته</li>
+                                    <li>API دسترسی</li>
+                                    <li>پشتیبانی 24/7</li>
+                                    <li>بروزرسانی‌های رایگان</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <!-- Security Info -->
+                        <div class="alert alert-info mt-4">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-shield-alt fa-2x me-3"></i>
+                                <div>
+                                    <h6 class="mb-1">امنیت بالا</h6>
+                                    <p class="mb-0 small">کد لایسنس شما با الگوریتم‌های رمزنگاری پیشرفته محافظت می‌شود</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html> 

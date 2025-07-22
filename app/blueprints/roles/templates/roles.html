@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block page_title %}مدیریت نقش‌ها و دسترسی‌ها{% endblock %}
+
+{% block content %}
+
+    <div class="my-4">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="p-4 mb-4 text-sm text-{{ 'green' if category == 'success' else 'red' }}-800 rounded-lg bg-{{ 'green' if category == 'success' else 'red' }}-50 dark:bg-gray-700 dark:text-{{ 'green' if category == 'success' else 'red' }}-400" role="alert">
+                    <span class="font-medium">{{ message }}</span>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+    </div>
+
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md">
+        <div class="p-3 sm:p-4 md:p-6">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3 sm:gap-4">
+                <h2 class="text-lg sm:text-xl font-semibold text-gray-800 dark:text-gray-100">لیست نقش‌ها</h2>
+                <a href="{{ url_for('roles.create_role') }}" class="w-full sm:w-auto py-2 px-3 sm:px-4 rounded-md text-white bg-green-600 hover:bg-green-700 text-center text-sm sm:text-base">
+                    <i class="bi bi-plus-lg ml-1 sm:ml-2"></i> افزودن نقش جدید
+                </a>
+            </div>
+            
+            <!-- نمایش موبایل: کارت‌ها -->
+            <div class="block sm:hidden space-y-3">
+                {% for role in roles %}
+                <div class="border dark:border-gray-600 rounded-lg p-4 bg-gray-50 dark:bg-gray-700">
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 class="font-medium text-gray-900 dark:text-gray-100">{{ role.name }}</h3>
+                        {% if role.name != 'Admin' %}
+                        <div class="flex gap-2">
+                            <a href="{{ url_for('roles.edit_role', role_id=role.id) }}" class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 text-sm">ویرایش</a>
+                            <form method="POST" action="{{ url_for('roles.delete_role', role_id=role.id) }}" class="inline-block" onsubmit="return confirm('آیا از حذف این نقش مطمئن هستید؟');">
+                                <button type="submit" class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 text-sm">حذف</button>
+                            </form>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">{{ role.description }}</p>
+                    <div class="flex flex-wrap gap-1">
+                        {% for perm in role.permissions %}
+                            <span class="px-2 py-1 text-xs leading-4 font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100">
+                                {{ perm.description }}
+                            </span>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% else %}
+                <div class="text-center py-8 text-gray-500 dark:text-gray-400">
+                    هیچ نقشی یافت نشد.
+                </div>
+                {% endfor %}
+            </div>
+            
+            <!-- نمایش دسکتاپ: جدول -->
+            <div class="hidden sm:block overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <thead class="bg-gray-50 dark:bg-gray-700">
+                        <tr>
+                            <th class="px-3 md:px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">نام نقش</th>
+                            <th class="px-3 md:px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">توضیحات</th>
+                            <th class="px-3 md:px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">مجوزها</th>
+                            <th class="px-3 md:px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">عملیات</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                        {% for role in roles %}
+                        <tr>
+                            <td class="px-3 md:px-6 py-4 text-sm font-medium text-gray-900 dark:text-gray-100">{{ role.name }}</td>
+                            <td class="px-3 md:px-6 py-4 text-sm text-gray-700 dark:text-gray-300">{{ role.description }}</td>
+                            <td class="px-3 md:px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
+                                <div class="flex flex-wrap gap-1">
+                                    {% for perm in role.permissions %}
+                                        <span class="px-2 py-1 text-xs leading-4 font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100">
+                                            {{ perm.description }}
+                                        </span>
+                                    {% endfor %}
+                                </div>
+                            </td>
+                            <td class="px-3 md:px-6 py-4 text-sm font-medium space-x-2 space-x-reverse">
+                                {% if role.name != 'Admin' %}
+                                    <a href="{{ url_for('roles.edit_role', role_id=role.id) }}" class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300">ویرایش</a>
+                                    <form method="POST" action="{{ url_for('roles.delete_role', role_id=role.id) }}" class="inline-block" onsubmit="return confirm('آیا از حذف این نقش مطمئن هستید؟');">
+                                        <button type="submit" class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">حذف</button>
+                                    </form>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" class="text-center px-3 md:px-6 py-4 text-sm text-gray-500 dark:text-gray-400">هیچ نقشی یافت نشد.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+{% endblock %}

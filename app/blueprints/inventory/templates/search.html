@@ -1,0 +1,154 @@
+{% extends 'base.html' %}
+
+{% block page_title %}<span class="font-bold">مدیریت کالاها</span>{% endblock %}
+
+{% block title %}جستجوی پیشرفته انبار{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 mb-6">
+        <h2 class="text-xl font-bold text-gray-800 dark:text-white mb-4">جستجوی پیشرفته انبار</h2>
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+            <div>
+                <p class="text-gray-600 dark:text-gray-400">جستجو و فیلتر محصولات انبار بر اساس معیارهای مختلف</p>
+            </div>
+            <div class="mt-4 md:mt-0">
+                <a href="{{ url_for('inventory.index') }}" class="inline-flex items-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition duration-200">
+                    <i class="bi bi-arrow-right ml-2"></i>
+                    بازگشت به انبار
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search Form -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 mb-6">
+        <form method="get" action="{{ url_for('inventory.search') }}" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                    <label for="search" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">جستجو در نام محصول</label>
+                    <input type="text" id="search" name="search" value="{{ search }}" 
+                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                           placeholder="نام محصول...">
+                </div>
+                
+                <div>
+                    <label for="quality" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">کیفیت</label>
+                    <select id="quality" name="quality" 
+                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white">
+                        <option value="">همه کیفیت‌ها</option>
+                        <option value="ایرانی" {% if quality == 'ایرانی' %}selected{% endif %}>ایرانی</option>
+                        <option value="شرکتی" {% if quality == 'شرکتی' %}selected{% endif %}>شرکتی</option>
+                        <option value="وارداتی" {% if quality == 'وارداتی' %}selected{% endif %}>وارداتی</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label for="date_from" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">از تاریخ</label>
+                    <input type="text" id="date_from" name="date_from" value="{{ date_from }}" 
+                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                           placeholder="1403/01/01">
+                </div>
+                
+                <div>
+                    <label for="date_to" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">تا تاریخ</label>
+                    <input type="text" id="date_to" name="date_to" value="{{ date_to }}" 
+                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                           placeholder="1403/12/29">
+                </div>
+            </div>
+            
+            <div class="flex justify-end">
+                <button type="submit" class="inline-flex items-center px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition duration-200">
+                    <i class="bi bi-search ml-2"></i>
+                    جستجو
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Results -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">نتایج جستجو</h2>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ products|length }} محصول یافت شد</p>
+        </div>
+        
+        {% if products %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead class="bg-gray-50 dark:bg-gray-700">
+                    <tr>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">نام محصول</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">کیفیت</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">موجودی کل</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">موجودی قابل فروش</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">رزرو شده</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">تاریخ ثبت</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">عملیات</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                    {% for product in products %}
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-medium text-gray-900 dark:text-white">{{ product.name }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full
+                                {% if product.quality == 'ایرانی' %}bg-green-100 text-green-800{% elif product.quality == 'شرکتی' %}bg-blue-100 text-blue-800{% else %}bg-purple-100 text-purple-800{% endif %}">
+                                {{ product.quality }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                            {{ product.total_quantity }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                            {{ product.available_quantity }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                            {{ product.reserved_quantity }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                            {{ product.created_at|to_shamsi }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <a href="{{ url_for('inventory.product_detail', product_id=product.id) }}" 
+                               class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300">
+                                مشاهده جزئیات
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-12">
+            <i class="bi bi-search text-4xl text-gray-400 mb-4"></i>
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">محصولی یافت نشد</h3>
+            <p class="text-gray-500 dark:text-gray-400">با معیارهای انتخابی محصولی پیدا نشد. لطفاً معیارهای جستجو را تغییر دهید.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+// تبدیل تاریخ شمسی
+document.addEventListener('DOMContentLoaded', function() {
+    // اضافه کردن تقویم شمسی به فیلدهای تاریخ
+    const dateInputs = document.querySelectorAll('input[type="text"][name*="date"]');
+    dateInputs.forEach(input => {
+        input.addEventListener('focus', function() {
+            this.type = 'date';
+        });
+        input.addEventListener('blur', function() {
+            if (!this.value) {
+                this.type = 'text';
+            }
+        });
+    });
+});
+</script>
+{% endblock %} 

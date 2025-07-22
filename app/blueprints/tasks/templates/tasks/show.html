@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% block page_title %}جزئیات وظیفه{% endblock %}
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-xl mx-auto bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <div class="mb-6 flex items-center justify-between">
+            <a href="{{ url_for('tasks.index') }}" class="flex items-center gap-2 bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1 rounded transition-colors">
+                <i class="bi bi-arrow-right-circle text-lg"></i>
+                بازگشت به کارتابل
+            </a>
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white">جزئیات وظیفه</h2>
+        </div>
+        <div class="mb-4">
+            <span class="font-semibold">عنوان:</span>
+            <span>{{ task.title }}</span>
+        </div>
+        <div class="mb-4">
+            <span class="font-semibold">توضیحات:</span>
+            <span>{{ task.description or '-' }}</span>
+        </div>
+        <div class="mb-4">
+            <span class="font-semibold">وضعیت:</span>
+            <span>{{ task.status }}</span>
+        </div>
+        <div class="mb-4">
+            <span class="font-semibold">موعد انجام:</span>
+            <span>{{ task.due_date or '-' }}</span>
+        </div>
+        <div class="mb-4">
+            <span class="font-semibold">نقش ارجاع داده شده:</span>
+            <span>{{ role.name if role else '-' }}</span>
+        </div>
+        <div class="mb-4">
+            <span class="font-semibold">تاریخ ایجاد:</span>
+            <span>{{ task.created_at|to_shamsi }}</span>
+        </div>
+        <div class="mb-4">
+            <span class="font-semibold">ایجادکننده:</span>
+            <span>{{ task.creator.name or task.creator.username }}</span>
+        </div>
+        <div class="flex justify-between mt-8">
+            <a href="{{ url_for('tasks.index') }}" class="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded">بازگشت</a>
+            <a href="{{ url_for('tasks.edit', task_id=task.id) }}" class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded">ویرایش</a>
+        </div>
+    </div>
+</div>
+{% endblock %} 

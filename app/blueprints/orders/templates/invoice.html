@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        body {
+            font-family: 'Vazirmatn', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .invoice-box {
+            max-width: 800px;
+            margin: auto;
+            margin-top: 20px;
+            padding: 30px;
+            border: 1px solid #eee;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.15);
+            font-size: 16px;
+            line-height: 24px;
+            color: #555;
+            background-color: #fff;
+        }
+        .invoice-box table {
+            width: 100%;
+            line-height: inherit;
+            text-align: right;
+        }
+        .invoice-box table td {
+            padding: 5px;
+            vertical-align: top;
+        }
+        .invoice-box table tr.top table td {
+            padding-bottom: 20px;
+        }
+        .invoice-box table tr.information table td {
+            padding-bottom: 40px;
+        }
+        .invoice-box table tr.heading td {
+            background: #eee;
+            border-bottom: 1px solid #ddd;
+            font-weight: bold;
+        }
+        .invoice-box table tr.item td {
+            border-bottom: 1px solid #eee;
+        }
+        .invoice-box table tr.total td:nth-child(2) {
+            border-top: 2px solid #eee;
+            font-weight: bold;
+        }
+        .button-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .pdf-button {
+            display: inline-block;
+            padding: 10px 20px;
+            text-align: center;
+            background-color: #c026d3; /* Fuchsia color */
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        @media print {
+            .no-print {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="invoice-box" id="invoice-to-pdf">
+        <table cellpadding="0" cellspacing="0">
+            <tr class="top">
+                <td colspan="4">
+                    <table>
+                        <tr>
+                            <td class="title">
+                                <img src="https://raw.githubusercontent.com/amirmalek0/E-Commerce-Telegram-Bot/main/admin/images/logo.png" style="width:100%; max-width:150px;">
+                            </td>
+                            <td>
+                                شماره فاکتور: #{{ order.id }}<br>
+                                تاریخ صدور: {{ order.order_date|to_shamsi }}
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+            <tr class="information">
+                <td colspan="4">
+                    <table>
+                        <tr>
+                            <td>
+                                <strong>فروشگاه نیکایدک</strong><br>
+                                آدرس فروشگاه شما<br>
+                                شهر، کدپستی
+                            </td>
+                            <td>
+                                <strong>صورتحساب برای:</strong><br>
+                                {{ order.customer.first_name }} {{ order.customer.last_name or '' }}<br>
+                                {{ order.customer.phone_number }}<br>
+                                {{ order.customer.address }}
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+            <tr class="heading">
+                <td>محصول</td>
+                <td style="text-align: center;">تعداد</td>
+                <td style="text-align: center;">قیمت واحد</td>
+                <td style="text-align: left;">جمع کل</td>
+            </tr>
+            {% for item in order.items %}
+            <tr class="item">
+                <td>{{ item.product.name }}</td>
+                <td style="text-align: center;">{{ item.quantity }}</td>
+                <td style="text-align: center;">{{ "{:,.0f}".format(item.price_per_unit)|digits_to_persian }}</td>
+                <td style="text-align: left;">{{ "{:,.0f}".format(item.quantity * item.price_per_unit)|digits_to_persian }}</td>
+            </tr>
+            {% endfor %}
+            <tr class="total">
+                <td colspan="3"></td>
+                <td style="text-align: left;">
+                   <strong>مبلغ نهایی: {{ "{:,.0f}".format(order.final_price)|digits_to_persian }} تومان</strong>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="no-print button-container">
+        <button id="download-button" class="pdf-button">دانلود PDF</button>
+    </div>
+
+    <script>
+        document.getElementById('download-button').addEventListener('click', function () {
+            const element = document.getElementById('invoice-to-pdf');
+            const opt = {
+                margin:       1,
+                filename:     'invoice_{{ order.id }}.pdf',
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2 },
+                jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+            };
+            html2pdf().set(opt).from(element).save();
+        });
+    </script>
+</body>
+</html>

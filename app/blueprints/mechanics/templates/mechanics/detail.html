@@ -1,0 +1,399 @@
+{% extends "base.html" %}
+
+{% block title %}جزئیات مکانیک - {{ mechanic.full_name }}{% endblock %}
+
+{% block page_title %}جزئیات مکانیک{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- دکمه بازگشت -->
+    <div class="flex justify-between items-center">
+        <div class="flex space-x-3 space-x-reverse">
+            <a href="{{ url_for('mechanics.index') }}" 
+               class="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
+                <i class="bi bi-arrow-right ml-2"></i>
+                بازگشت به لیست
+            </a>
+            {% if current_user.has_role('admin') %}
+            <a href="{{ url_for('mechanics.edit_mechanic', mechanic_id=mechanic.id) }}" class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors ml-2">
+                <i class="bi bi-pencil-square ml-2"></i>
+                ویرایش اطلاعات
+            </a>
+            {% endif %}
+        </div>
+        <div class="flex space-x-3 space-x-reverse">
+            {% if not mechanic.is_approved %}
+            <button onclick="approveMechanic({{ mechanic.id }})" 
+                    class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                <i class="bi bi-check-lg ml-2"></i>
+                تایید مکانیک
+            </button>
+            <button onclick="rejectMechanic({{ mechanic.id }})" 
+                    class="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+                <i class="bi bi-x-lg ml-2"></i>
+                رد درخواست
+            </button>
+            {% else %}
+            <button onclick="updateCommission({{ mechanic.id }})" 
+                    class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                <i class="bi bi-pencil ml-2"></i>
+                ویرایش کمیسیون
+            </button>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- اطلاعات اصلی -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- کارت اطلاعات شخصی -->
+        <div class="lg:col-span-2">
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
+                <div class="flex items-center mb-6">
+                    <div class="flex-shrink-0 h-16 w-16">
+                        <div class="h-16 w-16 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-2xl">
+                            {{ mechanic.first_name[0] }}{% if mechanic.last_name %}{{ mechanic.last_name[0] }}{% endif %}
+                        </div>
+                    </div>
+                    <div class="mr-4">
+                        <h2 class="text-2xl font-bold text-gray-900 dark:text-white">{{ mechanic.full_name }}</h2>
+                        <p class="text-gray-500 dark:text-gray-400">ID: {{ mechanic.telegram_id|digits_to_persian }}</p>
+                        <div class="mt-2">
+                            {% if mechanic.is_approved %}
+                                <span class="inline-flex px-3 py-1 text-sm font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                    <i class="bi bi-check-circle ml-1"></i>
+                                    تایید شده
+                                </span>
+                            {% else %}
+                                <span class="inline-flex px-3 py-1 text-sm font-semibold rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                                    <i class="bi bi-clock ml-1"></i>
+                                    در انتظار تایید
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- اطلاعات تماس -->
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">اطلاعات تماس</h3>
+                        <div class="space-y-3">
+                            <div class="flex items-center">
+                                <i class="bi bi-telephone text-blue-500 ml-3"></i>
+                                <div>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">شماره تلفن</p>
+                                    <p class="text-gray-900 dark:text-white font-medium" dir="ltr">{{ mechanic.phone_number|digits_to_persian }}</p>
+                                </div>
+                            </div>
+                            
+                            {% if mechanic.shop_address %}
+                            <div class="flex items-start">
+                                <i class="bi bi-geo-alt text-green-500 ml-3 mt-1"></i>
+                                <div>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">آدرس مغازه</p>
+                                    <p class="text-gray-900 dark:text-white">{{ mechanic.shop_address }}</p>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- اطلاعات مالی -->
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">اطلاعات مالی</h3>
+                        <div class="space-y-3">
+                            {% if mechanic.card_number %}
+                            <div class="flex items-center">
+                                <i class="bi bi-credit-card text-purple-500 ml-3"></i>
+                                <div>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">شماره کارت</p>
+                                    <p class="text-gray-900 dark:text-white font-medium" dir="ltr">{{ mechanic.card_number|digits_to_persian }}</p>
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            {% if mechanic.sheba_number %}
+                            <div class="flex items-center">
+                                <i class="bi bi-bank text-indigo-500 ml-3"></i>
+                                <div>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">شماره شبا</p>
+                                    <p class="text-gray-900 dark:text-white font-medium" dir="ltr">{{ mechanic.sheba_number|digits_to_persian }}</p>
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            {% if mechanic.business_license %}
+                            <div class="flex items-center">
+                                <i class="bi bi-file-earmark-text text-orange-500 ml-3"></i>
+                                <div>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">شماره جواز کسب</p>
+                                    <p class="text-gray-900 dark:text-white font-medium">{{ mechanic.business_license|digits_to_persian }}</p>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- کارت آمار و وضعیت -->
+        <div class="space-y-6">
+            <!-- آمار کلی -->
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">آمار کلی</h3>
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600 dark:text-gray-400">تعداد سفارشات</span>
+                        <span class="font-semibold text-gray-900 dark:text-white">{{ mechanic.total_orders|digits_to_persian }}</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600 dark:text-gray-400">مجموع کمیسیون</span>
+                        <span class="font-semibold text-gray-900 dark:text-white">{{ mechanic.total_commission|digits_to_persian }} تومان</span>
+                    </div>
+                    {% if mechanic.is_approved %}
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600 dark:text-gray-400">درصد کمیسیون</span>
+                        <span class="font-semibold text-green-600">{{ mechanic.commission_percentage|digits_to_persian }}%</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- اطلاعات تایید -->
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">اطلاعات تایید</h3>
+                <div class="space-y-4">
+                    <div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">تاریخ ثبت‌نام</p>
+                        <p class="text-gray-900 dark:text-white">{{ mechanic.created_at|to_shamsi|digits_to_persian if mechanic.created_at else '-' }}</p>
+                    </div>
+                    {% if mechanic.is_approved %}
+                    <div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">تاریخ تایید</p>
+                        <p class="text-gray-900 dark:text-white">{{ mechanic.approved_at|to_shamsi|digits_to_persian if mechanic.approved_at else '-' }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">تاییدکننده</p>
+                        <p class="text-gray-900 dark:text-white">{{ mechanic.approved_by_user.name if mechanic.approved_by_user else '-' }}</p>
+                    </div>
+                    {% endif %}
+                    <div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">آخرین بروزرسانی</p>
+                        <p class="text-gray-900 dark:text-white">{{ mechanic.updated_at|to_shamsi|digits_to_persian if mechanic.updated_at else '-' }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- کارت عکس جواز کسب (زیر همه اطلاعات) -->
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 flex flex-col items-center mt-6">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">عکس جواز کسب</h3>
+        {% if mechanic.business_license_image %}
+            <img src="{{ url_for('static', filename=mechanic.business_license_image) }}" alt="عکس جواز کسب" class="rounded-lg shadow-md max-w-full max-h-64 border border-gray-200 dark:border-gray-700">
+        {% else %}
+            <span class="text-gray-500 dark:text-gray-400">عکسی ثبت نشده است</span>
+        {% endif %}
+    </div>
+
+    <!-- سفارشات اخیر -->
+    {% if mechanic.bot_orders.count() > 0 %}
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">سفارشات اخیر</h3>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead class="bg-gray-50 dark:bg-gray-700">
+                    <tr>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">شماره سفارش</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">مشتری</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">مبلغ کل</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">کمیسیون</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">وضعیت</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">تاریخ</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                    {% for order in mechanic.bot_orders.order_by(BotOrder.created_at.desc()).limit(10).all() %}
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                            #{{ order.id|digits_to_persian }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-900 dark:text-white">{{ order.customer_name or 'نامشخص' }}</div>
+                            <div class="text-sm text-gray-500 dark:text-gray-400" dir="ltr">{{ order.customer_phone|digits_to_persian }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                            {{ order.total_amount|digits_to_persian }} تومان
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600 font-medium">
+                            {{ order.commission_amount|format_price|digits_to_persian }} تومان
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full 
+                                {% if order.status == 'تکمیل شده' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+                                {% elif order.status == 'پرداخت شده' %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200
+                                {% elif order.status == 'در انتظار بررسی' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
+                                {% else %}bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200{% endif %}">
+                                {{ order.status }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                            {{ order.created_at|to_shamsi|digits_to_persian if order.created_at else '' }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- مودال تایید مکانیک -->
+<div id="approveModal" class="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-60 z-50 hidden">
+    <div class="relative w-full max-w-md mx-auto p-6 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700">
+        <div class="flex flex-col items-center">
+            <div class="bg-green-100 dark:bg-green-900 rounded-full p-3 mb-3">
+                <i class="bi bi-person-check text-2xl text-green-600 dark:text-green-300"></i>
+            </div>
+            <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">تایید مکانیک</h3>
+            <p class="text-gray-500 dark:text-gray-300 mb-4 text-center">برای تایید این مکانیک، درصد کمیسیون را وارد کنید.</p>
+            <form id="approveForm" class="w-full">
+                <input type="hidden" id="mechanicId" name="mechanic_id" value="{{ mechanic.id }}">
+                <div class="mb-4">
+                    <label for="commissionPercentage" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        درصد کمیسیون
+                    </label>
+                    <input type="number" id="commissionPercentage" name="commission_percentage" 
+                           class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white text-center text-lg font-bold"
+                           min="0" max="100" step="0.1" required placeholder="مثلاً 5">
+                </div>
+                <div class="flex justify-end gap-2">
+                    <button type="button" onclick="closeApproveModal()" 
+                            class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors">
+                        انصراف
+                    </button>
+                    <button type="submit" 
+                            class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-bold">
+                        تایید
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- مودال بروزرسانی کمیسیون -->
+<div id="commissionModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
+        <div class="mt-3">
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">بروزرسانی کمیسیون</h3>
+            <form id="commissionForm">
+                <input type="hidden" id="commissionMechanicId" name="mechanic_id" value="{{ mechanic.id }}">
+                <div class="mb-4">
+                    <label for="newCommissionPercentage" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        درصد کمیسیون جدید
+                    </label>
+                    <input type="number" id="newCommissionPercentage" name="commission_percentage" 
+                           value="{{ mechanic.commission_percentage }}"
+                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                           min="0" max="100" step="0.1" required>
+                </div>
+                <div class="flex justify-end space-x-3 space-x-reverse">
+                    <button type="button" onclick="closeCommissionModal()" 
+                            class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors">
+                        انصراف
+                    </button>
+                    <button type="submit" 
+                            class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+                        بروزرسانی
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function approveMechanic(mechanicId) {
+    document.getElementById('mechanicId').value = mechanicId;
+    document.getElementById('approveModal').classList.remove('hidden');
+}
+
+function closeApproveModal() {
+    document.getElementById('approveModal').classList.add('hidden');
+}
+
+function updateCommission(mechanicId) {
+    document.getElementById('commissionMechanicId').value = mechanicId;
+    document.getElementById('commissionModal').classList.remove('hidden');
+}
+
+function closeCommissionModal() {
+    document.getElementById('commissionModal').classList.add('hidden');
+}
+
+function rejectMechanic(mechanicId) {
+    if (confirm('آیا از رد این مکانیک مطمئن هستید؟')) {
+        fetch(`/mechanics/${mechanicId}/reject`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `reason=رد توسط ادمین`
+        }).then(response => {
+            if (response.ok) {
+                window.location.href = '{{ url_for("mechanics.index") }}';
+            }
+        });
+    }
+}
+
+document.getElementById('approveForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const mechanicId = document.getElementById('mechanicId').value;
+    const commissionPercentage = document.getElementById('commissionPercentage').value;
+    
+    fetch(`/mechanics/${mechanicId}/approve`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `commission_percentage=${commissionPercentage}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            closeApproveModal();
+            window.location.reload();
+        } else {
+            alert(data.message);
+        }
+    });
+});
+
+document.getElementById('commissionForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const mechanicId = document.getElementById('commissionMechanicId').value;
+    const commissionPercentage = document.getElementById('newCommissionPercentage').value;
+    
+    fetch(`/mechanics/${mechanicId}/update_commission`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `commission_percentage=${commissionPercentage}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            closeCommissionModal();
+            window.location.reload();
+        } else {
+            alert(data.message);
+        }
+    });
+});
+</script>
+{% endblock %} 

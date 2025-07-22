@@ -1,0 +1,146 @@
+/* Import Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700&display=swap');
+
+body {
+    font-family: 'Vazirmatn', sans-serif;
+    /* بیشتر استایل‌ها توسط کلاس‌های Tailwind در HTML مدیریت می‌شوند */
+}
+
+/* استایل‌های سفارشی برای منوی آبشاری Choices.js */
+.choices {
+    font-family: 'Vazirmatn', sans-serif;
+    direction: rtl;
+}
+
+.choices__inner {
+    background: white;
+    border: 1px solid #9ca3af;
+    border-radius: 0.375rem;
+    min-height: 44px;
+    padding: 7.5px 7.5px 3.75px;
+    direction: rtl;
+}
+
+.choices__list--dropdown {
+    background: white;
+    border: 1px solid #9ca3af;
+    border-radius: 0.375rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    direction: rtl;
+}
+
+.choices__list--dropdown .choices__item {
+    padding: 10px 16px;
+    direction: rtl;
+}
+
+.choices__list--dropdown .choices__item--selectable:hover {
+    background-color: #f3f4f6;
+}
+
+.choices__list--multiple .choices__item {
+    background-color: #3b82f6;
+    border: 1px solid #3b82f6;
+    color: white;
+    border-radius: 0.375rem;
+    padding: 4px 8px;
+    margin: 2px;
+    font-size: 12px;
+    direction: rtl;
+}
+
+.choices__list--multiple .choices__item.choices__item--selectable {
+    background-color: #3b82f6;
+}
+
+.choices__button {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 0 4px;
+}
+
+.choices__input {
+    background: none;
+    border: none;
+    font-size: 14px;
+    margin: 0;
+    padding: 4px 0;
+    width: 100%;
+    direction: rtl;
+}
+
+.choices__input:focus {
+    outline: none;
+}
+
+/* حالت تاریک */
+.dark .choices__inner {
+    background: #374151;
+    border-color: #4b5563;
+    color: #e5e7eb;
+}
+
+.dark .choices__list--dropdown {
+    background: #374151;
+    border-color: #4b5563;
+}
+
+.dark .choices__list--dropdown .choices__item--selectable:hover {
+    background-color: #4b5563;
+}
+
+.dark .choices__input {
+    color: #e5e7eb;
+}
+
+.dark .choices__input::placeholder {
+    color: #9ca3af;
+}
+
+/* استایل سفارشی برای چک‌باکس‌ها در فرم نقش‌ها */
+.checkbox-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+@media (min-width: 640px) {
+    .checkbox-list {
+        display: grid;
+        grid-template-columns: repeat(1, minmax(0, 1fr));
+        gap: 0.5rem;
+    }
+}
+
+@media (min-width: 768px) {
+    .checkbox-list {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 1024px) {
+    .checkbox-list {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+.checkbox-list label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 0.375rem;
+    transition: all 0.2s ease;
+}
+
+.checkbox-list label:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.checkbox-list input[type="checkbox"] {
+    margin-left: 0.5rem;
+    flex-shrink: 0;
+}

@@ -1,0 +1,408 @@
+{% extends "base.html" %}
+
+{% block title %}پیکربندی ربات تلگرام{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6" x-data="botSettings()">
+    <!-- Header -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4 rtl:space-x-reverse">
+                    <div class="bg-blue-100 dark:bg-blue-900 p-3 rounded-xl">
+                        <i class="bi bi-robot text-2xl text-blue-600 dark:text-blue-400"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">پیکربندی ربات تلگرام</h1>
+                        <p class="text-gray-600 dark:text-gray-400 mt-1">تنظیمات اتصال و عملکرد ربات</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-3 rtl:space-x-reverse">
+                    <div class="flex items-center space-x-2 rtl:space-x-reverse">
+                        <div class="w-3 h-3 rounded-full" :class="botStatus === 'online' ? 'bg-green-500' : 'bg-red-500'"></div>
+                        <span class="text-sm font-medium" :class="botStatus === 'online' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'" x-text="botStatus === 'online' ? 'آنلاین' : 'آفلاین'"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Form -->
+    <form method="POST" action="{{ url_for('bot_settings.save_settings') }}" @submit="handleSubmit">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Left Column - Main Settings -->
+            <div class="lg:col-span-2 space-y-6">
+                
+                <!-- Basic Configuration -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+                    <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                        <h2 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                            <i class="bi bi-gear-fill text-blue-600 dark:text-blue-400 ml-2"></i>
+                            تنظیمات اصلی
+                        </h2>
+                    </div>
+                    <div class="p-6 space-y-6">
+                        <!-- Bot Token -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                توکن ربات تلگرام
+                                <span class="text-red-500">*</span>
+                            </label>
+                            <div class="relative">
+                                <input 
+                                    type="password" 
+                                    name="bot_token" 
+                                    value="{{ config.get('TELEGRAM_BOT_TOKEN', '') }}"
+                                    class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-colors"
+                                    placeholder="1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"
+                                    x-model="formData.bot_token"
+                                    required
+                                >
+                                <button 
+                                    type="button" 
+                                    @click="toggleTokenVisibility"
+                                    class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                                >
+                                    <i class="bi" :class="showToken ? 'bi-eye-slash' : 'bi-eye'"></i>
+                                </button>
+                            </div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                توکن ربات را از @BotFather در تلگرام دریافت کنید
+                            </p>
+                        </div>
+
+                        <!-- Panel API URL -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                آدرس API پنل
+                                <span class="text-red-500">*</span>
+                            </label>
+                            <input 
+                                type="url" 
+                                name="panel_api_url" 
+                                value="{{ config.get('PANEL_API_BASE_URL', '') }}"
+                                class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-colors"
+                                placeholder="https://your-domain.com"
+                                x-model="formData.panel_api_url"
+                                required
+                            >
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Webhook Settings -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+                    <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                        <h2 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                            <i class="bi bi-cloud-arrow-up-fill text-green-600 dark:text-green-400 ml-2"></i>
+                            تنظیمات Webhook
+                        </h2>
+                    </div>
+                    <div class="p-6 space-y-6">
+                        <!-- Webhook Toggle -->
+                        <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                            <div>
+                                <h3 class="text-sm font-medium text-gray-900 dark:text-white">فعال‌سازی Webhook</h3>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                    برای استقرار روی سرور، Webhook را فعال کنید
+                                </p>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input 
+                                    type="checkbox" 
+                                    name="use_webhook" 
+                                    class="sr-only peer" 
+                                    x-model="formData.use_webhook"
+                                    {{ 'checked' if config.get('USE_WEBHOOK') == 'true' else '' }}
+                                >
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                            </label>
+                        </div>
+
+                        <!-- Webhook URL -->
+                        <div x-show="formData.use_webhook" x-transition>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                آدرس Webhook
+                            </label>
+                            <input 
+                                type="url" 
+                                name="webhook_url" 
+                                value="{{ config.get('WEBHOOK_URL', '') }}"
+                                class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-colors"
+                                placeholder="https://your-domain.com"
+                                x-model="formData.webhook_url"
+                            >
+                        </div>
+
+                        <!-- Webhook Path -->
+                        <div x-show="formData.use_webhook" x-transition>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                مسیر Webhook
+                            </label>
+                            <input 
+                                type="text" 
+                                name="webhook_path" 
+                                value="{{ config.get('WEBHOOK_PATH', '/webhook') }}"
+                                class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-colors"
+                                placeholder="/webhook"
+                                x-model="formData.webhook_path"
+                            >
+                        </div>
+
+                        <!-- Webhook Host & Port -->
+                        <div x-show="formData.use_webhook" x-transition class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Host
+                                </label>
+                                <input 
+                                    type="text" 
+                                    name="webhook_host" 
+                                    value="{{ config.get('WEBHOOK_HOST', '0.0.0.0') }}"
+                                    class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-colors"
+                                    x-model="formData.webhook_host"
+                                >
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Port
+                                </label>
+                                <input 
+                                    type="number" 
+                                    name="webhook_port" 
+                                    value="{{ config.get('WEBHOOK_PORT', '8080') }}"
+                                    class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-colors"
+                                    x-model="formData.webhook_port"
+                                >
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Logging Settings -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+                    <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                        <h2 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                            <i class="bi bi-journal-text text-purple-600 dark:text-purple-400 ml-2"></i>
+                            تنظیمات لاگ
+                        </h2>
+                    </div>
+                    <div class="p-6">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            سطح لاگ
+                        </label>
+                        <select 
+                            name="log_level" 
+                            class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-colors"
+                            x-model="formData.log_level"
+                        >
+                            <option value="DEBUG" {{ 'selected' if config.get('LOG_LEVEL') == 'DEBUG' else '' }}>DEBUG - جزئیات کامل</option>
+                            <option value="INFO" {{ 'selected' if config.get('LOG_LEVEL') == 'INFO' else '' }}>INFO - اطلاعات عمومی</option>
+                            <option value="WARNING" {{ 'selected' if config.get('LOG_LEVEL') == 'WARNING' else '' }}>WARNING - هشدارها</option>
+                            <option value="ERROR" {{ 'selected' if config.get('LOG_LEVEL') == 'ERROR' else '' }}>ERROR - فقط خطاها</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column - Actions & Status -->
+            <div class="space-y-6">
+                <!-- Action Buttons -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+                    <div class="p-6 space-y-4">
+                        <button 
+                            type="submit" 
+                            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center"
+                            :disabled="loading"
+                        >
+                            <i class="bi bi-check-circle ml-2" x-show="!loading"></i>
+                            <i class="bi bi-arrow-clockwise animate-spin ml-2" x-show="loading"></i>
+                            <span x-text="loading ? 'در حال ذخیره...' : 'ذخیره تنظیمات'"></span>
+                        </button>
+
+                        <button 
+                            type="button" 
+                            @click="testWebhook"
+                            class="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center"
+                            x-show="formData.use_webhook"
+                            :disabled="testing"
+                        >
+                            <i class="bi bi-wifi ml-2" x-show="!testing"></i>
+                            <i class="bi bi-arrow-clockwise animate-spin ml-2" x-show="testing"></i>
+                            <span x-text="testing ? 'در حال تست...' : 'تست Webhook'"></span>
+                        </button>
+
+                        <button 
+                            type="button" 
+                            @click="restartBot"
+                            class="w-full bg-orange-600 hover:bg-orange-700 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center"
+                            :disabled="restarting"
+                        >
+                            <i class="bi bi-arrow-clockwise ml-2" x-show="!restarting"></i>
+                            <i class="bi bi-arrow-clockwise animate-spin ml-2" x-show="restarting"></i>
+                            <span x-text="restarting ? 'در حال راه‌اندازی مجدد...' : 'راه‌اندازی مجدد ربات'"></span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Bot Status -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+                    <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">وضعیت ربات</h3>
+                    </div>
+                    <div class="p-6 space-y-4">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-gray-600 dark:text-gray-400">وضعیت اتصال:</span>
+                            <span class="text-sm font-medium" :class="botStatus === 'online' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'" x-text="botStatus === 'online' ? 'متصل' : 'قطع'"></span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-gray-600 dark:text-gray-400">آخرین به‌روزرسانی:</span>
+                            <span class="text-sm text-gray-900 dark:text-white" x-text="lastUpdate"></span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-gray-600 dark:text-gray-400">حالت اجرا:</span>
+                            <span class="text-sm text-gray-900 dark:text-white" x-text="formData.use_webhook ? 'Webhook' : 'Polling'"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Help -->
+                <div class="bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
+                    <div class="p-6">
+                        <h3 class="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-3">راهنمای سریع</h3>
+                        <ul class="text-xs text-blue-800 dark:text-blue-200 space-y-2">
+                            <li class="flex items-start">
+                                <i class="bi bi-dot text-blue-600 dark:text-blue-400 ml-1 mt-1"></i>
+                                برای محیط توسعه از Polling استفاده کنید
+                            </li>
+                            <li class="flex items-start">
+                                <i class="bi bi-dot text-blue-600 dark:text-blue-400 ml-1 mt-1"></i>
+                                برای سرور از Webhook استفاده کنید
+                            </li>
+                            <li class="flex items-start">
+                                <i class="bi bi-dot text-blue-600 dark:text-blue-400 ml-1 mt-1"></i>
+                                پس از تغییر تنظیمات، ربات را مجدداً راه‌اندازی کنید
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+function botSettings() {
+    return {
+        loading: false,
+        testing: false,
+        restarting: false,
+        showToken: false,
+        botStatus: 'offline',
+        lastUpdate: new Date().toLocaleString('fa-IR'),
+        formData: {
+            bot_token: '{{ config.get("TELEGRAM_BOT_TOKEN", "") }}',
+            panel_api_url: '{{ config.get("PANEL_API_BASE_URL", "") }}',
+            use_webhook: {{ 'true' if config.get('USE_WEBHOOK') == 'true' else 'false' }},
+            webhook_url: '{{ config.get("WEBHOOK_URL", "") }}',
+            webhook_path: '{{ config.get("WEBHOOK_PATH", "/webhook") }}',
+            webhook_host: '{{ config.get("WEBHOOK_HOST", "0.0.0.0") }}',
+            webhook_port: '{{ config.get("WEBHOOK_PORT", "8080") }}',
+            log_level: '{{ config.get("LOG_LEVEL", "INFO") }}'
+        },
+
+        init() {
+            this.checkBotStatus();
+            setInterval(() => {
+                this.checkBotStatus();
+            }, 30000); // هر 30 ثانیه
+        },
+
+        toggleTokenVisibility() {
+            this.showToken = !this.showToken;
+            const input = document.querySelector('input[name="bot_token"]');
+            input.type = this.showToken ? 'text' : 'password';
+        },
+
+        async handleSubmit(event) {
+            this.loading = true;
+            // فرم به صورت عادی ارسال می‌شود
+        },
+
+        async testWebhook() {
+            this.testing = true;
+            try {
+                const response = await fetch('{{ url_for("bot_settings.test_webhook") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        webhook_url: this.formData.webhook_url
+                    })
+                });
+                const result = await response.json();
+                
+                if (result.success) {
+                    this.showNotification('تست Webhook موفقیت‌آمیز بود', 'success');
+                } else {
+                    this.showNotification('خطا در تست Webhook: ' + result.message, 'error');
+                }
+            } catch (error) {
+                this.showNotification('خطا در ارتباط با سرور', 'error');
+            } finally {
+                this.testing = false;
+            }
+        },
+
+        async restartBot() {
+            this.restarting = true;
+            try {
+                const response = await fetch('{{ url_for("bot_settings.restart_bot") }}', {
+                    method: 'POST'
+                });
+                const result = await response.json();
+                
+                if (result.success) {
+                    this.showNotification('ربات با موفقیت راه‌اندازی مجدد شد', 'success');
+                    setTimeout(() => {
+                        this.checkBotStatus();
+                    }, 3000);
+                } else {
+                    this.showNotification('خطا در راه‌اندازی مجدد: ' + result.message, 'error');
+                }
+            } catch (error) {
+                this.showNotification('خطا در ارتباط با سرور', 'error');
+            } finally {
+                this.restarting = false;
+            }
+        },
+
+        async checkBotStatus() {
+            try {
+                const response = await fetch('{{ url_for("bot_settings.bot_status") }}');
+                const result = await response.json();
+                this.botStatus = result.status || 'offline';
+                this.lastUpdate = new Date().toLocaleString('fa-IR');
+            } catch (error) {
+                this.botStatus = 'offline';
+            }
+        },
+
+        showNotification(message, type) {
+            // اینجا می‌توانید از کتابخانه notification استفاده کنید
+            // یا یک toast ساده نمایش دهید
+            const alertClass = type === 'success' ? 'alert-success' : 'alert-error';
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert ${alertClass} fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg`;
+            alertDiv.textContent = message;
+            document.body.appendChild(alertDiv);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+    }
+}
+</script>
+{% endblock %}

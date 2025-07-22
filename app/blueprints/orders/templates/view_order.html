@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block page_title %}جزئیات سفارش #{{ order.id }}{% endblock %}
+
+{% block content %}
+
+    <div class="my-4">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="p-4 mb-4 text-sm text-{{ 'green' if category == 'success' else 'red' }}-800 rounded-lg bg-{{ 'green' if category == 'success' else 'red' }}-50 dark:bg-gray-700 dark:text-{{ 'green' if category == 'success' else 'red' }}-400" role="alert">
+                    <span class="font-medium">{{ message }}</span>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+    </div>
+
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="md:col-span-1">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4 border-b dark:border-gray-700 pb-2">اطلاعات مشتری</h3>
+                <div class="space-y-3 text-sm">
+                    <p><strong>نام:</strong> <span class="text-gray-700 dark:text-gray-300">{{ order.customer.first_name }} {{ order.customer.last_name or '' }}</span></p>
+                    <p><strong>تلفن:</strong> <span class="text-gray-700 dark:text-gray-300" dir="ltr">{{ order.customer.phone_number }}</span></p>
+                    <p><strong>آدرس:</strong> <span class="text-gray-700 dark:text-gray-300">{{ order.customer.address }}</span></p>
+                </div>
+            </div>
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mt-6">
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4 border-b dark:border-gray-700 pb-2">اطلاعات سفارش</h3>
+                <div class="space-y-3 text-sm">
+                    <p><strong>تاریخ ثبت:</strong> <span class="text-gray-700 dark:text-gray-300" dir="ltr">{{ order.order_date.strftime('%Y-%m-%d %H:%M') }}</span></p>
+                    <p><strong>مبلغ کل:</strong> <span class="text-green-600 dark:text-green-400 font-bold">{{ "{:,.0f}".format(order.total_price)|digits_to_persian }} تومان</span></p>
+                    <p><strong>وضعیت فعلی:</strong> 
+                        <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100">
+                            {{ order.status }}
+                        </span>
+                    </p>
+                </div>
+                <form action="{{ url_for('orders.update_status', order_id=order.id) }}" method="POST" class="mt-4 border-t dark:border-gray-700 pt-4">
+                    <label for="status" class="block text-sm font-medium text-gray-700 dark:text-gray-300">تغییر وضعیت به:</label>
+                    <div class="flex items-center mt-2">
+                        <select name="status" id="status" class="text-gray-900 py-2 mt-1 block w-full rounded-md border-gray-400 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            {% for s in statuses %}
+                                <option value="{{ s }}" {% if s == order.status %}selected{% endif %}>{{ s }}</option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit" class="mr-2 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">ذخیره</button>
+                    </div>
+                </form>
+                <!-- حذف بخش کوپن تخفیف -->
+
+                <div class="mt-4 border-t dark:border-gray-700 pt-4">
+                     <a href="{{ url_for('orders.invoice', order_id=order.id) }}" target="_blank" class="w-full flex items-center justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                        <i class="bi bi-printer ml-2"></i>
+                        چاپ فاکتور
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="md:col-span-2">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md">
+                <div class="p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">محصولات سفارش</h3>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                            <thead class="bg-gray-50 dark:bg-gray-700">
+                                <tr>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">محصول</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">تعداد</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">قیمت واحد</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">جمع کل</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                                {% for item in order.items %}
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            <div class="flex-shrink-0 h-10 w-10">
+                                                <img class="h-10 w-10 rounded-full object-cover" src="{{ url_for('static', filename='product_pics/' + item.product.image_file) }}" alt="">
+                                            </div>
+                                            <div class="mr-4">
+                                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ item.product.name }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{{ item.quantity }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{{ "{:,.0f}".format(item.price_per_unit)|digits_to_persian }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{{ "{:,.0f}".format(item.quantity * item.price_per_unit)|digits_to_persian }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

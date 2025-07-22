@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% block page_title %}ایجاد وظیفه جدید{% endblock %}
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-md mx-auto bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <h2 class="text-2xl font-bold mb-6 text-gray-900 dark:text-white">ایجاد وظیفه جدید</h2>
+        <form method="post">
+            <div class="mb-4">
+                <label class="block mb-1 font-medium text-gray-700 dark:text-gray-300">عنوان <span class="text-red-500">*</span></label>
+                <input type="text" name="title" class="w-full border rounded px-3 py-2" required>
+            </div>
+            <div class="mb-4">
+                <label class="block mb-1 font-medium text-gray-700 dark:text-gray-300">توضیحات</label>
+                <textarea name="description" class="w-full border rounded px-3 py-2" rows="3"></textarea>
+            </div>
+            <div class="mb-4">
+                <label class="block mb-1 font-medium text-gray-700 dark:text-gray-300">وضعیت</label>
+                <select name="status" class="w-full border rounded px-3 py-2">
+                    {% for s in statuses %}
+                    <option value="{{ s }}">{{ s }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mb-4">
+                <label class="block mb-1 font-medium text-gray-700 dark:text-gray-300">موعد انجام (تاریخ شمسی)</label>
+                <div class="relative">
+                    <input type="text" name="due_date" id="due-date-picker" data-jdp class="w-full border rounded px-3 py-2 pr-10" placeholder="مثال: 1403-05-20" autocomplete="off">
+                    <button type="button" tabindex="-1" class="absolute inset-y-0 left-0 flex items-center px-2 text-gray-500" onclick="document.getElementById('due-date-picker').focus(); return false;">
+                        <i class="bi bi-calendar-event text-xl"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="mb-6">
+                <label class="block mb-1 font-medium text-gray-700 dark:text-gray-300">ارجاع به نقش</label>
+                <select name="role_id" class="w-full border rounded px-3 py-2">
+                    <option value="">انتخاب نشده</option>
+                    {% for role in roles %}
+                    <option value="{{ role.id }}">{{ role.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="flex justify-end space-x-2 space-x-reverse">
+              <a href="{{ url_for('tasks.index') }}"
+                 class="inline-block px-4 py-2 rounded border border-gray-400 bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-600 dark:text-white dark:hover:bg-gray-700 transition">
+                انصراف
+              </a>
+              <button type="submit"
+                 class="inline-block px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700 transition">
+                ثبت وظیفه
+              </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@majidh1/jalalidatepicker/dist/jalalidatepicker.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@majidh1/jalalidatepicker/dist/jalalidatepicker.min.js"></script>
+    <script>
+        jalaliDatepicker.startWatch();
+        // دیگر ساعت پیش‌فرض اضافه نشود، فقط تاریخ ثبت شود
+    </script>
+{% endblock %} 

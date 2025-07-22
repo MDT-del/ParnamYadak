@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% block page_title %}همه اعلان‌های وظیفه{% endblock %}
+{% block content %}
+<div class="max-w-2xl mx-auto bg-white dark:bg-gray-800 rounded-lg shadow p-6 mt-6" x-data="notifAllPage()" x-init="loadAll()">
+    <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-bold text-gray-800 dark:text-gray-100">همه اعلان‌های وظیفه</h2>
+        <button @click="deleteRead()" class="text-xs bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300 px-3 py-1 rounded hover:bg-red-200 dark:hover:bg-red-700">حذف اعلان‌های خوانده‌شده</button>
+    </div>
+    <template x-if="allNotifs.length === 0">
+        <div class="text-center text-gray-500 dark:text-gray-400 py-8">اعلانی وجود ندارد.</div>
+    </template>
+    <template x-for="notif in allNotifs" :key="notif.id">
+        <div class="flex items-center justify-between border-b border-gray-100 dark:border-gray-700 py-3">
+            <div>
+                <span class="text-xs font-bold" x-text="notif.task_title"></span>
+                <span class="text-xs text-gray-500 ml-2" x-text="notif.created_at"></span>
+                <div class="text-xs mt-1" :class="notif.is_read ? 'text-gray-400' : 'text-indigo-600 font-bold'" x-text="notif.message"></div>
+            </div>
+            <div class="flex items-center gap-2">
+                <template x-if="!notif.is_read">
+                    <button @click="markRead(notif.id)" class="text-xs bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300 px-2 py-1 rounded hover:bg-indigo-200 dark:hover:bg-indigo-700">علامت خوانده‌شده</button>
+                </template>
+                <a :href="'/tasks/' + notif.task_id" class="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-800">جزئیات</a>
+            </div>
+        </div>
+    </template>
+</div>
+<script>
+function notifAllPage() {
+    return {
+        allNotifs: [],
+        loadAll() {
+            fetch('/tasks/notifications/all')
+                .then(r => r.json())
+                .then(data => { if(data.success) this.allNotifs = data.data; });
+        },
+        markRead(id) {
+            fetch(`/tasks/notifications/mark-read/${id}`, {method: 'POST'})
+                .then(r => r.json())
+                .then(data => {
+                    if(data.success) {
+                        this.loadAll();
+                        if(window.notificationSystemInstance) window.notificationSystemInstance.loadNotifications();
+                    }
+                });
+        },
+        deleteRead() {
+            if(confirm('آیا مطمئن هستید؟')) {
+                fetch('/tasks/notifications/delete-read', {method: 'POST'})
+                    .then(r => r.json())
+                    .then(data => {
+                        if(data.success) {
+                            this.loadAll();
+                            if(window.notificationSystemInstance) window.notificationSystemInstance.loadNotifications();
+                        }
+                    });
+            }
+        }
+    }
+}
+// ثبت instance برای دسترسی سراسری
+window.addEventListener('alpine:init', () => {
+    window.notificationSystemInstance = document.querySelector('[x-data*="notificationSystem"]').__x.$data;
+});
+</script>
+{% endblock %} 

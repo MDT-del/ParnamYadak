@@ -1,0 +1,236 @@
+{% extends "base.html" %}
+
+{% block page_title %}کارتابل{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- هدر صفحه -->
+    <div class="text-left mb-6">
+        <a href="{{ url_for('tasks.create') }}" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg flex items-center">
+            <i class="bi bi-plus-circle me-2"></i>
+            وظیفه جدید
+        </a>
+    </div>
+
+    <!-- آمار کلی -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-blue-100 dark:bg-blue-900">
+                    <i class="bi bi-list-task text-2xl text-blue-600 dark:text-blue-400"></i>
+                </div>
+                <div class="mr-4">
+                    <p class="text-sm text-gray-500 dark:text-gray-400">کل وظایف</p>
+                    <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ total_tasks|digits_to_persian }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-yellow-100 dark:bg-yellow-900">
+                    <i class="bi bi-exclamation-circle text-2xl text-yellow-600 dark:text-yellow-400"></i>
+                </div>
+                <div class="mr-4">
+                    <p class="text-sm text-gray-500 dark:text-gray-400">جدید</p>
+                    <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ new_tasks|digits_to_persian }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-orange-100 dark:bg-orange-900">
+                    <i class="bi bi-clock text-2xl text-orange-600 dark:text-orange-400"></i>
+                </div>
+                <div class="mr-4">
+                    <p class="text-sm text-gray-500 dark:text-gray-400">در حال انجام</p>
+                    <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ in_progress_tasks|digits_to_persian }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-green-100 dark:bg-green-900">
+                    <i class="bi bi-check-circle text-2xl text-green-600 dark:text-green-400"></i>
+                </div>
+                <div class="mr-4">
+                    <p class="text-sm text-gray-500 dark:text-gray-400">انجام شده</p>
+                    <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ completed_tasks|digits_to_persian }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- فیلترها -->
+    <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow mb-6">
+        <div class="flex flex-wrap gap-4">
+            <a href="{{ url_for('tasks.index') }}" class="px-4 py-2 rounded-lg {% if request.args.get('status') == 'all' or not request.args.get('status') %}bg-indigo-600 text-white{% else %}bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300{% endif %}">
+                همه
+            </a>
+            <a href="{{ url_for('tasks.index', status='جدید') }}" class="px-4 py-2 rounded-lg {% if request.args.get('status') == 'جدید' %}bg-indigo-600 text-white{% else %}bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300{% endif %}">
+                جدید
+            </a>
+            <a href="{{ url_for('tasks.index', status='در حال انجام') }}" class="px-4 py-2 rounded-lg {% if request.args.get('status') == 'در حال انجام' %}bg-indigo-600 text-white{% else %}bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300{% endif %}">
+                در حال انجام
+            </a>
+            <a href="{{ url_for('tasks.index', status='انجام شده') }}" class="px-4 py-2 rounded-lg {% if request.args.get('status') == 'انجام شده' %}bg-indigo-600 text-white{% else %}bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300{% endif %}">
+                انجام شده
+            </a>
+        </div>
+    </div>
+
+    <!-- لیست وظایف -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+        {% if tasks.items %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead class="bg-gray-50 dark:bg-gray-700">
+                    <tr>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">عنوان</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">وضعیت</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">موعد</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">تاریخ ایجاد</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">ایجادکننده</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">عملیات</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                    {% for task in tasks.items %}
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-medium text-gray-900 dark:text-white">{{ task.title }}</div>
+                            {% if task.description %}
+                            <div class="text-sm text-gray-500 dark:text-gray-400">{{ task.description[:50] }}{% if task.description|length > 50 %}...{% endif %}</div>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full
+                                {% if task.status == 'جدید' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
+                                {% elif task.status == 'در حال انجام' %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200
+                                {% elif task.status == 'انجام شده' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+                                {% else %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200{% endif %}">
+                                {{ task.status }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                            {% if task.due_date %}
+                                {{ task.due_date }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                            {{ task.created_at|to_shamsi }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                            {{ task.creator.name or task.creator.username }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <div class="flex space-x-2 space-x-reverse">
+                                <a href="{{ url_for('tasks.show', task_id=task.id) }}" class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a href="{{ url_for('tasks.edit', task_id=task.id) }}" class="text-yellow-600 hover:text-yellow-900 dark:text-yellow-400 dark:hover:text-yellow-300">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                {% if task.created_by == current_user.id or current_user.can('manage_admins') %}
+                                <button onclick="deleteTask({{ task.id }})" class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- صفحه‌بندی -->
+        {% if tasks.pages > 1 %}
+        <div class="bg-white dark:bg-gray-800 px-4 py-3 flex items-center justify-between border-t border-gray-200 dark:border-gray-700 sm:px-6">
+            <div class="flex-1 flex justify-between sm:hidden">
+                {% if tasks.has_prev %}
+                <a href="{{ url_for('tasks.index', page=tasks.prev_num, status=request.args.get('status')) }}" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                    قبلی
+                </a>
+                {% endif %}
+                {% if tasks.has_next %}
+                <a href="{{ url_for('tasks.index', page=tasks.next_num, status=request.args.get('status')) }}" class="mr-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                    بعدی
+                </a>
+                {% endif %}
+            </div>
+            <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                <div>
+                    <p class="text-sm text-gray-700 dark:text-gray-300">
+                        نمایش <span class="font-medium">{{ tasks.first|digits_to_persian }}</span> تا <span class="font-medium">{{ tasks.last|digits_to_persian }}</span> از <span class="font-medium">{{ tasks.total|digits_to_persian }}</span> نتیجه
+                    </p>
+                </div>
+                <div>
+                    <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                        {% if tasks.has_prev %}
+                        <a href="{{ url_for('tasks.index', page=tasks.prev_num, status=request.args.get('status')) }}" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                            <i class="bi bi-chevron-right"></i>
+                        </a>
+                        {% endif %}
+
+                        {% for page_num in tasks.iter_pages() %}
+                            {% if page_num %}
+                                {% if page_num != tasks.page %}
+                                <a href="{{ url_for('tasks.index', page=page_num, status=request.args.get('status')) }}" class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                    {{ page_num|digits_to_persian }}
+                                </a>
+                                {% else %}
+                                <span class="relative inline-flex items-center px-4 py-2 border border-indigo-500 bg-indigo-50 text-sm font-medium text-indigo-600">
+                                    {{ page_num|digits_to_persian }}
+                                </span>
+                                {% endif %}
+                            {% else %}
+                            <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
+                                ...
+                            </span>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if tasks.has_next %}
+                        <a href="{{ url_for('tasks.index', page=tasks.next_num, status=request.args.get('status')) }}" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                            <i class="bi bi-chevron-left"></i>
+                        </a>
+                        {% endif %}
+                    </nav>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% else %}
+        <div class="text-center py-12">
+            <i class="bi bi-list-task text-6xl text-gray-400 mb-4"></i>
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">هیچ وظیفه‌ای یافت نشد</h3>
+            <p class="text-gray-500 dark:text-gray-400 mb-6">هنوز وظیفه‌ای برای شما تعریف نشده است.</p>
+            <a href="{{ url_for('tasks.create') }}" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg">
+                ایجاد وظیفه جدید
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- فرم حذف -->
+<form id="deleteForm" method="POST" style="display: none;">
+    <input type="hidden" name="_method" value="DELETE">
+</form>
+
+<script>
+function deleteTask(taskId) {
+    if (confirm('آیا از حذف این وظیفه اطمینان دارید؟')) {
+        const form = document.getElementById('deleteForm');
+        form.action = `/tasks/${taskId}/delete`;
+        form.submit();
+    }
+}
+</script>
+{% endblock %} 

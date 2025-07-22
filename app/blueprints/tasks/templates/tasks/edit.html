@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% block page_title %}ویرایش وظیفه{% endblock %}
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-md mx-auto bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <div class="mb-6 flex items-center justify-between">
+            <a href="{{ url_for('tasks.show', task_id=task.id) }}" class="flex items-center gap-2 bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1 rounded transition-colors">
+                <i class="bi bi-arrow-right-circle text-lg"></i>
+                بازگشت به جزئیات
+            </a>
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white">ویرایش وظیفه</h2>
+        </div>
+        <form method="post">
+            <div class="mb-4">
+                <label class="block mb-1 font-medium text-gray-700 dark:text-gray-300">عنوان <span class="text-red-500">*</span></label>
+                <input type="text" name="title" class="w-full border rounded px-3 py-2" required value="{{ task.title }}">
+            </div>
+            <div class="mb-4">
+                <label class="block mb-1 font-medium text-gray-700 dark:text-gray-300">توضیحات</label>
+                <textarea name="description" class="w-full border rounded px-3 py-2" rows="3">{{ task.description }}</textarea>
+            </div>
+            <div class="mb-4">
+                <label class="block mb-1 font-medium text-gray-700 dark:text-gray-300">وضعیت</label>
+                <select name="status" class="w-full border rounded px-3 py-2">
+                    {% for s in statuses %}
+                    <option value="{{ s }}" {% if task.status == s %}selected{% endif %}>{{ s }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mb-4">
+                <label class="block mb-1 font-medium text-gray-700 dark:text-gray-300">موعد انجام (تاریخ شمسی)</label>
+                <input type="text" name="due_date" id="due-date-picker" class="w-full border rounded px-3 py-2" placeholder="مثال: 1403-05-20" value="{{ task.due_date }}">
+            </div>
+            <div class="mb-6">
+                <label class="block mb-1 font-medium text-gray-700 dark:text-gray-300">ارجاع به نقش</label>
+                <select name="role_id" class="w-full border rounded px-3 py-2">
+                    <option value="">انتخاب نشده</option>
+                    {% for role in roles %}
+                    <option value="{{ role.id }}" {% if task.role_id == role.id %}selected{% endif %}>{{ role.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="flex justify-between">
+                <a href="{{ url_for('tasks.show', task_id=task.id) }}" class="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded">بازگشت</a>
+                <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded">ثبت تغییرات</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@majidh1/jalalidatepicker/dist/jalalidatepicker.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@majidh1/jalalidatepicker/dist/jalalidatepicker.min.js"></script>
+    <script>
+        jalaliDatepicker.startWatch();
+        document.querySelector('form').addEventListener('submit', function(e) {
+            var input = document.getElementById('due-date-picker');
+            if(input.value && !/\d{2}:\d{2}:\d{2}/.test(input.value)) {
+                input.value = input.value.trim() + ' 00:00:00';
+            }
+        });
+    </script>
+{% endblock %} 
