@@ -15,6 +15,11 @@ echo "دیتابیس آماده است!"
 
 # اجرای migration های دیتابیس
 echo "اجرای migration های دیتابیس..."
+if [ ! -d "migrations" ]; then
+    echo "پوشه migrations وجود ندارد. در حال ساخت migrations..."
+    flask db init
+    flask db migrate -m "initial"
+fi
 flask db upgrade
 
 # ایجاد دایرکتوری‌های مورد نیاز
