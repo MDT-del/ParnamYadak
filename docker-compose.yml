@@ -5,6 +5,7 @@ services:
   app:
     build: .
     container_name: parnamyadak_app
+    user: root
     restart: unless-stopped
     environment:
       - FLASK_ENV=production
