@@ -16,7 +16,7 @@ RUN apt-get update && apt-get install -y \
     g++ \
     libpq-dev \
     curl \
-    netcat \
+    netcat-openbsd \
     && rm -rf /var/lib/apt/lists/*
 
 # کپی فایل‌های requirements
