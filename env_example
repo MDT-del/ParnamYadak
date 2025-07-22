@@ -1,17 +1,31 @@
 # -----------------------------
 # امنیت و تنظیمات اصلی
+# کلید امنیتی برای اپلیکیشن Flask
 SECRET_KEY=your-super-secret-key-here
+# کلید لایسنس (در صورت نیاز)
 LICENSE_SECRET_KEY=your-super-secret-license-key-2024
-FLASK_ENV=production  # یا development
-LOG_LEVEL=INFO  # یا ERROR
+# محیط اجرا: production یا development
+FLASK_ENV=production
+# سطح لاگ: INFO یا ERROR
+LOG_LEVEL=INFO
 
 # -----------------------------
-# تنظیمات دیتابیس
-DATABASE_URL=sqlite:///app.db  # یا postgresql://user:pass@localhost/dbname
+# تنظیمات دیتابیس (برای PostgreSQL)
+# نام دیتابیس
+POSTGRES_DB=parnamyadak
+# نام کاربری دیتابیس
+POSTGRES_USER=parnamyadak
+# رمز عبور دیتابیس
+POSTGRES_PASSWORD=yourpassword
+# آدرس اتصال SQLAlchemy (در داکر معمولاً نام سرویس دیتابیس را به جای localhost قرار دهید)
+DATABASE_URL=postgresql://parnamyadak:yourpassword@db:5432/parnamyadak
+# اگر از SQLite استفاده می‌کنید، مقدار زیر را جایگزین کنید:
+# DATABASE_URL=sqlite:///app.db
 
 # -----------------------------
 # کش (اختیاری)
-REDIS_URL=redis://localhost:6379/0
+# آدرس Redis (در داکر معمولاً نام سرویس redis را به جای localhost قرار دهید)
+REDIS_URL=redis://redis:6379/0
 
 # -----------------------------
 # تنظیمات ایمیل (برای ارسال اعلان و بازیابی رمز)
@@ -24,17 +38,22 @@ MAIL_PASSWORD=your_app_password
 
 # -----------------------------
 # تنظیمات ربات تلگرام
-TELEGRAM_BOT_TOKEN=7122602887:AAFZfFjUfxIpnU36iKvsViV_6Wj7b254bcQ
+TELEGRAM_BOT_TOKEN=your-telegram-bot-token
 
 # -----------------------------
-# مانیتورینگ و رهگیری خطا
-SENTRY_DSN=your-sentry-dsn-here  # اختیاری، برای فعال‌سازی Sentry
+# مانیتورینگ و رهگیری خطا (اختیاری)
+# اگر از Sentry استفاده می‌کنید مقدار DSN را وارد کنید
+SENTRY_DSN=your-sentry-dsn-here
 
 # -----------------------------
 # سایر تنظیمات (در صورت نیاز)
-# ALLOWED_HOSTS=localhost,127.0.0.1
+# لیست دامنه‌های مجاز برای دسترسی به پنل (با کاما جدا کنید)
+# ALLOWED_HOSTS=panel.parnamYadak.ir,localhost,127.0.0.1
+# کوکی سشن فقط روی HTTPS فعال باشد
 # SESSION_COOKIE_SECURE=True
+# کوکی سشن فقط از طریق HTTP قابل دسترسی باشد
 # SESSION_COOKIE_HTTPONLY=True
+# سیاست SameSite برای کوکی سشن
 # SESSION_COOKIE_SAMESITE=Lax
 
 # -----------------------------

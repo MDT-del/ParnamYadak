@@ -481,7 +481,7 @@ def api_get_order(order_id):
                 'items': items,
                 'created_at': order.created_at.isoformat() if order.created_at else None,
                 'updated_at': order.updated_at.isoformat() if order.updated_at else None,
-                'card_number': '6219-8619-0954-8298',  
+                'card_number': '6219-8618-6017-5487',  
                 'card_holder': 'میثم قادری',           
                 'bank': 'بانک سامان'                    
             }
