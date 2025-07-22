@@ -70,23 +70,6 @@ services:
       timeout: 10s
       retries: 3
 
-  # سرویس Nginx برای reverse proxy (اختیاری)
-  nginx:
-    image: nginx:alpine
-    container_name: parnamyadak_nginx
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./ssl:/etc/nginx/ssl:ro
-      - ./static:/var/www/static:ro
-    depends_on:
-      - app
-    networks:
-      - parnamyadak_network
-
 volumes:
   postgres_data:
     driver: local
