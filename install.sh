@@ -11,10 +11,12 @@ if ! command -v docker &> /dev/null; then
     echo "[+] لطفا یک بار logout و login کنید تا دسترسی docker فعال شود."
 fi
 
-if ! command -v docker-compose &> /dev/null; then
-    echo "[+] Docker Compose نصب نیست. در حال نصب Docker Compose..."
-    sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-    sudo chmod +x /usr/local/bin/docker-compose
+if ! command -v docker compose &> /dev/null; then
+    echo "[+] Docker Compose جدید نصب نیست. در حال نصب..."
+    sudo mkdir -p /usr/local/lib/docker/cli-plugins
+    sudo curl -SL https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m) \
+        -o /usr/local/lib/docker/cli-plugins/docker-compose
+    sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
 fi
 
 # 2. ساخت فایل env در صورت نبودن
@@ -34,23 +36,24 @@ if [ -z "$DB_NAME" ] || [ -z "$DB_USER" ] || [ -z "$DB_PASS" ]; then
     exit 1
 fi
 
-# 4. اجرای docker-compose
+# 4. اجرای docker compose
 export POSTGRES_DB="$DB_NAME"
 export POSTGRES_USER="$DB_USER"
 export POSTGRES_PASSWORD="$DB_PASS"
 echo "[+] اجرای docker compose در حالت production..."
 docker compose -f docker-compose.yml up -d --build --remove-orphans
 
+# 5. صبر برای آماده شدن دیتابیس
 echo "[+] منتظر آماده شدن دیتابیس..."
-# صبر برای آماده شدن دیتابیس (تا 60 ثانیه)
 for i in {1..30}; do
-    if docker exec $(docker ps -qf "name=postgres") pg_isready -U "$DB_USER"; then
-        echo "[+] دیتابیس آماده است."
+    if docker exec parnamyadak_db pg_isready -U "$DB_USER" > /dev/null 2>&1; then
+        echo "[✅] دیتابیس آماده است."
         break
     fi
+    echo "⏳ صبر کن، هنوز آماده نیست..."
     sleep 2
 done
 
-echo "[+] پروژه با موفقیت راه‌اندازی شد!"
-echo "[i] برای مشاهده لاگ‌ها: docker-compose logs -f"
-echo "[i] برای توقف: docker-compose down" 
+echo "[🎉] پروژه با موفقیت راه‌اندازی شد!"
+echo "[ℹ️] مشاهده لاگ‌ها: docker compose logs -f"
+echo "[ℹ️] توقف پروژه: docker compose down"
