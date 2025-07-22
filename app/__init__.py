@@ -24,6 +24,7 @@ from app.utils import digits_to_persian
 from flask_socketio import SocketIO
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+import os
 from flask_talisman import Talisman
 
 # Load environment variables from env_local file
@@ -43,7 +44,18 @@ login_manager.login_view = 'auth.login'
 login_manager.login_message = "برای دسترسی به این صفحه، لطفاً ابتدا وارد شوید."
 login_manager.login_message_category = "info"
 socketio = SocketIO()
-limiter = Limiter(key_func=get_remote_address, default_limits=["200 per day", "50 per hour"])
+limiter_storage_url = os.environ.get('RATELIMIT_STORAGE_URL')
+if limiter_storage_url:
+    limiter = Limiter(
+        key_func=get_remote_address,
+        default_limits=["200 per day", "50 per hour"],
+        storage_uri=limiter_storage_url
+    )
+else:
+    limiter = Limiter(
+        key_func=get_remote_address,
+        default_limits=["200 per day", "50 per hour"]
+    )
 
 
 def to_jalali_datetime(value):
