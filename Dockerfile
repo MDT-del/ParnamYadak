@@ -34,6 +34,10 @@ RUN mkdir -p logs uploads static/receipts static/product_pics static/mechanic_li
 # تنظیم مجوزها
 RUN chmod +x run.py
 
+# کپی اسکریپت entrypoint و اجرایی کردن آن (قبل از تغییر کاربر)
+COPY docker-entrypoint.sh /app/docker-entrypoint.sh
+RUN chmod +x /app/docker-entrypoint.sh
+
 # ایجاد کاربر غیر root برای امنیت
 RUN adduser --disabled-password --gecos '' appuser && \
     chown -R appuser:appuser /app
@@ -45,10 +49,6 @@ EXPOSE 5000
 # healthcheck برای بررسی سلامت کانتینر
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:5000/auth/login || exit 1
-
-# کپی اسکریپت entrypoint و اجرایی کردن آن
-COPY docker-entrypoint.sh /app/docker-entrypoint.sh
-RUN chmod +x /app/docker-entrypoint.sh
 
 # اجرای اسکریپت entrypoint برای اجرای migration و سپس اجرای اپلیکیشن
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
