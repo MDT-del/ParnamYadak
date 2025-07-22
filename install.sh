@@ -38,8 +38,8 @@ fi
 export POSTGRES_DB="$DB_NAME"
 export POSTGRES_USER="$DB_USER"
 export POSTGRES_PASSWORD="$DB_PASS"
-echo "[+] اجرای docker-compose در حالت production..."
-docker-compose -f docker-compose.yml up -d --build
+echo "[+] اجرای docker compose در حالت production..."
+docker compose -f docker-compose.yml up -d --build --remove-orphans
 
 echo "[+] منتظر آماده شدن دیتابیس..."
 # صبر برای آماده شدن دیتابیس (تا 60 ثانیه)
