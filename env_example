@@ -26,6 +26,8 @@ DATABASE_URL=postgresql://parnamyadak:yourpassword@db:5432/parnamyadak
 # کش (اختیاری)
 # آدرس Redis (در داکر معمولاً نام سرویس redis را به جای localhost قرار دهید)
 REDIS_URL=redis://redis:6379/0
+# آدرس Redis برای ذخیره محدودیت نرخ (Rate Limit)
+RATELIMIT_STORAGE_URL=redis://parnamyadak_redis:6379
 
 # -----------------------------
 # تنظیمات ایمیل (برای ارسال اعلان و بازیابی رمز)

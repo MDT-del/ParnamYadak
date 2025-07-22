@@ -6,8 +6,6 @@ services:
     build: .
     container_name: parnamyadak_app
     restart: unless-stopped
-    ports:
-      - "5000:5000"
     environment:
       - FLASK_ENV=production
       - DATABASE_URL=postgresql://parnamyadak_user:parnamyadak_pass@db:5432/parnamyadak_db
@@ -23,13 +21,20 @@ services:
     depends_on:
       - db
       - redis
-    networks:
-      - parnamyadak_network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/auth/login"]
       interval: 30s
       timeout: 10s
       retries: 3
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.panel.rule=Host(`panel.parnamyadak.ir`)"
+      - "traefik.http.routers.panel.entrypoints=websecure"
+      - "traefik.http.routers.panel.tls.certresolver=myresolver"
+      - "traefik.http.services.panel.loadbalancer.server.port=5000"
+    networks:
+      - parnamyadak_network
+      - traefik_network
 
   # سرویس دیتابیس PostgreSQL
   db:
@@ -79,3 +84,5 @@ volumes:
 networks:
   parnamyadak_network:
     driver: bridge
+  traefik_network:
+    external: true

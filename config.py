@@ -44,6 +44,9 @@ class Config:
         'pool_recycle': 300,
     }
 
+    # تنظیمات Rate Limiter (Flask-Limiter)
+    RATELIMIT_STORAGE_URL = os.environ.get('RATELIMIT_STORAGE_URL')
+
     @staticmethod
     def init_app(app):
         pass
