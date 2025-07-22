@@ -39,6 +39,18 @@ MAIL_PASSWORD=your_app_password
 # -----------------------------
 # تنظیمات ربات تلگرام
 TELEGRAM_BOT_TOKEN=your-telegram-bot-token
+# آدرس API پنل برای ارتباط ربات (در صورت نیاز)
+PANEL_API_BASE_URL=https://panel.parnamyadak.ir/api
+# فعال‌سازی webhook برای ربات تلگرام (True/False)
+USE_WEBHOOK=False
+# آدرس کامل webhook (در صورت استفاده)
+WEBHOOK_URL=https://panel.parnamyadak.ir/bot/webhook
+# مسیر webhook روی سرور
+WEBHOOK_PATH=/webhook
+# هاست webhook
+WEBHOOK_HOST=0.0.0.0
+# پورت webhook
+WEBHOOK_PORT=8080
 
 # -----------------------------
 # مانیتورینگ و رهگیری خطا (اختیاری)
@@ -50,12 +62,17 @@ SENTRY_DSN=your-sentry-dsn-here
 # لیست دامنه‌های مجاز برای دسترسی به پنل (با کاما جدا کنید)
 # ALLOWED_HOSTS=panel.parnamYadak.ir,localhost,127.0.0.1
 # کوکی سشن فقط روی HTTPS فعال باشد
-# SESSION_COOKIE_SECURE=True
+SESSION_COOKIE_SECURE=True  
+# فقط از طریق HTTPS قابل دسترسی باشد
+WTF_CSRF_SSL_STRICT=true
 # کوکی سشن فقط از طریق HTTP قابل دسترسی باشد
 # SESSION_COOKIE_HTTPONLY=True
 # سیاست SameSite برای کوکی سشن
 # SESSION_COOKIE_SAMESITE=Lax
-
+# تنظیمات لاگ
+LOG_TO_STDOUT=true
+# فعال‌سازی حالت دیباگ Flask (اختیاری)
+FLASK_DEBUG=0
 # -----------------------------
 # کلیدهای API یا سرویس‌های خارجی (در صورت نیاز)
 # EXTERNAL_API_KEY=your-api-key 
