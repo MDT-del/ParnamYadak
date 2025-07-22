@@ -12,6 +12,8 @@ services:
       - DATABASE_URL=${DATABASE_URL}
       - SECRET_KEY=${SECRET_KEY:-your-secret-key-here}
       - REDIS_URL=redis://redis:6379/0
+    ports:
+      - "443:443"
     volumes:
       - ./uploads:/app/uploads
       - ./logs:/app/logs
@@ -19,23 +21,18 @@ services:
       - ./static/product_pics:/app/static/product_pics
       - ./static/mechanic_licenses:/app/static/mechanic_licenses
       - ./static/bot_receipts:/app/static/bot_receipts
+      - /etc/letsencrypt/live/panel.parnamyadak.ir/fullchain.pem:/certs/fullchain.pem:ro
+      - /etc/letsencrypt/live/panel.parnamyadak.ir/privkey.pem:/certs/privkey.pem:ro
     depends_on:
       - db
       - redis
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/license/activate"]
+      test: ["CMD", "curl", "-f", "https://localhost/license/activate"]
       interval: 30s
       timeout: 10s
       retries: 3
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.panel.rule=Host(`panel.parnamyadak.ir`)"
-      - "traefik.http.routers.panel.entrypoints=websecure"
-      - "traefik.http.routers.panel.tls.certresolver=myresolver"
-      - "traefik.http.services.panel.loadbalancer.server.port=5000"
     networks:
       - parnamyadak_network
-      - traefik_network
 
   # سرویس دیتابیس PostgreSQL
   db:
@@ -85,5 +82,4 @@ volumes:
 networks:
   parnamyadak_network:
     driver: bridge
-  traefik_network:
-    external: true
+  
