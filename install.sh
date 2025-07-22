@@ -36,12 +36,19 @@ if [ -z "$DB_NAME" ] || [ -z "$DB_USER" ] || [ -z "$DB_PASS" ]; then
     exit 1
 fi
 
+# 0. پاک‌سازی کامل کانتینرها و ولوم‌ها و کش
+echo "[+] پاک‌سازی کامل کانتینرها و ولوم‌های قبلی..."
+docker compose down -v
+docker volume prune -f
+
 # 4. اجرای docker compose
 export POSTGRES_DB="$DB_NAME"
 export POSTGRES_USER="$DB_USER"
 export POSTGRES_PASSWORD="$DB_PASS"
-echo "[+] اجرای docker compose در حالت production..."
-docker compose -f docker-compose.yml up -d --build --remove-orphans
+echo "[+] اجرای docker compose build --no-cache ..."
+docker compose -f docker-compose.yml build --no-cache
+echo "[+] اجرای docker compose up ..."
+docker compose -f docker-compose.yml up -d --remove-orphans
 
 # 5. صبر برای آماده شدن دیتابیس
 echo "[+] منتظر آماده شدن دیتابیس..."
