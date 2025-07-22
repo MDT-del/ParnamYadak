@@ -46,5 +46,10 @@ EXPOSE 5000
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:5000/auth/login || exit 1
 
-# دستور اجرای اپلیکیشن
+# کپی اسکریپت entrypoint و اجرایی کردن آن
+COPY docker-entrypoint.sh /app/docker-entrypoint.sh
+RUN chmod +x /app/docker-entrypoint.sh
+
+# اجرای اسکریپت entrypoint برای اجرای migration و سپس اجرای اپلیکیشن
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
 CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "--timeout", "120", "run:app"]
