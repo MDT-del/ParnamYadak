@@ -69,5 +69,5 @@ pytest-cov==4.1.0
 Flask-SocketIO>=5.3.0
 
 requests==2.32.3
-eventlet==0.35.1
-
+eventlet
+dnspython==1.16.0
