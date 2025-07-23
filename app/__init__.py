@@ -108,6 +108,35 @@ def create_app(config_name='default'):
     limiter.init_app(app)
     Talisman(app, content_security_policy=None)
 
+    # --- فعال‌سازی لاگ در کنسول و فایل در همه حالت‌ها ---
+    import logging
+    from logging.handlers import RotatingFileHandler
+    from logging import StreamHandler
+    import os
+
+    if not os.path.exists('logs'):
+        os.mkdir('logs')
+    file_handler = RotatingFileHandler('logs/nikaydek.log',
+                                       maxBytes=10240,
+                                       backupCount=10)
+    file_handler.setFormatter(
+        logging.Formatter(
+            '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
+        ))
+    file_handler.setLevel(logging.INFO)
+    app.logger.addHandler(file_handler)
+
+    # اضافه کردن لاگ به کنسول
+    console_handler = StreamHandler()
+    console_handler.setFormatter(logging.Formatter(
+        '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
+    ))
+    console_handler.setLevel(logging.INFO)
+    app.logger.addHandler(console_handler)
+
+    app.logger.setLevel(logging.INFO)
+    app.logger.info('Logging is enabled for both file and console.')
+
     # --- SocketIO event handlers ---
     @socketio.on('connect')
     def handle_connect():
