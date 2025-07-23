@@ -479,6 +479,7 @@ def create_app(config_name='default'):
         app.jinja_env.filters['format_price_fa'] = format_price_fa
 
         @app.route('/health')
+        @limiter.exempt
         def health_check():
             """بررسی سلامت پنل"""
             return jsonify({'status': 'healthy', 'service': 'panel_api'})
