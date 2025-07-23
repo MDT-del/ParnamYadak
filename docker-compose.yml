@@ -37,7 +37,7 @@ services:
       [
         "gunicorn",
         "--worker-class", "gevent",
-        "-w", "1",
+        "-w", "5",
         "-b", "0.0.0.0:443",
         "--keyfile", "/certs/privkey.pem",
         "--certfile", "/certs/fullchain.pem",
