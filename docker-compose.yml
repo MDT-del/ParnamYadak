@@ -11,8 +11,8 @@ services:
     - FLASK_ENV=production
     - DATABASE_URL=${DATABASE_URL}
     - SECRET_KEY=${SECRET_KEY:-your-secret-key-here}
-    - REDIS_URL=redis://parnamyadak_redis:6379/0
-    - RATELIMIT_STORAGE_URL=redis://parnamyadak_redis:6379/0
+    - REDIS_URL=redis://redis:6379/0
+    - RATELIMIT_STORAGE_URL=redis://redis:6379/0
 
     ports:
       - "443:443"
@@ -71,7 +71,7 @@ services:
   # سرویس Redis برای کش
   redis:
     image: redis:7-alpine
-    container_name: parnamyadak_redis
+
     restart: unless-stopped
     ports:
       - "6379:6379"
