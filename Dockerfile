@@ -47,10 +47,6 @@ USER appuser
 # expose کردن پورت
 EXPOSE 5000
 
-# healthcheck برای بررسی سلامت کانتینر
-HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD curl -f -k --resolve panel.parnamyadak.ir:443:127.0.0.1 https://panel.parnamyadak.ir/auth/login || exit 1
-
 # اجرای اسکریپت entrypoint برای اجرای migration و سپس اجرای اپلیکیشن
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
 CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "--timeout", "120", "run:app"]
