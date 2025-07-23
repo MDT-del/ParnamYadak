@@ -123,7 +123,7 @@ def create_app(config_name='default'):
         logging.Formatter(
             '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
         ))
-    file_handler.setLevel(logging.INFO)
+    file_handler.setLevel(logging.WARNING)
     app.logger.addHandler(file_handler)
 
     # اضافه کردن لاگ به کنسول
@@ -131,10 +131,10 @@ def create_app(config_name='default'):
     console_handler.setFormatter(logging.Formatter(
         '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
     ))
-    console_handler.setLevel(logging.INFO)
+    console_handler.setLevel(logging.WARNING)
     app.logger.addHandler(console_handler)
 
-    app.logger.setLevel(logging.INFO)
+    app.logger.setLevel(logging.WARNING)
     app.logger.info('Logging is enabled for both file and console.')
 
     # --- SocketIO event handlers ---
@@ -164,9 +164,9 @@ def create_app(config_name='default'):
             logging.Formatter(
                 '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
             ))
-        file_handler.setLevel(logging.INFO)
+        file_handler.setLevel(logging.WARNING)
         app.logger.addHandler(file_handler)
-        app.logger.setLevel(logging.INFO)
+        app.logger.setLevel(logging.WARNING)
         app.logger.info('نیکایدک startup')
 
     @app.template_filter('to_shamsi')
