@@ -19,6 +19,9 @@ RUN apt-get update && apt-get install -y \
     netcat-openbsd \
     && rm -rf /var/lib/apt/lists/*
 
+# آپدیت کتابخانه‌های سیستمی (از جمله OpenSSL)
+RUN apt-get update && apt-get upgrade -y
+
 # کپی فایل‌های requirements
 COPY requirements.txt .
 
