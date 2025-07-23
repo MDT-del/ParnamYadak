@@ -97,7 +97,7 @@ def create_app(config_name='default'):
     config[config_name].init_app(app)
 
     # --- امنیت کوکی سشن ---
-    app.config['SESSION_COOKIE_SECURE'] = True
+    # app.config['SESSION_COOKIE_SECURE'] = True
     app.config['SESSION_COOKIE_HTTPONLY'] = True
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
