@@ -114,6 +114,7 @@
                             <div class="flex flex-col items-start">
                                 {% if order.mechanic_obj %}
                                     <!-- سفارش مکانیک: ستون مشتری خالی -->
+                                    <div class="text-sm text-gray-400 dark:text-gray-500">-</div>
                                 {% elif order.customer_name or order.customer_phone %}
                                     <div class="text-sm text-gray-900 dark:text-white font-bold">
                                         {{ order.customer_name or '-' }}
@@ -136,6 +137,7 @@
                                     <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ order.mechanic_obj.commission_percentage|digits_to_persian }}% کمیسیون</div>
                                 {% else %}
                                     <!-- سفارش مشتری: ستون مکانیک خالی -->
+                                    <div class="text-sm text-gray-400 dark:text-gray-500">-</div>
                                 {% endif %}
                             </div>
                         </td>

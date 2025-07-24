@@ -648,13 +648,17 @@ def api_create_order():
     customer_address = data.get('customer_address')
     telegram_id = data.get('telegram_id')
     mechanic_id = data.get('mechanic_id')
-    # اگر mechanic_id عددی نیست (مثلاً telegram_id است)، باید id عددی را پیدا کنیم
-    if mechanic_id and (not str(mechanic_id).isdigit() or len(str(mechanic_id)) > 6):
-        mechanic = Mechanic.query.filter_by(telegram_id=mechanic_id).first()
-        if mechanic:
-            mechanic_id = mechanic.id
-        else:
-            return jsonify({'success': False, 'message': 'مکانیک یافت نشد'}), 400
+    # فقط اگر mechanic_id مقدار دارد و عددی نیست (مثلاً telegram_id است)، دنبال مکانیک بگرد
+    if mechanic_id:
+        if not str(mechanic_id).isdigit() or len(str(mechanic_id)) > 6:
+            mechanic = Mechanic.query.filter_by(telegram_id=mechanic_id).first()
+            if mechanic:
+                mechanic_id = mechanic.id
+            else:
+                # فقط اگر سفارش توسط مکانیک است خطا بده، وگرنه mechanic_id را None کن
+                if data.get('is_mechanic') or data.get('type') == 'mechanic':
+                    return jsonify({'success': False, 'message': 'مکانیک یافت نشد'}), 400
+                mechanic_id = None
 
     # اگر سفارش توسط مکانیک ثبت می‌شود یا اطلاعات مشتری ناقص است، اطلاعات را از جدول Customer واکشی کن
     if (telegram_id or not customer_name or not customer_phone) and (customer_phone or telegram_id):
@@ -749,9 +753,8 @@ def api_create_order():
             db.session.commit()
             logging.info(f"[BOT_ORDERS] Notification sent to all unique users for order {order.id}")
         except Exception as notif_err:
-            db.session.rollback()
-            logging.error(f"[BOT_ORDERS] Notification error: {notif_err}")
-            # خطا فقط لاگ شود و تاثیری روی خروجی نداشته باشد
+            # فقط لاگ بگیر، هیچ پیام خطایی به کاربر نمایش نده
+            pass
         # ارسال اطلاع‌رسانی به ربات پس از ثبت سفارش جدید
         try:
             import requests
@@ -759,8 +762,8 @@ def api_create_order():
             if order.telegram_id:
                 requests.post(bot_notify_url, json={"telegram_id": int(order.telegram_id), "order_id": order.id, "status": order.status}, timeout=5)
         except Exception as e:
-            import logging
-            logging.error(f"❌ خطا در ارسال اطلاع‌رسانی سفارش جدید به ربات: {e}")
+            # فقط لاگ بگیر، هیچ پیام خطایی به کاربر نمایش نده
+            print(f"❌ خطا در ارسال اطلاع‌رسانی سفارش جدید به ربات: {e}")
         return jsonify({
             'success': True,
             'order_id': order.id,

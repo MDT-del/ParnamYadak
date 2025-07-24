@@ -335,9 +335,15 @@ def send_telegram_message(telegram_id, message):
             'parse_mode': 'HTML'
         }
         response = requests.post(url, data=data)
-        if response.status_code != 200:
-            print(f"[Broadcast] ارسال پیام به {telegram_id} ناموفق بود: {response.text}")
-        return response.status_code == 200
+        try:
+            result = response.json()
+        except Exception as e:
+            print(f"[Broadcast] Error parsing Telegram response: {e}, text: {response.text}")
+            return False
+        print(f"[Broadcast] ارسال پیام به chat_id={telegram_id}، پاسخ تلگرام: {result}")
+        if not result.get('ok'):
+            print(f"[Broadcast] ارسال پیام به {telegram_id} ناموفق بود: error_code={result.get('error_code')}, description={result.get('description')}")
+        return result.get('ok', False)
     except Exception as e:
         print(f"Error sending message to {telegram_id}: {str(e)}")
         return False

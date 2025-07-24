@@ -25,6 +25,7 @@
                             <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">شماره سفارش</th>
                             <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">نام مشتری</th>
                             <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">شماره تلفن</th>
+                            <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">مکانیک</th>
                             <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">تاریخ</th>
                             <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">مبلغ کل</th>
                             <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">وضعیت</th>
@@ -38,19 +39,27 @@
                                 <a href="{{ order.view_url }}" class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300">#{{ order.id }}</a>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
-                                {% if order.customer %}
-                                    {% if order.type == 'ربات' %}
-                                        {{ order.customer.full_name }}
-                                    {% else %}
-                                        {{ order.customer.first_name }} {{ order.customer.last_name or '' }}
-                                    {% endif %}
+                                {% if order.type == 'ربات' and order.mechanic %}
+                                    -
+                                {% elif order.customer %}
+                                    {{ order.customer.full_name }}
                                 {% else %}
                                     -
                                 {% endif %}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300 text-right font-mono" dir="ltr">
-                                {% if order.customer %}
+                                {% if order.type == 'ربات' and order.mechanic %}
+                                    -
+                                {% elif order.customer %}
                                     {{ order.customer.phone_number or '-' }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
+                                {% if order.type == 'ربات' and order.mechanic %}
+                                    {{ order.mechanic.full_name }}<br>
+                                    <span class="text-xs text-gray-500">{{ order.mechanic.phone_number }}</span>
                                 {% else %}
                                     -
                                 {% endif %}
