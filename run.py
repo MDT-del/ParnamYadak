@@ -3,7 +3,7 @@
 # توضیح: نقطه ورود اصلی برنامه برای اجرای اپلیکیشن Flask
 # ---------------------------------------------
 
-from app import create_app, socketio
+from app import create_app
 from flask import send_from_directory
 
 # ساخت اپلیکیشن Flask

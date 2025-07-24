@@ -4,8 +4,6 @@ from app.models import Notification, Mechanic, Customer
 from app import db
 from app.decorators import permission_required
 import logging
-from flask_socketio import emit
-from flask import current_app
 
 notifications_bp = Blueprint('notifications', __name__, template_folder='templates')
 
@@ -354,24 +352,6 @@ def create_notification():
         db.session.add(notification)
         db.session.commit()
         
-        # پس از ذخیره اعلان جدید، اگر کاربر آنلاین است، اعلان را به صورت real-time ارسال کن
-        try:
-            from app import socketio
-            if user_id:
-                socketio.emit('notification', {
-                    'message': message,
-                    'user_id': user_id,
-                    'role_id': role_id
-                }, room=f'user_{user_id}')
-            elif role_id:
-                socketio.emit('notification', {
-                    'message': message,
-                    'user_id': None,
-                    'role_id': role_id
-                }, room=f'role_{role_id}')
-        except Exception as e:
-            current_app.logger.error(f"SocketIO emit error: {e}")
-        
         return jsonify({
             'success': True,
             'message': 'اعلان با موفقیت ایجاد شد',
@@ -411,7 +391,6 @@ def mechanic_registered_notification():
         # ایجاد نوتیفیکیشن برای همه نقش‌ها
         from app.models import Role
         all_roles = Role.query.all()
-        from app import socketio
         notifications = []
         for role in all_roles:
             notification = Notification(
@@ -423,16 +402,6 @@ def mechanic_registered_notification():
             notifications.append((notification, role.id))
         db.session.commit()
         logging.info(f"نوتیفیکیشن برای مکانیک جدید {first_name} {last_name} برای همه نقش‌ها ایجاد شد")
-        # ارسال real-time به همه نقش‌ها
-        try:
-            for notification, role_id in notifications:
-                socketio.emit('notification', {
-                    'message': notification.message,
-                    'user_id': None,
-                    'role_id': role_id
-                }, room=f'role_{role_id}')
-        except Exception as e:
-            current_app.logger.error(f"SocketIO emit error: {e}")
         
         return jsonify({
             'success': True,
@@ -517,11 +486,10 @@ def order_registered_notification():
         # ایجاد نوتیفیکیشن برای همه نقش‌ها
         from app.models import Role
         all_roles = Role.query.all()
-        from app import socketio
         notifications = []
         for role in all_roles:
             notification = Notification(
-                message=f"سفارش جدید ربات ثبت شد توسط {customer_name} (تلفن: {phone_number}, تلگرام: {telegram_id})",
+                message=f"سفارش جدید ربات ثبت شد توسط {customer_name}",
                 role_id=role.id,
                 user_id=None
             )
@@ -529,16 +497,6 @@ def order_registered_notification():
             notifications.append((notification, role.id))
         db.session.commit()
         logging.info(f"نوتیفیکیشن سفارش جدید ربات برای همه نقش‌ها ایجاد شد")
-        # ارسال real-time به همه نقش‌ها
-        try:
-            for notification, role_id in notifications:
-                socketio.emit('notification', {
-                    'message': notification.message,
-                    'user_id': None,
-                    'role_id': role_id
-                }, room=f'role_{role_id}')
-        except Exception as e:
-            current_app.logger.error(f"SocketIO emit error: {e}")
         
         return jsonify({
             'success': True,

@@ -13,6 +13,7 @@ from decimal import Decimal
 import pytz
 import logging
 from sqlalchemy import Column, Integer, String, DateTime
+from app.utils import shamsi_datetime
 
 
 def tehran_now():
@@ -323,9 +324,8 @@ class Customer(db.Model):
             self.loyalty_points = int(self.total_spent / 1000)
 
     def update_first_order_info(self):
-        """بروزرسانی اطلاعات اولین سفارش مشتری"""
+        """بروزرسانی اطلاعات اولین سفارش مشتری (تاریخ شمسی و ساعت تهران)"""
         from app.models import BotOrder
-        
         # اولین سفارش تلگرام
         first_telegram = self.orders.order_by(Order.order_date.asc()).first()
         # اولین سفارش حضوری
@@ -334,7 +334,6 @@ class Customer(db.Model):
         first_bot = None
         if self.phone_number:
             first_bot = BotOrder.query.filter_by(customer_phone=self.phone_number).order_by(BotOrder.created_at.asc()).first()
-        
         # مقایسه تاریخ‌ها و انتخاب اولین سفارش
         orders_to_compare = []
         if first_telegram:
@@ -343,11 +342,12 @@ class Customer(db.Model):
             orders_to_compare.append((first_instore.created_at, 'حضوری'))
         if first_bot:
             orders_to_compare.append((first_bot.created_at, 'ربات'))
-        
         if orders_to_compare:
             # مرتب‌سازی بر اساس تاریخ و انتخاب اولین سفارش
             orders_to_compare.sort(key=lambda x: x[0])
-            self.first_order_date, self.first_order_type = orders_to_compare[0]
+            first_dt, first_type = orders_to_compare[0]
+            self.first_order_date = shamsi_datetime(first_dt)
+            self.first_order_type = first_type
         else:
             self.first_order_date = None
             self.first_order_type = None

@@ -75,6 +75,12 @@ def index():
             if customer:
                 order.customer_name = customer.full_name
                 order.customer_phone = customer.phone_number
+            else:
+                # اگر اطلاعات مشتری در خود سفارش موجود بود، همان را نمایش بده
+                if order.customer_name:
+                    order.customer_name = order.customer_name
+                if order.customer_phone:
+                    order.customer_phone = order.customer_phone
     
     # مجموع درآمد فقط بر اساس سفارش‌های نهایی
     total_income = db.session.query(db.func.sum(BotOrder.total_amount)).filter(
@@ -304,31 +310,12 @@ def confirm_payment(order):
         
         db.session.commit()
         
-        # ارسال پیام به ربات
+        # ارسال پیام به ربات (فقط از طریق وبهوک)
         try:
             import requests
-            import os
-            from dotenv import load_dotenv
-            
-            # بارگذاری تنظیمات ربات
-            bot_config_path = os.path.join(os.path.dirname(__file__), '../../../bot/bot_config.env')
-            load_dotenv(bot_config_path)
-            
-            bot_token = os.getenv("BOT_TOKEN")
-            if bot_token and order.telegram_id:
-                bot_url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
-                payload = {
-                    'chat_id': order.telegram_id,
-                    'text': f"✅ پرداخت تایید شد!\n\nسفارش شماره {order.id} شما با موفقیت پرداخت شد و به آدرس شما ارسال خواهد شد.",
-                    'parse_mode': 'HTML'
-                }
-                
-                response = requests.post(bot_url, json=payload)
-                if response.status_code == 200:
-                    print(f"[BOT] Payment confirmation sent to user {order.telegram_id}")
-                else:
-                    print(f"[BOT] Failed to send payment confirmation: {response.status_code}")
-                    
+            bot_notify_url = "https://panel.parnamyadak.ir/api/order_status_notify"
+            if order.telegram_id:
+                requests.post(bot_notify_url, json={"telegram_id": int(order.telegram_id), "order_id": order.id, "status": order.status}, timeout=5)
         except Exception as e:
             print(f"[BOT] Error sending payment confirmation: {e}")
         
@@ -660,18 +647,23 @@ def api_create_order():
                     return jsonify({'success': False, 'message': 'مکانیک یافت نشد'}), 400
                 mechanic_id = None
 
-    # اگر سفارش توسط مکانیک ثبت می‌شود یا اطلاعات مشتری ناقص است، اطلاعات را از جدول Customer واکشی کن
-    if (telegram_id or not customer_name or not customer_phone) and (customer_phone or telegram_id):
+    # اگر اطلاعات مشتری ناقص است، سعی کن از جدول Customer واکشی کنی
+    if (not customer_name or not customer_phone) and (customer_phone or telegram_id):
         customer = None
         if customer_phone:
             customer = Customer.query.filter_by(phone_number=customer_phone).first()
         if not customer and telegram_id:
             customer = Customer.query.filter_by(telegram_id=telegram_id).first()
         if customer:
-            if not customer_name or telegram_id:
+            if not customer_name:
                 customer_name = (customer.first_name or '') + ((' ' + customer.last_name) if getattr(customer, 'last_name', None) else '')
-            if not customer_phone or telegram_id:
+            if not customer_phone:
                 customer_phone = customer.phone_number
+    # اگر باز هم نام مشتری خالی بود، مقدار پیش‌فرض قرار بده
+    if not customer_name:
+        customer_name = 'نامشخص'
+    if not customer_phone:
+        customer_phone = 'نامشخص'
 
     if not items:
         return jsonify({'success': False, 'message': 'اطلاعات ناقص'})

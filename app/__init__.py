@@ -21,7 +21,6 @@ import traceback
 from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.exceptions import HTTPException
 from app.utils import digits_to_persian
-from flask_socketio import SocketIO
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 import os
@@ -43,7 +42,6 @@ login_manager = LoginManager()
 login_manager.login_view = 'auth.login'
 login_manager.login_message = "برای دسترسی به این صفحه، لطفاً ابتدا وارد شوید."
 login_manager.login_message_category = "info"
-socketio = SocketIO()
 limiter_storage_url = os.environ.get('RATELIMIT_STORAGE_URL')
 if limiter_storage_url:
     limiter = Limiter(
@@ -104,7 +102,6 @@ def create_app(config_name='default'):
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
-    socketio.init_app(app, cors_allowed_origins="*")
     limiter.init_app(app)
     Talisman(app, content_security_policy=None)
 
@@ -141,20 +138,7 @@ def create_app(config_name='default'):
     app.logger.info('Logging is enabled for both file and console.')
 
     # --- SocketIO event handlers ---
-    @socketio.on('connect')
-    def handle_connect():
-        pass  # اتصال برقرار شد
-
-    @socketio.on('join')
-    def on_join(data):
-        # data باید شامل user_id یا role_id باشد
-        from flask_socketio import join_room
-        user_id = data.get('user_id')
-        role_id = data.get('role_id')
-        if user_id:
-            join_room(f'user_{user_id}')
-        if role_id:
-            join_room(f'role_{role_id}')
+    # --- حذف کامل socketio و eventهای آن ---
 
     # تنظیم logging برای ثبت لاگ‌ها در حالت production
     if not app.debug and not app.testing:
