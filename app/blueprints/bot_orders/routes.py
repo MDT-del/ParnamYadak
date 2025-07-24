@@ -17,6 +17,7 @@ import requests
 from sqlalchemy import or_
 from datetime import datetime, timedelta
 from app.models import Customer
+from app.models import User
 
 from . import bot_orders_bp
 

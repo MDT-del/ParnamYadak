@@ -323,9 +323,11 @@ def get_target_mechanics(message):
 def send_telegram_message(telegram_id, message):
     """ارسال پیام به تلگرام (واقعی)"""
     try:
-        # --- برای سرور اصلی این خط را فعال کنید و خط پایین را کامنت کنید ---
-        # bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
-        bot_token = '7122602887:AAFZfFjUfxIpnU36iKvsViV_6Wj7b254bcQ'  # TODO: روی سرور اصلی از env بخوانید
+        import os
+        bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
+        if not bot_token:
+            print("[Broadcast] TELEGRAM_BOT_TOKEN env variable not set!")
+            return False
         url = f'https://api.telegram.org/bot{bot_token}/sendMessage'
         data = {
             'chat_id': telegram_id,
