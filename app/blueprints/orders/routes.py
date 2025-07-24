@@ -46,8 +46,8 @@ def index():
             'date': i.created_at,
             'total_price': i.total_price,
             'status': i.status,
-            'type': 'حضوری',
-            'view_url': url_for('instore_orders.edit', order_id=i.id)
+            'type': 'حضوری'
+            # 'view_url' حذف شد
         })
     for b in all_bot_orders:
         # ایجاد مشتری مجازی برای سفارشات ربات

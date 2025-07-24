@@ -157,6 +157,7 @@ def index():
     delivered_count = InStoreOrder.query.filter(InStoreOrder.status == 'تحویل داده شده').count()
     # مجموع درآمد سفارش‌های تحویل داده شده
     total_income = db.session.query(func.coalesce(func.sum(InStoreOrder.total_price), 0)).filter(InStoreOrder.status == 'تحویل داده شده').scalar()
+    total_instore_orders = InStoreOrder.query.count()
     stats = {
         'today': count_today,
         'last_30_days': count_30days,
@@ -177,7 +178,8 @@ def index():
                            stats=stats,
                            status_filter=status_filter,
                            search_query=search_query,
-                           products=products_dicts)
+                           products=products_dicts,
+                           total_instore_orders=total_instore_orders)
 
 
 @instore_orders_bp.route('/delete/<int:order_id>', methods=['POST'])
