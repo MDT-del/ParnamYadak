@@ -44,14 +44,20 @@ def index():
             try:
                 ids = json.loads(msg.target_customers)
                 customers = Customer.query.filter(Customer.id.in_(ids)).all()
-                target_display = '، '.join([c.full_name or c.phone_number for c in customers]) if customers else 'مشتری خاص'
+                target_display = '، '.join([
+                    (f"{c.first_name} {c.last_name}".strip() if c.first_name or c.last_name else c.phone_number)
+                    for c in customers
+                ]) if customers else 'مشتری خاص'
             except Exception:
                 target_display = 'مشتری خاص'
         elif msg.target_type == 'mechanic_specific' and msg.target_customers:
             try:
                 ids = json.loads(msg.target_customers)
                 mechanics = Mechanic.query.filter(Mechanic.id.in_(ids)).all()
-                target_display = '، '.join([m.full_name or m.phone_number for m in mechanics]) if mechanics else 'مکانیک خاص'
+                target_display = '، '.join([
+                    (f"{m.first_name} {m.last_name}".strip() if m.first_name or m.last_name else m.phone_number)
+                    for m in mechanics
+                ]) if mechanics else 'مکانیک خاص'
             except Exception:
                 target_display = 'مکانیک خاص'
         else:
