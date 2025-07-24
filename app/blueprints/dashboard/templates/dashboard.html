@@ -111,3 +111,17 @@
         });
     </script>
 {% endblock %}
+
+<script>
+(function() {
+  let refreshTimeout;
+  function resetRefreshTimer() {
+    if (refreshTimeout) clearTimeout(refreshTimeout);
+    refreshTimeout = setTimeout(function() {
+      location.reload();
+    }, 180000); // 3 دقیقه
+  }
+  document.addEventListener('click', resetRefreshTimer, true);
+  resetRefreshTimer();
+})();
+</script>
