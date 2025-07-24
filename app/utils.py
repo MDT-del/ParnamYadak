@@ -360,6 +360,15 @@ def format_price(value):
         return value
 
 
+def fa_to_en_digits(s):
+    if not s:
+        return s
+    fa = '۰۱۲۳۴۵۶۷۸۹'
+    en = '0123456789'
+    trans = str.maketrans(fa, en)
+    return str(s).translate(trans)
+
+
 def register_jinja_filters(app):
     app.jinja_env.filters['os_name'] = os_name
     app.jinja_env.filters['browser_name'] = browser_name

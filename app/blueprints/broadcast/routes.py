@@ -28,9 +28,38 @@ def index():
     """
     messages = BroadcastMessage.query.order_by(
         desc(BroadcastMessage.created_at)).all()
+    # افزودن نام ارسال‌کننده و هدف قابل نمایش
+    display_messages = []
+    from app.models import User, Customer, Mechanic
+    import json
+    for msg in messages:
+        # نام ارسال‌کننده
+        sender = msg.created_by_user.name if msg.created_by_user and msg.created_by_user.name else (msg.created_by_user.username if msg.created_by_user else '---')
+        # هدف ارسال
+        if msg.target_type == 'all':
+            target_display = 'همه مشتریان'
+        elif msg.target_type == 'mechanic_all':
+            target_display = 'همه مکانیک‌ها'
+        elif msg.target_type == 'specific' and msg.target_customers:
+            try:
+                ids = json.loads(msg.target_customers)
+                customers = Customer.query.filter(Customer.id.in_(ids)).all()
+                target_display = '، '.join([c.full_name or c.phone_number for c in customers]) if customers else 'مشتری خاص'
+            except Exception:
+                target_display = 'مشتری خاص'
+        elif msg.target_type == 'mechanic_specific' and msg.target_customers:
+            try:
+                ids = json.loads(msg.target_customers)
+                mechanics = Mechanic.query.filter(Mechanic.id.in_(ids)).all()
+                target_display = '، '.join([m.full_name or m.phone_number for m in mechanics]) if mechanics else 'مکانیک خاص'
+            except Exception:
+                target_display = 'مکانیک خاص'
+        else:
+            target_display = '---'
+        display_messages.append({'msg': msg, 'sender': sender, 'target_display': target_display})
     return render_template('broadcast.html',
                            title="پیام‌های همگانی",
-                           messages=messages)
+                           messages=display_messages)
 
 
 @broadcast_bp.route('/create', methods=['GET', 'POST'])
@@ -200,10 +229,6 @@ def api_customer_segments():
         'name': 'همه مشتریان',
         'count': Customer.query.count()
     }, {
-        'id': 'vip',
-        'name': 'مشتریان VIP',
-        'count': Customer.query.filter(Customer.customer_level.in_(['طلایی', 'الماس'])).count()
-    }, {
         'id': 'new',
         'name': 'مشتریان جدید',
         'count': Customer.query.filter(
@@ -230,9 +255,6 @@ def api_customers_by_segment(segment_id):
     """API برای دریافت مشتریان بر اساس تقسیم‌بندی"""
     if segment_id == 'all':
         customers = Customer.query.all()
-    elif segment_id == 'vip':
-        customers = Customer.query.filter(
-            Customer.customer_level.in_(['طلایی', 'الماس'])).all()
     elif segment_id == 'new':
         customers = Customer.query.filter(
             Customer.registration_date >= datetime.datetime.now() -
@@ -285,13 +307,6 @@ def get_target_customers(message):
     """دریافت لیست مشتریان هدف"""
     if message.target_type == 'all':
         return Customer.query.all()
-    elif message.target_type == 'vip':
-        return Customer.query.filter(
-            Customer.customer_level.in_(['طلایی', 'الماس'])).all()
-    elif message.target_type == 'new_customers':
-        return Customer.query.filter(
-            Customer.registration_date >= datetime.datetime.now() -
-            timedelta(days=30)).all()
     elif message.target_type == 'specific':
         if message.target_customers:
             customer_ids = json.loads(message.target_customers)

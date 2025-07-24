@@ -48,7 +48,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-purple-100 text-sm font-medium">مجموع کمیسیون</p>
-                    <p class="text-3xl font-bold">{{ mechanics.items|sum(attribute='total_commission')|digits_to_persian }} تومان</p>
+                    <p class="text-3xl font-bold">{{ mechanics.items|sum(attribute='total_commission')|format_price|digits_to_persian }} تومان</p>
                 </div>
                 <div class="p-3 bg-purple-400/30 rounded-xl">
                     <i class="bi bi-currency-dollar text-2xl"></i>
@@ -177,7 +177,7 @@
                                     {{ mechanic.commission_percentage|digits_to_persian }}%
                                 </div>
                                 <div class="text-xs text-gray-500 dark:text-gray-400">
-                                    {{ mechanic.total_commission|digits_to_persian }} تومان
+                                    {{ mechanic.total_commission|format_price|digits_to_persian }} تومان
                                 </div>
                             {% else %}
                                 <span class="text-sm text-gray-400">-</span>

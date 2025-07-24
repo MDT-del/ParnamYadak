@@ -63,10 +63,10 @@ def index():
         status = request.form.get('status', 'در حال پیگیری')
 
         # پیدا کردن یا ساخت مشتری بر اساس شماره تلفن
-        customer = Customer.query.filter_by(phone_number=customer_phone).first()
+        customer = Customer.query.filter_by(phone_number=fa_to_en_digits(customer_phone)).first()
         if not customer:
             customer = Customer()
-            customer.phone_number = customer_phone
+            customer.phone_number = fa_to_en_digits(customer_phone)
             customer.first_name = customer_name
             customer.customer_type = 'حضوری'  # نوع مشتری حضوری
             customer.address = address  # ذخیره آدرس
@@ -208,22 +208,6 @@ def delete(order_id):
     return redirect(url_for('instore_orders.index'))
 
 
-@instore_orders_bp.route('/invoice/<int:order_id>')
-@login_required
-def invoice(order_id):
-    order = InStoreOrder.query.get_or_404(order_id)
-    import json
-    products = []
-    try:
-        products = json.loads(order.products_info)
-    except Exception:
-        pass
-    return render_template('instore_orders/invoice.html',
-                           order=order,
-                           products=products,
-                           title=f'فاکتور سفارش {order.id}')
-
-
 @instore_orders_bp.route('/print-invoices')
 @login_required
 def print_invoices():
@@ -286,17 +270,16 @@ def change_status(order_id):
                             product = InventoryProduct.query.get(product_item['product_id'])
                             if product:
                                 qty = int(product_item.get('qty', 0))
-                                if product.available_quantity >= qty:
-                                    product.available_quantity -= qty
-                                    product.reserved_quantity = getattr(product, 'reserved_quantity', 0) + qty
-                                else:
+                                if not product.reserve_quantity(qty):
                                     flash(f'موجودی محصول "{product.name}" کافی نیست. موجودی: {product.available_quantity}, درخواستی: {qty}', 'error')
                                     db.session.rollback()
                                     return redirect(url_for('instore_orders.index'))
+                                product.update_quantities()
             except Exception as e:
                 flash(f'خطا در رزرو موجودی محصولات: {str(e)}', 'error')
+                db.session.rollback()
                 return redirect(url_for('instore_orders.index'))
-        # کسر نهایی هنگام تحویل داده شده
+        # انتقال رزرو به فروخته شده هنگام تحویل داده شده
         if new_status == 'تحویل داده شده' and prev_status != 'تحویل داده شده':
             try:
                 if order.store_stock and order.products_info:
@@ -306,12 +289,19 @@ def change_status(order_id):
                             product = InventoryProduct.query.get(product_item['product_id'])
                             if product:
                                 qty = int(product_item.get('qty', 0))
-                                product.reserved_quantity = getattr(product, 'reserved_quantity', 0) - qty
-                                product.total_quantity = getattr(product, 'total_quantity', product.stock) - qty
-                                product.sold_quantity += qty
-                                product.total_revenue += (qty * float(product_item.get('price', 0)))
+                                # فقط اگر قبلاً رزرو شده بود
+                                if product.reserved_quantity >= qty:
+                                    product.release_reservation(qty)
+                                    product.sold_quantity += qty
+                                    product.total_quantity -= qty
+                                    product.update_quantities()
+                                else:
+                                    flash(f'رزرو کافی برای محصول "{product.name}" وجود ندارد.', 'error')
+                                    db.session.rollback()
+                                    return redirect(url_for('instore_orders.index'))
             except Exception as e:
                 flash(f'خطا در کسر نهایی موجودی محصولات: {str(e)}', 'error')
+                db.session.rollback()
                 return redirect(url_for('instore_orders.index'))
         # آزادسازی رزرو هنگام لغو شده
         if new_status == 'لغو شده' and prev_status != 'لغو شده':
@@ -323,10 +313,11 @@ def change_status(order_id):
                             product = InventoryProduct.query.get(product_item['product_id'])
                             if product:
                                 qty = int(product_item.get('qty', 0))
-                                product.reserved_quantity = getattr(product, 'reserved_quantity', 0) - qty
-                                product.stock += qty
+                                product.release_reservation(qty)
+                                product.update_quantities()
             except Exception as e:
                 flash(f'خطا در بازگرداندن رزرو موجودی محصولات: {str(e)}', 'error')
+                db.session.rollback()
                 return redirect(url_for('instore_orders.index'))
         order.status = new_status
         db.session.commit()

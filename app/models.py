@@ -513,7 +513,7 @@ class FinancialTransaction(db.Model):
     customer_id = db.Column(db.Integer,
                             db.ForeignKey('customer.id'),
                             nullable=True)
-    mechanic_id = db.Column(db.Integer, db.ForeignKey('mechanic.id'), nullable=True)
+    mechanic_id = db.Column(db.BigInteger, db.ForeignKey('mechanic.id'), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     
     # فیلدهای جدید برای پرداخت کمیسیون
@@ -597,15 +597,12 @@ class BroadcastMessage(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
     message = db.Column(db.Text, nullable=False)
-    message_type = db.Column(db.String(20),
-                             default='text')  # text, photo, video, document
+    message_type = db.Column(db.String(16), default='text', nullable=False, server_default='text', comment='نوع پیام فقط متن')
     target_type = db.Column(db.String(20),
                             default='all')  # all, specific, vip, new_customers
     target_customers = db.Column(db.Text,
                                  nullable=True)  # JSON array of customer IDs
-    status = db.Column(db.String(20),
-                       default='draft')  # draft, sent, scheduled
-    scheduled_at = db.Column(db.DateTime, nullable=True)
+    status = db.Column(db.String(16), default='draft', nullable=False, server_default='draft', comment='وضعیت: draft یا sent')
     sent_at = db.Column(db.DateTime, nullable=True)
     created_by = db.Column(db.Integer,
                            db.ForeignKey('user.id'),
@@ -1455,7 +1452,7 @@ class BotOrder(db.Model):
     telegram_id = db.Column(db.BigInteger, nullable=True, comment='آیدی تلگرام')
     
     # اطلاعات مکانیک (اختیاری)
-    mechanic_id = db.Column(db.Integer, db.ForeignKey('mechanic.id'), nullable=True, comment='مکانیک مرتبط')
+    mechanic_id = db.Column(db.BigInteger, db.ForeignKey('mechanic.id'), nullable=True, comment='مکانیک مرتبط')
     # اطلاعات مشتری (اختیاری)
     customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'), nullable=True, comment='مشتری مرتبط')
     
@@ -1689,7 +1686,7 @@ class CommissionHistory(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     
     # مکانیک
-    mechanic_id = db.Column(db.Integer, db.ForeignKey('mechanic.id'), nullable=False)
+    mechanic_id = db.Column(db.BigInteger, db.ForeignKey('mechanic.id'), nullable=False)
     
     # سفارش مرتبط
     order_id = db.Column(db.Integer, db.ForeignKey('bot_order.id'), nullable=False)
@@ -1725,7 +1722,7 @@ class MechanicOrderHistory(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     
     # مکانیک
-    mechanic_id = db.Column(db.Integer, db.ForeignKey('mechanic.id'), nullable=False)
+    mechanic_id = db.Column(db.BigInteger, db.ForeignKey('mechanic.id'), nullable=False)
     
     # سفارش
     order_id = db.Column(db.Integer, db.ForeignKey('bot_order.id'), nullable=False)

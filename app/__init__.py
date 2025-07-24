@@ -114,9 +114,12 @@ def create_app(config_name='default'):
     from logging import StreamHandler
     import os
 
+    # منطق جدید: نام فایل لاگ بر اساس تاریخ روز
+    today_str = datetime.datetime.now().strftime('%d-%m-%Y')
+    log_filename = f'logs/{today_str}.log'
     if not os.path.exists('logs'):
         os.mkdir('logs')
-    file_handler = RotatingFileHandler('logs/nikaydek.log',
+    file_handler = RotatingFileHandler(log_filename,
                                        maxBytes=10240,
                                        backupCount=10)
     file_handler.setFormatter(

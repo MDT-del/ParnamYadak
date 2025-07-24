@@ -122,6 +122,30 @@ def view_customer(customer_id):
                            title=f"جزئیات مشتری: {customer.first_name}")
 
 
+@customers_bp.route('/edit/<int:customer_id>', methods=['GET', 'POST'])
+@login_required
+@permission_required('manage_customers')
+def edit_customer(customer_id):
+    customer = db.session.get(Customer, customer_id)
+    if not customer:
+        flash('مشتری مورد نظر یافت نشد.', 'danger')
+        return redirect(url_for('customers.index'))
+    if request.method == 'POST':
+        from app.utils import fa_to_en_digits
+        customer.first_name = request.form.get('first_name', '').strip()
+        customer.last_name = request.form.get('last_name', '').strip()
+        customer.username = request.form.get('username', '').strip()
+        customer.phone_number = fa_to_en_digits(request.form.get('phone_number', '').strip())
+        customer.address = request.form.get('address', '').strip()
+        customer.city = request.form.get('city', '').strip()
+        customer.province = request.form.get('province', '').strip()
+        customer.postal_code = request.form.get('postal_code', '').strip()
+        db.session.commit()
+        flash('اطلاعات مشتری با موفقیت ویرایش شد.', 'success')
+        return redirect(url_for('customers.view_customer', customer_id=customer.id))
+    return render_template('edit_customer.html', customer=customer, title='ویرایش مشتری')
+
+
 @customers_bp.route('/api/register', methods=['POST'])
 def api_register_customer():
     """

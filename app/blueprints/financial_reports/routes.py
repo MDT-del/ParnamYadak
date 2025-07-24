@@ -903,7 +903,7 @@ def customer_orders_history(customer_id):
             'order_type': 'instore',  # برای URL
             'order_obj': i,
             'view_url': url_for('instore_orders.edit', order_id=i.id),
-            'invoice_url': url_for('instore_orders.invoice', order_id=i.id)
+            # 'invoice_url': url_for('instore_orders.invoice', order_id=i.id)  # حذف شد
         })
     for b in bot_orders:
         all_orders.append({
