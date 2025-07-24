@@ -553,3 +553,29 @@ def order_registered_notification():
             'message': 'خطا در ایجاد نوتیفیکیشن سفارش',
             'error': str(e)
         }), 500 
+
+
+@notifications_bp.route('/api/notify_order_created', methods=['POST'])
+def api_notify_order_created():
+    """
+    دریافت اعلان ثبت سفارش جدید از ربات و ثبت نوتیفیکیشن برای ادمین‌ها
+    """
+    try:
+        data = request.get_json()
+        order_id = data.get('order_id')
+        telegram_id = data.get('telegram_id')
+        role = data.get('role')
+        if not order_id or not telegram_id:
+            return jsonify({'success': False, 'message': 'اطلاعات ناقص'}), 400
+        # ثبت نوتیفیکیشن (نمونه ساده)
+        from app.models import Notification
+        notif = Notification(
+            message=f'سفارش جدید از ربات توسط {role or "کاربر"} (تلگرام آیدی: {telegram_id}) ثبت شد. شناسه سفارش: {order_id}',
+            user_id=None  # می‌توان به ادمین خاص یا همه ادمین‌ها اختصاص داد
+        )
+        from app import db
+        db.session.add(notif)
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'اعلان سفارش جدید ثبت شد'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'خطا: {e}'}) 

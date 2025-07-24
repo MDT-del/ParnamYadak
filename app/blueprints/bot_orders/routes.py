@@ -744,6 +744,15 @@ def api_create_order():
             db.session.rollback()
             logging.error(f"[BOT_ORDERS] Notification error: {notif_err}")
             # خطا فقط لاگ شود و تاثیری روی خروجی نداشته باشد
+        # ارسال اطلاع‌رسانی به ربات پس از ثبت سفارش جدید
+        try:
+            import requests
+            bot_notify_url = "https://panel.parnamyadak.ir/api/order_status_notify"
+            if order.telegram_id:
+                requests.post(bot_notify_url, json={"telegram_id": int(order.telegram_id), "order_id": order.id, "status": order.status}, timeout=5)
+        except Exception as e:
+            import logging
+            logging.error(f"❌ خطا در ارسال اطلاع‌رسانی سفارش جدید به ربات: {e}")
         return jsonify({
             'success': True,
             'order_id': order.id,
@@ -820,6 +829,15 @@ def api_order_confirm(order_id):
     if data.get('confirm'):
         order.status = 'در انتظار پرداخت'
         db.session.commit()
+        # ارسال اطلاع‌رسانی به ربات پس از تغییر وضعیت سفارش
+        try:
+            import requests
+            bot_notify_url = "https://panel.parnamyadak.ir/api/order_status_notify"
+            if order.telegram_id:
+                requests.post(bot_notify_url, json={"telegram_id": int(order.telegram_id), "order_id": order.id, "status": order.status}, timeout=5)
+        except Exception as e:
+            import logging
+            logging.error(f"❌ خطا در ارسال اطلاع‌رسانی وضعیت سفارش به ربات: {e}")
         return jsonify({'success': True, 'message': 'سفارش تایید شد و منتظر پرداخت است.'})
     return jsonify({'success': False, 'message': 'درخواست نامعتبر'})
 

@@ -252,6 +252,16 @@ def approve(mechanic_id):
                 except Exception as e:
                     logging.error(f"❌ خطا در ارسال پیام تلگرام: {e}")
         
+        # ارسال پیام به ربات پس از تایید مکانیک
+        if mechanic.telegram_id:
+            try:
+                import requests
+                bot_notify_url = "https://panel.parnamyadak.ir/api/mechanic_status_notify"
+                requests.post(bot_notify_url, json={"telegram_id": int(mechanic.telegram_id), "status": "approved"}, timeout=5)
+            except Exception as e:
+                import logging
+                logging.error(f"❌ خطا در ارسال اطلاع‌رسانی تایید مکانیک به ربات: {e}")
+        
         return jsonify({
             'success': True,
             'message': f'مکانیک {mechanic.full_name} با موفقیت تایید شد'
@@ -276,6 +286,16 @@ def reject(mechanic_id):
         
         # ارسال پیام به ربات (در آینده)
         # send_rejection_message_to_bot(mechanic.telegram_id)
+        
+        # ارسال پیام به ربات پس از رد مکانیک
+        if mechanic.telegram_id:
+            try:
+                import requests
+                bot_notify_url = "https://panel.parnamyadak.ir/api/mechanic_status_notify"
+                requests.post(bot_notify_url, json={"telegram_id": int(mechanic.telegram_id), "status": "rejected"}, timeout=5)
+            except Exception as e:
+                import logging
+                logging.error(f"❌ خطا در ارسال اطلاع‌رسانی رد مکانیک به ربات: {e}")
         
         return jsonify({
             'success': True,
