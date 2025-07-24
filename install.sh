@@ -24,12 +24,42 @@ if ! command -v docker compose &> /dev/null; then
     sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
 fi
 
-# 3. بررسی وجود فایل .env
-if [ ! -f .env ]; then
-    echo "[+] فایل .env پیدا نشد. کپی از env_example..."
-    cp env_example .env
-    echo "[⚠️] لطفاً فایل .env را ویرایش و سپس اسکریپت را دوباره اجرا کنید."
+# 3. بررسی وجود فایل nginx.conf
+if [ ! -f nginx.conf ]; then
+    echo "[+] فایل nginx.conf پیدا نشد. یک نمونه اولیه ساخته می‌شود..."
+    cat > nginx.conf <<EOL
+server {
+    listen 80;
+    server_name _;
+    return 301 https://$host$request_uri;
+}
+server {
+    listen 443 ssl;
+    server_name _;
+    ssl_certificate /etc/letsencrypt/live/example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/example.com/privkey.pem;
+    location / {
+        proxy_pass http://app:5000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+EOL
+    echo "[⚠️] لطفاً فایل nginx.conf را متناسب با دامنه و نیاز خود ویرایش کنید."
+fi
+
+# 4. بررسی وجود فایل env ربات
+if [ ! -f ./ParnamYadak_bot/bot_config.env ]; then
+    echo "[❌] فایل bot_config.env برای ربات پیدا نشد. لطفاً آن را ایجاد و مقداردهی کنید."
     exit 1
+fi
+
+# 5. بررسی وجود گواهی SSL
+if [ ! -d /etc/letsencrypt ] || [ ! -f /etc/letsencrypt/live/example.com/fullchain.pem ]; then
+    echo "[⚠️] گواهی SSL پیدا نشد. اگر دامنه و SSL دارید، مطمئن شوید مسیر صحیح است."
+    echo "[ℹ️] برای تست می‌توانید از certbot یا راهنمای nginx استفاده کنید."
 fi
 
 # 4. استخراج و بررسی مقادیر دیتابیس
@@ -80,6 +110,10 @@ fi
 # 9. تنظیم دسترسی پوشه‌های داخل کانتینر (در صورت نیاز)
 echo "[🔧] تنظیم دسترسی پوشه‌های static, logs, uploads..."
 docker exec -u root parnamyadak_app chmod -R 777 /app/logs /app/uploads /app/static || true
+
+# 10. تنظیم دسترسی پوشه‌های Nginx (در صورت نیاز)
+echo "[🔧] تنظیم دسترسی پوشه‌های Nginx و static..."
+docker exec -u root parnamyadak_proxy chmod -R 755 /etc/nginx /etc/letsencrypt || true
 
 echo ""
 echo "[🎉] پروژه پرنام یدک با موفقیت اجرا شد!"

@@ -1,21 +1,47 @@
 version: '3.8'
 
 services:
-  # سرویس اپلیکیشن اصلی
+  # ========================================
+  # NGINX Reverse Proxy
+  # ========================================
+  nginx:
+    image: nginx:latest
+    container_name: parnamyadak_proxy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      # اتصال فایل کانفیگ Nginx که در مرحله بعد می‌سازیم
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+      # اتصال پوشه گواهی‌های SSL به صورت فقط خواندنی
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    depends_on:
+      - app
+      - bot
+    networks:
+      - parnamyadak_network
+
+  # ========================================
+  # سرویس اپلیکیشن اصلی (پنل)
+  # ========================================
   app:
+    # فرض بر این است که Dockerfile پنل در همین پوشه ('.') قرار دارد
     build: .
     container_name: parnamyadak_app
-    user: root
     restart: unless-stopped
-    environment:
-    - FLASK_ENV=production
-    - DATABASE_URL=${DATABASE_URL}
-    - SECRET_KEY=${SECRET_KEY:-your-secret-key-here}
-    - REDIS_URL=redis://redis:6379/0
-    - RATELIMIT_STORAGE_URL=redis://redis:6379/0
-
-    ports:
-      - "443:443"
+    env_file:
+      # فایل متغیرهای محیطی پنل
+      - .env
+    command:
+      # Gunicorn روی یک پورت ساده HTTP و بدون SSL اجرا می‌شود
+      [
+        "gunicorn",
+        "--worker-class", "gevent",
+        "-w", "5",
+        "-b", "0.0.0.0:5000",
+        "gunicorn_entrypoint:app"
+      ]
     volumes:
       - ./uploads:/app/uploads
       - ./logs:/app/logs
@@ -23,38 +49,35 @@ services:
       - ./static/product_pics:/app/static/product_pics
       - ./static/mechanic_licenses:/app/static/mechanic_licenses
       - ./static/bot_receipts:/app/static/bot_receipts
-      - /etc/letsencrypt/live/panel.parnamyadak.ir/fullchain.pem:/certs/fullchain.pem:ro
-      - /etc/letsencrypt/live/panel.parnamyadak.ir/privkey.pem:/certs/privkey.pem:ro
     depends_on:
       - db
       - redis
-    healthcheck:
-      test: ["CMD", "curl", "--insecure", "-f", "https://localhost/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    command:
-      [
-        "gunicorn",
-        "--worker-class", "gevent",
-        "-w", "5",
-        "-b", "0.0.0.0:443",
-        "--keyfile", "/certs/privkey.pem",
-        "--certfile", "/certs/fullchain.pem",
-        "gunicorn_entrypoint:app"
-      ]
     networks:
       - parnamyadak_network
 
+  # ========================================
+  # سرویس ربات تلگرام
+  # ========================================
+  bot:
+    # مسیر پوشه ربات شما
+    build: ./ParnamYadak_bot
+    container_name: parnamyadak-bot
+    restart: unless-stopped
+    env_file:
+      # فایل متغیرهای محیطی ربات
+      - ./ParnamYadak_bot/bot_config.env
+    networks:
+      - parnamyadak_network
+
+  # ========================================
   # سرویس دیتابیس PostgreSQL
+  # ========================================
   db:
     image: postgres:15-alpine
     container_name: parnamyadak_db
     restart: unless-stopped
-    environment:
-      - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    env_file:
+      - .env
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./backups:/backups
@@ -62,13 +85,10 @@ services:
       - "5432:5432"
     networks:
       - parnamyadak_network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U parnamyadak_user -d parnamyadak_db"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
 
+  # ========================================
   # سرویس Redis برای کش
+  # ========================================
   redis:
     image: redis:7-alpine
     container_name: parnamyadak_redis
@@ -80,11 +100,6 @@ services:
       - redis_data:/data
     networks:
       - parnamyadak_network
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
 
 volumes:
   postgres_data:
@@ -95,4 +110,3 @@ volumes:
 networks:
   parnamyadak_network:
     driver: bridge
-  
