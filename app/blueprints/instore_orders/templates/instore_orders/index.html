@@ -10,8 +10,8 @@
 {% endif %}
 <div x-data="orderForm()" class="space-y-8 px-2 md:px-6">
     <div class="flex flex-col md:flex-row gap-8 mb-8">
-        <!-- کارت‌های آماری (ستون کناری) -->
-        <div class="flex flex-col gap-4 md:w-1/4">
+        <!-- کارت‌های آماری (گرید ۲×۲) -->
+        <div class="grid grid-cols-2 gap-4 md:w-1/2">
             <div class="bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 p-4 rounded-xl shadow text-white flex flex-col items-center justify-center min-h-[120px]">
                 <i class="bi bi-calendar2-day text-3xl mb-2"></i>
                 <h3 class="text-sm font-medium opacity-80 mb-2">سفارش امروز</h3>
@@ -27,7 +27,7 @@
                 <h3 class="text-sm font-medium opacity-80 mb-2">مجموع درآمد</h3>
                 <span class="text-4xl font-extrabold tracking-tight text-white drop-shadow-lg flex items-center justify-center">{{ stats.total_income|format_price|digits_to_persian }}</span>
             </div>
-            <div class="bg-gradient-to-br from-blue-400 via-cyan-400 to-green-400 p-4 rounded-xl shadow text-white flex flex-col items-center justify-center min-h-[120px]">
+            <div class="bg-gradient-to-br from-purple-700 via-fuchsia-600 to-indigo-700 p-4 rounded-xl shadow text-white flex flex-col items-center justify-center min-h-[120px]">
                 <i class="bi bi-clipboard-data text-3xl mb-2"></i>
                 <h3 class="text-sm font-medium opacity-80 mb-2">تعداد کل سفارشات حضوری</h3>
                 <span class="text-4xl font-extrabold tracking-tight text-white drop-shadow-lg flex items-center justify-center">{{ total_instore_orders|digits_to_persian }}</span>
@@ -285,7 +285,13 @@
                             {% endif %}
                         </td>
                         <td class="px-4 py-2 flex gap-2 justify-center no-modal">
-                            <!-- حذف لینک فاکتور -->
+                            {% if order.status == 'در حال پیگیری' %}
+                            <form method="post" action="{{ url_for('instore_orders.delete', order_id=order.id) }}" onsubmit="return confirm('آیا از حذف سفارش مطمئن هستید؟');">
+                                <button type="submit" class="text-red-600 hover:text-red-800 transition-colors" title="حذف سفارش">
+                                    <i class="bi bi-trash-fill text-xl"></i>
+                                </button>
+                            </form>
+                            {% endif %}
                         </td>
                     </tr>
                     {% else %}
