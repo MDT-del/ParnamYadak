@@ -287,7 +287,7 @@ def api_mechanics():
     return jsonify([
         {
             'id': mechanic.id,
-            'first_name': mechanic.first_name,
+            'name': mechanic.full_name,
             'phone_number': mechanic.phone_number,
             'telegram_id': mechanic.telegram_id
         }

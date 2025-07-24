@@ -647,6 +647,13 @@ def api_create_order():
     customer_address = data.get('customer_address')
     telegram_id = data.get('telegram_id')
     mechanic_id = data.get('mechanic_id')
+    # اگر mechanic_id عددی نیست (مثلاً telegram_id است)، باید id عددی را پیدا کنیم
+    if mechanic_id and (not str(mechanic_id).isdigit() or len(str(mechanic_id)) > 6):
+        mechanic = Mechanic.query.filter_by(telegram_id=mechanic_id).first()
+        if mechanic:
+            mechanic_id = mechanic.id
+        else:
+            return jsonify({'success': False, 'message': 'مکانیک یافت نشد'}), 400
 
     # اگر سفارش توسط مکانیک ثبت می‌شود یا اطلاعات مشتری ناقص است، اطلاعات را از جدول Customer واکشی کن
     if (telegram_id or not customer_name or not customer_phone) and (customer_phone or telegram_id):
