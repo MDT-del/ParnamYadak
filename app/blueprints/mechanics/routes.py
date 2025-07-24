@@ -256,7 +256,8 @@ def approve(mechanic_id):
         if mechanic.telegram_id:
             try:
                 import requests
-                bot_notify_url = "https://panel.parnamyadak.ir/api/mechanic_status_notify"
+                # اگر پشت nginx هستیم و روت فوروارد می‌شود:
+                bot_notify_url = "https://panel.parnamyadak.ir/api/mechanic_status_notify"  # این آدرس باید در nginx به ربات فوروارد شود
                 requests.post(bot_notify_url, json={"telegram_id": int(mechanic.telegram_id), "status": "approved"}, timeout=5)
             except Exception as e:
                 import logging
@@ -291,7 +292,8 @@ def reject(mechanic_id):
         if mechanic.telegram_id:
             try:
                 import requests
-                bot_notify_url = "https://panel.parnamyadak.ir/api/mechanic_status_notify"
+                # اگر پشت nginx هستیم و روت فوروارد می‌شود:
+                bot_notify_url = "https://panel.parnamyadak.ir/api/mechanic_status_notify"  # این آدرس باید در nginx به ربات فوروارد شود
                 requests.post(bot_notify_url, json={"telegram_id": int(mechanic.telegram_id), "status": "rejected"}, timeout=5)
             except Exception as e:
                 import logging
