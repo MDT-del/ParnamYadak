@@ -150,11 +150,15 @@ def test_webhook():
         if not webhook_url:
             return jsonify({'success': False, 'message': 'آدرس webhook الزامی است.'})
         
+        # اطمینان از استفاده از https برای healthcheck و webhook
+        if webhook_url.startswith('http://'):
+            webhook_url = webhook_url.replace('http://', 'https://', 1)
+        test_url = f"{webhook_url}/health"
+        
         # تست ساده اتصال
         import requests
         import time
         
-        test_url = f"{webhook_url}/health"
         start_time = time.time()
         
         try:

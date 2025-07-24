@@ -72,27 +72,13 @@ def create_message():
     form = BroadcastMessageForm()
 
     if form.validate_on_submit():
-        # تبدیل تاریخ شمسی به میلادی اگر مقدار داده شمسی باشد
-        scheduled_at_value = request.form.get('scheduled_at')
-        scheduled_at = None
-        if scheduled_at_value:
-            try:
-                import jdatetime
-                if '-' in scheduled_at_value and len(scheduled_at_value.split('-')[0]) == 4:
-                    # فرض: فرمت 1403-05-20
-                    parts = scheduled_at_value.split('-')
-                    if len(parts) == 3:
-                        jy, jm, jd = map(int, parts)
-                        scheduled_at = jdatetime.date(jy, jm, jd).togregorian()
-            except Exception:
-                scheduled_at = None
+        # اطمینان از اینکه فقط پیش‌نویس موقع ثبت پیام مجاز است و scheduled_at پردازش نشود
         message = BroadcastMessage(title=form.title.data,
                                    message=form.message.data,
                                    message_type=form.message_type.data,
                                    target_type=form.target_type.data,
                                    target_customers=form.target_customers.data,
-                                   status=form.status.data,
-                                   scheduled_at=scheduled_at or form.scheduled_at.data,
+                                   status='draft', # فقط پیش‌نویس مجاز است
                                    created_by=current_user.id)
 
         db.session.add(message)

@@ -349,7 +349,7 @@
     </div>
 </div>
 <!-- مودال نمایش جزئیات سفارش -->
-<div x-data="{ showModal: false, order: null, parseProducts(info) { try { return JSON.parse(info); } catch { return []; } }, formatPrice(val) { if (!val) return '۰'; return val.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ','); } }" @show-order.window="order = $event.detail; showModal = true" x-cloak>
+<div x-data="{ showModal: false, order: null, parseProducts(info) { try { return JSON.parse(info); } catch { return []; } }, formatPrice(val) { if (!val) return '۰'; return val.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ','); }, toJalali(datetimeStr) { if (!datetimeStr) return '-'; try { const d = new Date(datetimeStr); const j = jalaali.toJalaali(d.getFullYear(), d.getMonth()+1, d.getDate()); const pad = n => n.toString().padStart(2, '0'); return `${j.jy}/${pad(j.jm)}/${pad(j.jd)} - ${pad(d.getHours())}:${pad(d.getMinutes())}`; } catch { return datetimeStr; } } }" @show-order.window="order = $event.detail; showModal = true" x-cloak>
     <div x-show="showModal" class="fixed inset-0 bg-black bg-opacity-40 z-50 flex items-center justify-center">
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg w-full max-w-2xl p-6 relative">
             <button @click="showModal = false" class="absolute left-4 top-4 text-gray-500 hover:text-red-600 text-xl">&times;</button>
@@ -375,7 +375,7 @@
                     <div><b>جمع کل:</b> <span x-text="formatPrice(order.total_price)"></span> تومان</div>
                     <div><b>بیعانه:</b> <span x-text="formatPrice(order.deposit_amount)"></span> تومان</div>
                     <div><b>مبلغ باقی‌مانده:</b> <span x-text="formatPrice((order.total_price || 0) - (order.deposit_amount || 0))"></span> تومان</div>
-                    <div><b>تاریخ:</b> <span>{{ order.created_at|to_shamsi('%Y/%m/%d - %H:%M') }}</span></div>
+                    <div><b>تاریخ:</b> <span x-text="toJalali(order.created_at)"></span></div>
                     <div><b>وضعیت:</b> <span x-text="order.status"></span></div>
                     <div><b>ثبت‌کننده:</b> <span x-text="order.admin_name"></span> (<span x-text="order.admin_username"></span>)</div>
                     <div><b>یادداشت:</b> <span x-text="order.notes"></span></div>
@@ -534,6 +534,8 @@ function orderForm() {
     <script>
         window.allProducts = {{ products|tojson|safe }};
     </script>
+    <!-- افزودن jalaali-js برای تبدیل تاریخ میلادی به شمسی -->
+    <script src="https://cdn.jsdelivr.net/npm/jalaali-js@1.1.0/dist/jalaali.min.js"></script>
 {% endblock %}
 <!-- Pie Chart با نمایش عدد روی هر بخش -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
