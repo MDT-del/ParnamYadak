@@ -10,8 +10,8 @@
 {% endif %}
 <div x-data="orderForm()" class="space-y-8 px-2 md:px-6">
     <div class="flex flex-col md:flex-row gap-8 mb-8">
-        <!-- کارت‌های گرافیکی ستون راست -->
-        <div class="flex flex-row md:flex-col gap-4 md:w-1/4">
+        <!-- کارت‌های آماری (ستون کناری) -->
+        <div class="flex flex-col gap-4 md:w-1/4">
             <div class="bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 p-4 rounded-xl shadow text-white flex flex-col items-center justify-center min-h-[120px]">
                 <i class="bi bi-calendar2-day text-3xl mb-2"></i>
                 <h3 class="text-sm font-medium opacity-80 mb-2">سفارش امروز</h3>
@@ -28,7 +28,7 @@
                 <span class="text-4xl font-extrabold tracking-tight text-white drop-shadow-lg flex items-center justify-center">{{ stats.total_income|format_price|digits_to_persian }}</span>
             </div>
         </div>
-        <!-- فرم ثبت سفارش ستون چپ -->
+        <!-- فرم ثبت سفارش -->
         <div class="flex-1 w-full">
             <form method="POST" class="bg-white dark:bg-gray-800 rounded-xl shadow p-6 space-y-4 w-full">
                 <div class="grid grid-cols-1 md:grid-cols-5 gap-4">

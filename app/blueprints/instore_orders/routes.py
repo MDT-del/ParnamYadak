@@ -15,6 +15,7 @@ from datetime import datetime
 # from sms_ir import SmsIr  # موقتاً غیرفعال
 import http.client
 import urllib.parse
+from app.utils import fa_to_en_digits
 
 ORDER_STATUSES = [
     'در حال پیگیری', 'آماده تحویل', 'تحویل داده شده', 'لغو شده'
