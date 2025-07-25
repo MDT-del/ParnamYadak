@@ -75,11 +75,11 @@ with app.app_context():
 "
 fi
 
-# ایجاد دایرکتوری‌های مورد نیاز
+# ایجاد دایرکتوری‌های مورد نیاز (در صورت عدم وجود)
 mkdir -p uploads logs static/receipts static/product_pics static/mechanic_licenses static/bot_receipts
 
-# تنظیم مجوزها
-chmod -R 755 uploads logs static
+# مجوزها در Dockerfile تنظیم شده‌اند
+echo "✅ دایرکتوری‌ها آماده هستند"
 
 echo "راه‌اندازی کامل شد. شروع اپلیکیشن..."
 

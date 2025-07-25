@@ -44,7 +44,8 @@ RUN chmod +x /app/docker-entrypoint.sh
 
 # ایجاد کاربر غیر root برای امنیت
 RUN adduser --disabled-password --gecos '' appuser && \
-    chown -R appuser:appuser /app
+    chown -R appuser:appuser /app && \
+    chmod -R 755 /app/logs /app/uploads /app/static
 USER appuser
 
 # expose کردن پورت
