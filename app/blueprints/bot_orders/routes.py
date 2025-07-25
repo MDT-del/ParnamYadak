@@ -5,7 +5,7 @@
 
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for, flash
 from flask_login import login_required, current_user
-from app.models import BotOrder, BotOrderItem, Mechanic, InventoryProduct, db
+from app.models import BotOrder, BotOrderItem, Person, InventoryProduct, db
 from app.decorators import permission_required
 import json
 import logging
@@ -16,7 +16,6 @@ from app.utils import shamsi_datetime
 import requests
 from sqlalchemy import or_
 from datetime import datetime, timedelta
-from app.models import Customer
 from app.models import User
 
 from . import bot_orders_bp
@@ -43,7 +42,7 @@ def index():
     # برای هر سفارش، اطلاعات مکانیک را بر اساس telegram_id پیدا کن
     for order in orders.items:
         if order.telegram_id:
-            mechanic = Mechanic.query.filter_by(telegram_id=order.telegram_id).first()
+            mechanic = Person.query.filter_by(telegram_id=order.telegram_id, person_type='mechanic').first()
             if mechanic:
                 order.mechanic_info = {
                     'name': f"{mechanic.first_name} {mechanic.last_name}".strip(),
@@ -68,10 +67,10 @@ def index():
         # واکشی اطلاعات مشتری اگر سفارش مکانیک نیست
         if not order.mechanic_obj:
             customer = None
-            if order.customer_id:
-                customer = Customer.query.get(order.customer_id)
+            if order.person_id:
+                customer = Person.query.get(order.person_id)
             elif order.customer_phone:
-                customer = Customer.query.filter_by(phone_number=order.customer_phone).first()
+                customer = Person.query.filter_by(phone_number=order.customer_phone, person_type='customer').first()
             if customer:
                 order.customer_name = customer.full_name
                 order.customer_phone = customer.phone_number
@@ -138,7 +137,7 @@ def detail(order_id):
     # اطلاعات مکانیک
     mechanic_info = None
     if order.telegram_id:
-        mechanic = Mechanic.query.filter_by(telegram_id=order.telegram_id).first()
+        mechanic = Person.query.filter_by(telegram_id=order.telegram_id, person_type='mechanic').first()
         if mechanic:
             mechanic_info = {
                 'name': f"{mechanic.first_name} {mechanic.last_name}".strip(),
@@ -147,10 +146,10 @@ def detail(order_id):
             }
     # واکشی اطلاعات مشتری
     customer = None
-    if order.customer_id:
-        customer = Customer.query.get(order.customer_id)
+    if order.person_id:
+        customer = Person.query.get(order.person_id)
     elif order.customer_phone:
-        customer = Customer.query.filter_by(phone_number=order.customer_phone).first()
+        customer = Person.query.filter_by(phone_number=order.customer_phone, person_type='customer').first()
     
     return render_template('bot_orders/detail.html', 
                          order=order, 
@@ -185,7 +184,7 @@ def approve_order(order):
     تایید سفارش
     """
     try:
-        items = list(order.items)
+        items = list(order.items.all())
         logging.info(f"[APPROVE] Items in order: {[{'id': item.id, 'status': item.status, 'product': item.product_id, 'quantity': item.quantity if hasattr(item, 'quantity') else None} for item in items]}")
         if items:
             all_out_of_stock = all(getattr(item, 'status', '') == 'عدم موجودی' for item in items)
@@ -253,7 +252,7 @@ def cancel_order_and_release_reservations(order):
     """
     لغو سفارش و آزادسازی رزرو همه آیتم‌ها
     """
-    for item in order.items:
+    for item in order.items.all():
         item.release_reservation()
     order.status = 'لغو شده'
     from app import db
@@ -289,7 +288,7 @@ def confirm_payment(order):
         order.status = 'پرداخت شده'
         
         # کسر از موجودی (FIFO)
-        for item in order.items:
+        for item in order.items.all():
             if item.product and item.reserved_quantity > 0:
                 print(f"[DEBUG] Processing item: {item.product.name}, reserved: {item.reserved_quantity}, needed: {item.quantity}")
                 remaining = item.quantity
@@ -405,7 +404,7 @@ def notify_mechanic(order_id):
     import requests
     order = BotOrder.query.get_or_404(order_id)
     items = []
-    for item in order.items:
+    for item in order.items.all():
         items.append({
             'product_name': item.product_name,
             'quantity': item.quantity,
@@ -508,7 +507,7 @@ def api_mechanics():
     """
     API برای دریافت لیست مکانیک‌ها
     """
-    mechanics = Mechanic.query.filter_by(is_approved=True).all()
+    mechanics = Person.query.filter_by(is_approved=True, person_type='mechanic').all()
     
     mechanics_data = []
     for mechanic in mechanics:
@@ -617,11 +616,6 @@ def link_product_to_item(item_id):
 
 @bot_orders_bp.route('/api/create_order', methods=['POST'])
 def api_create_order():
-    from app.models import Customer
-    """
-    API برای ایجاد سفارش جدید از ربات
-    """
-    # داده‌ها از request.form دریافت می‌شود
     data = request.form
     items_json = data.get('items')
     if not items_json:
@@ -638,52 +632,51 @@ def api_create_order():
     # فقط اگر mechanic_id مقدار دارد و عددی نیست (مثلاً telegram_id است)، دنبال مکانیک بگرد
     if mechanic_id:
         if not str(mechanic_id).isdigit() or len(str(mechanic_id)) > 6:
-            mechanic = Mechanic.query.filter_by(telegram_id=mechanic_id).first()
+            mechanic = Person.query.filter_by(telegram_id=mechanic_id, person_type='mechanic').first()
             if mechanic:
                 mechanic_id = mechanic.id
             else:
-                # فقط اگر سفارش توسط مکانیک است خطا بده، وگرنه mechanic_id را None کن
                 if data.get('is_mechanic') or data.get('type') == 'mechanic':
                     return jsonify({'success': False, 'message': 'مکانیک یافت نشد'}), 400
                 mechanic_id = None
-
-    # اگر اطلاعات مشتری ناقص است، سعی کن از جدول Customer واکشی کنی
-    if (not customer_name or not customer_phone) and (customer_phone or telegram_id):
-        customer = None
-        if customer_phone:
-            customer = Customer.query.filter_by(phone_number=customer_phone).first()
-        if not customer and telegram_id:
-            customer = Customer.query.filter_by(telegram_id=telegram_id).first()
-        if customer:
-            if not customer_name:
-                customer_name = (customer.first_name or '') + ((' ' + customer.last_name) if getattr(customer, 'last_name', None) else '')
-            if not customer_phone:
-                customer_phone = customer.phone_number
+    # ثبت یا واکشی مشتری در Person
+    customer = None
+    if customer_phone:
+        customer = Person.query.filter_by(phone_number=customer_phone, person_type='customer').first()
+        if not customer:
+            customer = Person(
+                full_name=customer_name or 'نامشخص',
+                phone_number=customer_phone,
+                person_type='customer',
+                address=customer_address or None,
+                telegram_id=telegram_id
+            )
+            db.session.add(customer)
+            db.session.commit()
+    else:
+        return jsonify({'success': False, 'message': 'شماره تلفن مشتری الزامی است'}), 400
     # اگر باز هم نام مشتری خالی بود، مقدار پیش‌فرض قرار بده
     if not customer_name:
-        customer_name = 'نامشخص'
+        customer_name = customer.full_name if customer else 'نامشخص'
     if not customer_phone:
-        customer_phone = 'نامشخص'
-
+        customer_phone = customer.phone_number if customer else 'نامشخص'
     if not items:
         return jsonify({'success': False, 'message': 'اطلاعات ناقص'})
-
     try:
-        # محاسبه مبلغ کل
         total_amount = sum(item.get('total_price', 0) for item in items)
-        # ایجاد سفارش
         order = BotOrder(
-            customer_phone=customer_phone or "",
-            customer_name=customer_name or "",
-            customer_address=customer_address or "",
+            customer_phone=customer_phone,
+            customer_name=customer_name,
+            customer_address=customer_address,
             telegram_id=telegram_id,
-            mechanic_id=mechanic_id,
+            mechanic_person_id=mechanic_id if mechanic_id else None,
+            person_id=customer.id if customer else None,
             order_items=json.dumps(items),
             total_amount=total_amount
         )
         db.session.add(order)
         db.session.commit()
-        # --- ذخیره عکس هر آیتم (در صورت وجود) ---
+        # ذخیره آیتم‌ها
         for idx, item_data in enumerate(items):
             photo_name = None
             photo_field = item_data.get('photo_field') or f'item_{idx+1}_photo'
@@ -722,13 +715,11 @@ def api_create_order():
             db.session.add(item)
         db.session.commit()
         order.calculate_commission()
-        if customer_phone:
-            customer = Customer.query.filter_by(phone_number=customer_phone).first()
-            if customer:
-                customer.update_first_order_info()
-                db.session.add(customer)
+        if customer:
+            customer.update_first_order_info()
+            db.session.add(customer)
         db.session.commit()
-        # ارسال نوتیفیکیشن در try/except جداگانه
+        # ارسال نوتیفیکیشن و اطلاع‌رسانی به ربات (بدون تغییر)
         try:
             notified_users = set()
             roles = Role.query.all()
@@ -780,7 +771,7 @@ def api_order_status(order_id):
     available_items = []
     unavailable_items = []
     total_available_amount = 0
-    for item in order.items:
+    for item in order.items.all():
         item_info = {
             'id': item.id,
             'product_name': item.product_name,

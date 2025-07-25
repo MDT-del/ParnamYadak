@@ -6,7 +6,7 @@
 from flask import render_template, redirect, url_for, flash, Blueprint, request, jsonify
 from flask_login import login_required
 from app import db
-from app.models import Customer, InStoreOrder, Order, BotOrder
+from app.models import Person, InStoreOrder, Order, BotOrder
 from app.decorators import permission_required
 from sqlalchemy import or_
 import json
@@ -26,23 +26,26 @@ def index():
     per_page = 15
     filters = []
     if search_query:
-        filters.append(Customer.first_name.ilike(f'%{search_query}%'))
-        filters.append(Customer.last_name.ilike(f'%{search_query}%'))
-        filters.append(Customer.phone_number.ilike(f'%{search_query}%'))
-        customers = Customer.query.filter(or_(*filters)).order_by(Customer.id.desc()).paginate(page=page, per_page=per_page)
+        filters.append(Person.full_name.ilike(f'%{search_query}%'))
+        filters.append(Person.phone_number.ilike(f'%{search_query}%'))
+        customers = Person.query.filter(
+            Person.person_type == 'customer',
+            or_(*filters)
+        ).order_by(Person.id.desc()).paginate(page=page, per_page=per_page)
     else:
-        customers = Customer.query.order_by(Customer.id.desc()).paginate(page=page, per_page=per_page)
+        customers = Person.query.filter(
+            Person.person_type == 'customer'
+        ).order_by(Person.id.desc()).paginate(page=page, per_page=per_page)
 
     # ساخت لیست جدید با اطلاعات اولین سفارش برای هر مشتری
     customers_with_first_order = []
     for customer in customers.items:
-        # بروزرسانی اطلاعات اولین سفارش
-        customer.update_first_order_info()
-        
+        if hasattr(customer, 'update_first_order_info'):
+            customer.update_first_order_info()
         customers_with_first_order.append({
             'customer': customer,
-            'first_order_date': customer.first_order_date,
-            'first_order_type': customer.first_order_type
+            'first_order_date': getattr(customer, 'first_order_date', None),
+            'first_order_type': getattr(customer, 'first_order_type', None)
         })
 
     if request.args.get('ajax') == '1':
@@ -52,8 +55,7 @@ def index():
             customer = item['customer']
             customers_json.append({
                 'id': customer.id,
-                'first_name': customer.first_name,
-                'last_name': customer.last_name,
+                'full_name': customer.full_name,
                 'phone_number': customer.phone_number
             })
         return {'customers': customers_json}
@@ -72,19 +74,17 @@ def view_customer(customer_id):
     """
     نمایش جزئیات کامل یک مشتری خاص و سفارش‌های او.
     """
-    customer = db.session.get(Customer, customer_id)
-    if not customer:
+    customer = db.session.get(Person, customer_id)
+    if not customer or customer.person_type != 'customer':
         flash('مشتری مورد نظر یافت نشد.', 'danger')
         return redirect(url_for('customers.index'))
 
     # گرفتن سفارش‌های مشتری (تلگرام)
-    customer_orders = customer.orders.order_by(Order.order_date.desc()).all()
+    customer_orders = customer.orders.order_by(Order.order_date.desc()).all() if hasattr(customer, 'orders') else []
     # گرفتن سفارش‌های حضوری
-    instore_orders = customer.instore_orders.order_by(InStoreOrder.created_at.desc()).all()
+    instore_orders = customer.instore_orders.order_by(InStoreOrder.created_at.desc()).all() if hasattr(customer, 'instore_orders') else []
     # گرفتن سفارش‌های ربات (بر اساس شماره تلفن)
-    bot_orders = []
-    if customer.phone_number:
-        bot_orders = BotOrder.query.filter_by(customer_phone=customer.phone_number).order_by(BotOrder.created_at.desc()).all()
+    bot_orders = BotOrder.query.filter_by(person_id=customer.id).order_by(BotOrder.created_at.desc()).all()
     
     # ترکیب و مرتب‌سازی همه سفارشات
     all_orders = []
@@ -104,7 +104,7 @@ def view_customer(customer_id):
             'total_price': i.total_price,
             'status': i.status,
             'type': 'حضوری',
-            'view_url': url_for('instore_orders.edit', order_id=i.id)
+            'view_url': None
         })
     for b in bot_orders:
         all_orders.append({
@@ -119,21 +119,20 @@ def view_customer(customer_id):
     return render_template('view_customer.html',
                            customer=customer,
                            orders=all_orders,
-                           title=f"جزئیات مشتری: {customer.first_name}")
+                           title=f"جزئیات مشتری: {customer.full_name}")
 
 
 @customers_bp.route('/edit/<int:customer_id>', methods=['GET', 'POST'])
 @login_required
 @permission_required('manage_customers')
 def edit_customer(customer_id):
-    customer = db.session.get(Customer, customer_id)
-    if not customer:
+    customer = db.session.get(Person, customer_id)
+    if not customer or customer.person_type != 'customer':
         flash('مشتری مورد نظر یافت نشد.', 'danger')
         return redirect(url_for('customers.index'))
     if request.method == 'POST':
         from app.utils import fa_to_en_digits
-        customer.first_name = request.form.get('first_name', '').strip()
-        customer.last_name = request.form.get('last_name', '').strip()
+        customer.full_name = request.form.get('full_name', '').strip()
         customer.username = request.form.get('username', '').strip()
         customer.phone_number = fa_to_en_digits(request.form.get('phone_number', '').strip())
         customer.address = request.form.get('address', '').strip()
@@ -154,18 +153,17 @@ def api_register_customer():
     """
     from app.models import Notification, Role, db
     data = request.get_json()
-    first_name = data.get('first_name', '').strip()
-    last_name = data.get('last_name', '').strip()
+    full_name = data.get('full_name', '').strip()
     phone_number = data.get('phone_number', '').strip()
     address = data.get('address', '').strip()
     telegram_id = data.get('telegram_id')
     username = data.get('username', '').strip()
     
-    if not first_name or not phone_number:
+    if not full_name or not phone_number:
         return {'success': False, 'message': 'نام و شماره تلفن الزامی است.'}, 400
     
     # بررسی تکراری نبودن شماره تلفن
-    existing = Customer.query.filter_by(phone_number=phone_number).first()
+    existing = Person.query.filter_by(phone_number=phone_number, person_type='customer').first()
     if existing:
         # اگر شماره تلفن قبلاً ثبت شده، telegram_id را به آن اضافه کن (در صورت نبود)
         if telegram_id and not existing.telegram_id:
@@ -177,32 +175,32 @@ def api_register_customer():
     
     # بررسی تکراری نبودن telegram_id
     if telegram_id:
-        existing_telegram = Customer.query.filter_by(telegram_id=telegram_id).first()
+        existing_telegram = Person.query.filter_by(telegram_id=telegram_id, person_type='customer').first()
         if existing_telegram:
             return {'success': False, 'message': 'این کاربر قبلاً ثبت شده است.'}, 400
     
     province = data.get('province', '').strip()
     city = data.get('city', '').strip()
     postal_code = data.get('postal_code', '').strip()
-    customer = Customer(
+    customer = Person(
         telegram_id=telegram_id,
-        first_name=first_name,
-        last_name=last_name,
+        full_name=full_name,
         phone_number=phone_number,
         address=address,
         username=username,
         province=province,
         city=city,
         postal_code=postal_code,
-        customer_type='ربات'  # نوع مشتری ربات
+        person_type='customer'
     )
     db.session.add(customer)
     db.session.commit()
     
     # بروزرسانی اطلاعات اولین سفارش
-    customer.update_first_order_info()
-    db.session.add(customer)
-    db.session.commit()
+    if hasattr(customer, 'update_first_order_info'):
+        customer.update_first_order_info()
+        db.session.add(customer)
+        db.session.commit()
 
     # ارسال نوتیفیکیشن ثبت‌نام مشتری به صورت داخلی
     try:
@@ -212,8 +210,7 @@ def api_register_customer():
         payload = {
             'customer_id': customer.id,
             'telegram_id': customer.telegram_id,
-            'first_name': customer.first_name,
-            'last_name': customer.last_name,
+            'full_name': customer.full_name,
             'phone_number': customer.phone_number
         }
         # ارسال درخواست داخلی (localhost)
@@ -236,7 +233,7 @@ def customer_status():
     if not telegram_id:
         return jsonify({'success': False, 'message': 'telegram_id الزامی است'}), 400
     
-    customer = Customer.query.filter_by(telegram_id=telegram_id).first()
+    customer = Person.query.filter_by(telegram_id=telegram_id, person_type='customer').first()
     if not customer:
         return jsonify({'success': False, 'message': 'مشتری یافت نشد'}), 404
     
@@ -244,8 +241,7 @@ def customer_status():
         'success': True,
         'status': 'approved',  # مشتریان به طور خودکار تایید شده هستند
         'customer_id': customer.id,
-        'first_name': customer.first_name,
-        'last_name': customer.last_name,
+        'full_name': customer.full_name,
         'phone_number': customer.phone_number
     })
 
@@ -260,8 +256,7 @@ def api_create_customer():
         data = request.get_json()
 
         telegram_id = data.get('telegram_id')
-        first_name = data.get('first_name', '').strip()
-        last_name = data.get('last_name', '').strip()
+        full_name = data.get('full_name', '').strip()
         username = data.get('username', '').strip()
         phone_number = data.get('phone_number', '').strip()
         province = data.get('province', '').strip()
@@ -271,7 +266,7 @@ def api_create_customer():
         if not telegram_id:
             return jsonify({'error': 'telegram_id الزامی است'}), 400
         # بررسی تکراری نبودن telegram_id
-        existing_telegram = Customer.query.filter_by(telegram_id=telegram_id).first()
+        existing_telegram = Person.query.filter_by(telegram_id=telegram_id, person_type='customer').first()
         if existing_telegram:
             return jsonify({
                 'success': True,
@@ -281,7 +276,7 @@ def api_create_customer():
 
         # بررسی تکراری نبودن شماره تلفن (اگر ارائه شده)
         if phone_number:
-            existing_phone = Customer.query.filter_by(phone_number=phone_number).first()
+            existing_phone = Person.query.filter_by(phone_number=phone_number, person_type='customer').first()
             if existing_phone:
                 # اگر شماره تلفن قبلاً ثبت شده، telegram_id را به آن اضافه کن
                 existing_phone.telegram_id = telegram_id
@@ -294,16 +289,15 @@ def api_create_customer():
                 })
 
         # ایجاد مشتری جدید
-        customer = Customer(
+        customer = Person(
             telegram_id=telegram_id,
-            first_name=first_name,
-            last_name=last_name,
+            full_name=full_name,
             username=username,
             phone_number=phone_number,
-            province=data.get('province'),
-            city=data.get('city'),
-            postal_code=data.get('postal_code'),
-            customer_type='ربات'  # نوع مشتری ربات
+            province=province,
+            city=city,
+            postal_code=postal_code,
+            person_type='customer'
         )
 
         db.session.add(customer)
@@ -336,10 +330,13 @@ def api_create_customer():
                 try:
                     resp = requests.post(url, json=payload, timeout=5)
                     if resp.status_code == 200:
+                        import logging
                         logging.info(f"✅ منوی جدید به مشتری {telegram_id} ارسال شد")
                     else:
+                        import logging
                         logging.error(f'❌ Telegram menu API error: {resp.status_code} - {resp.text}')
                 except Exception as e:
+                    import logging
                     logging.error(f"❌ خطا در ارسال منوی تلگرام: {e}")
 
         return jsonify({

@@ -7,7 +7,7 @@ from flask import render_template, Blueprint, request, jsonify, current_app, fla
 from flask_login import login_required, current_user
 from sqlalchemy import func, desc, and_, extract
 from app import db
-from app.models import Order, Customer, InventoryProduct, Mechanic, BotOrder, BotOrderItem, InStoreOrder, FinancialTransaction
+from app.models import Order, Person, InventoryProduct, MechanicProfile, BotOrder, BotOrderItem, InStoreOrder, FinancialTransaction
 from app.decorators import permission_required
 import json
 import jdatetime
@@ -32,7 +32,7 @@ def index():
     start_of_month = datetime.datetime(today.year, today.month, 1)
     start_of_year = datetime.datetime(today.year, 1, 1)
     
-    # آمار فروش کل (تلگرام + حضوری + ربات)
+    # آمار فروش کل (حضوری + ربات)
     total_sales_telegram = db.session.query(func.sum(Order.total_price)).filter(
         Order.status.in_(['تایید شده', 'پرداخت شده', 'تکمیل شده'])).scalar() or 0
     total_sales_instore = db.session.query(func.sum(InStoreOrder.total_price)).filter(
@@ -72,7 +72,7 @@ def index():
     total_orders = total_orders_telegram + total_orders_instore + total_orders_bot
     
     # تعداد مشتریان
-    total_customers = db.session.query(func.count(Customer.id)).scalar() or 0
+    total_customers = db.session.query(func.count(Person.id)).filter(Person.person_type == 'customer').scalar() or 0
     
     # تعداد محصولات (از انبار)
     total_products = db.session.query(func.count(InventoryProduct.id)).scalar() or 0
@@ -162,7 +162,7 @@ def invoice_report():
     """
     گزارش فاکتورها و وضعیت پرداخت‌ها - شامل سفارشات ربات و حضوری
     """
-    from app.models import InStoreOrder, Customer
+    from app.models import InStoreOrder, Person
     
     # فاکتورهای ربات (اخیر)
     recent_bot_invoices = BotOrder.query.filter(
@@ -172,10 +172,10 @@ def invoice_report():
     # اضافه کردن customer_id برای سفارشات ربات
     for bot_order in recent_bot_invoices:
         if bot_order.customer_phone:
-            customer = Customer.query.filter_by(phone_number=bot_order.customer_phone).first()
-            bot_order.customer_id = customer.id if customer else 1
+            customer = Person.query.filter_by(phone_number=bot_order.customer_phone, person_type='customer').first()
+            bot_order.person_id = customer.id if customer else 1
         else:
-            bot_order.customer_id = 1
+            bot_order.person_id = 1
 
     # فاکتورهای حضوری (اخیر)
     recent_instore_invoices = InStoreOrder.query.filter(
@@ -304,20 +304,22 @@ def api_customer_segments():
     """API برای تقسیم‌بندی مشتریان"""
     # تقسیم‌بندی بر اساس سطح وفاداری
     loyalty_segments = db.session.query(
-        Customer.customer_level,
-        func.count(Customer.id).label('count'),
-        func.sum(Customer.total_spent).label('total_spent')).group_by(
-            Customer.customer_level).all()
+        Person.person_type,
+        func.count(Person.id).label('count'),
+        func.sum(Person.total_spent).label('total_spent')).filter(
+            Person.person_type == 'customer').group_by(
+            Person.person_type).all()
 
     # تقسیم‌بندی بر اساس تعداد سفارشات
     order_segments = db.session.query(
-        func.case([(Customer.total_orders == 0, 'بدون سفارش'),
-                   (Customer.total_orders == 1, 'یک سفارش'),
-                   (Customer.total_orders.between(2, 5), '2-5 سفارش'),
-                   (Customer.total_orders.between(6, 10), '6-10 سفارش'),
-                   (Customer.total_orders
+        func.case([(Person.total_orders == 0, 'بدون سفارش'),
+                   (Person.total_orders == 1, 'یک سفارش'),
+                   (Person.total_orders.between(2, 5), '2-5 سفارش'),
+                   (Person.total_orders.between(6, 10), '6-10 سفارش'),
+                   (Person.total_orders
                     > 10, 'بیش از 10 سفارش')]).label('segment'),
-        func.count(Customer.id).label('count')).group_by('segment').all()
+        func.count(Person.id).label('count')).filter(
+            Person.person_type == 'customer').group_by('segment').all()
 
     return jsonify({
         'loyalty_segments': [{
@@ -372,10 +374,10 @@ def export_report(report_type):
         for col, header in enumerate(headers, 1):
             ws.cell(row=1, column=col, value=header).font = Font(bold=True)
 
-        customers = Customer.query.order_by(desc(Customer.total_spent)).all()
+        customers = Person.query.filter_by(person_type='customer').order_by(desc(Person.total_spent)).all()
         for row, customer in enumerate(customers, 2):
             ws.cell(row=row, column=1, value=customer.full_name)
-            ws.cell(row=row, column=2, value=customer.customer_level)
+            ws.cell(row=row, column=2, value=customer.person_type)
             ws.cell(row=row, column=3, value=customer.total_orders)
             ws.cell(row=row, column=4, value=float(customer.total_spent))
             ws.cell(row=row,
@@ -405,7 +407,7 @@ def mechanic_commission(mechanic_id):
     """
     گزارش مالی مکانیک خاص
     """
-    mechanic = Mechanic.query.get_or_404(mechanic_id)
+    mechanic = Person.query.filter_by(id=mechanic_id, person_type='mechanic').first_or_404()
     
     # پارامترهای فیلتر
     start_date = request.args.get('start_date')
@@ -421,7 +423,7 @@ def mechanic_commission(mechanic_id):
     
     # سفارشات مکانیک در بازه زمانی
     orders = BotOrder.query.filter(
-        BotOrder.mechanic_id == mechanic_id,
+        BotOrder.mechanic_person_id == mechanic_id,
         BotOrder.created_at.between(start, end)
     ).order_by(BotOrder.created_at.desc()).all()
     
@@ -491,14 +493,13 @@ def commission_payments():
     page = request.args.get('page', 1, type=int)
     
     # دریافت مکانیک‌های تایید شده
-    query = Mechanic.query.filter_by(is_approved=True)
+    query = Person.query.filter_by(person_type='mechanic', is_approved=True)
     
     if search:
         query = query.filter(
             db.or_(
-                Mechanic.first_name.ilike(f'%{search}%'),
-                Mechanic.last_name.ilike(f'%{search}%'),
-                Mechanic.phone_number.ilike(f'%{search}%')
+                Person.full_name.ilike(f'%{search}%'),
+                Person.phone_number.ilike(f'%{search}%')
             )
         )
     
@@ -507,11 +508,11 @@ def commission_payments():
     # محاسبه آمار برای هر مکانیک
     for mechanic in mechanics:
         # محاسبه تعداد سفارشات
-        mechanic.total_orders = BotOrder.query.filter_by(mechanic_id=mechanic.id).count()
+        mechanic.total_orders = BotOrder.query.filter_by(mechanic_person_id=mechanic.id).count()
         
         # محاسبه کمیسیون معوق (سفارشاتی که کمیسیون پرداخت نشده)
         pending_commission = db.session.query(func.sum(BotOrder.commission_amount)).filter(
-            BotOrder.mechanic_id == mechanic.id,
+            BotOrder.mechanic_person_id == mechanic.id,
             BotOrder.commission_amount > 0,
             BotOrder.commission_paid == False
         ).scalar() or 0
@@ -583,7 +584,7 @@ def pay_commission(mechanic_id):
     """
     پرداخت کمیسیون مکانیک (روش قدیمی - حفظ شده برای سازگاری)
     """
-    mechanic = Mechanic.query.get_or_404(mechanic_id)
+    mechanic = Person.query.filter_by(id=mechanic_id, person_type='mechanic').first_or_404()
     amount = request.form.get('amount', type=float)
     payment_method = request.form.get('payment_method', '')
     notes = request.form.get('notes', '')
@@ -632,7 +633,7 @@ def pay_commission_detailed(mechanic_id):
     import os
     from werkzeug.utils import secure_filename
     
-    mechanic = Mechanic.query.get_or_404(mechanic_id)
+    mechanic = Person.query.filter_by(id=mechanic_id, person_type='mechanic').first_or_404()
     
     # دریافت داده‌های فرم
     order_ids = request.form.getlist('order_ids')
@@ -720,7 +721,7 @@ def pay_commission_detailed(mechanic_id):
         if order_ids:
             for order_id in order_ids:
                 # بررسی اینکه آیا سفارش متعلق به این مکانیک است
-                bot_order = BotOrder.query.filter_by(id=order_id, mechanic_id=mechanic.id).first()
+                bot_order = BotOrder.query.filter_by(id=order_id, mechanic_person_id=mechanic.id).first()
                 if bot_order and bot_order.commission_amount > 0:
                     # صفر کردن کمیسیون سفارش
                     bot_order.commission_amount = 0
@@ -859,7 +860,7 @@ def transaction_history():
     total_amount = db.session.query(func.sum(FinancialTransaction.amount)).scalar() or 0
     
     # دریافت لیست مکانیک‌ها برای فیلتر
-    mechanics = Mechanic.query.filter_by(is_approved=True).all()
+    mechanics = Person.query.filter_by(person_type='mechanic', is_approved=True).all()
     
     return render_template('transaction_history.html',
                          transactions=transactions,
@@ -882,7 +883,7 @@ def customer_orders_history(customer_id):
     """
     from app.models import InStoreOrder, BotOrder
     
-    customer = Customer.query.get_or_404(customer_id)
+    customer = Person.query.filter_by(id=customer_id, person_type='customer').first_or_404()
     
     # گرفتن سفارش‌های حضوری
     instore_orders = customer.instore_orders.order_by(InStoreOrder.created_at.desc()).all()
@@ -902,7 +903,7 @@ def customer_orders_history(customer_id):
             'type': 'حضوری',
             'order_type': 'instore',  # برای URL
             'order_obj': i,
-            'view_url': url_for('instore_orders.edit', order_id=i.id),
+            'view_url': None,
             # 'invoice_url': url_for('instore_orders.invoice', order_id=i.id)  # حذف شد
         })
     for b in bot_orders:
@@ -944,7 +945,7 @@ def customer_orders_history_print(customer_id):
     """
     from app.models import InStoreOrder, BotOrder
     
-    customer = Customer.query.get_or_404(customer_id)
+    customer = Person.query.filter_by(id=customer_id, person_type='customer').first_or_404()
     
     # گرفتن سفارش‌های حضوری
     instore_orders = customer.instore_orders.order_by(InStoreOrder.created_at.desc()).all()
@@ -1013,11 +1014,10 @@ def customer_single_order_print(customer_id, order_type, order_id):
     import datetime
     from app.models import InStoreOrder, BotOrder, BotOrderItem
     
-    customer = Customer.query.get_or_404(customer_id)
+    customer = Person.query.filter_by(id=customer_id, person_type='customer').first_or_404()
     mechanic = None
     if hasattr(customer, 'telegram_id') and customer.telegram_id:
-        from app.models import Mechanic
-        mechanic = Mechanic.query.filter_by(telegram_id=customer.telegram_id).first()
+        mechanic = Person.query.filter_by(telegram_id=customer.telegram_id, person_type='mechanic').first()
     
     if order_type == 'instore':
         order = InStoreOrder.query.get_or_404(order_id)

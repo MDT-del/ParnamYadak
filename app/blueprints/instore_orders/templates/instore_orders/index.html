@@ -202,6 +202,7 @@
                     <option value="خریداری شده" {% if status_filter=='خریداری شده'%}selected{% endif %}>خریداری شده</option>
                     <option value="تحویل داده شده" {% if status_filter=='تحویل داده شده'%}selected{% endif %}>تحویل داده شده</option>
                     <option value="لغو شده" {% if status_filter=='لغو شده'%}selected{% endif %}>لغو شده</option>
+                    <option value="مرجوع شده" {% if status_filter=='مرجوع شده'%}selected{% endif %}>مرجوع شده</option>
                 </select>
                 <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg">جستجو</button>
             </form>
@@ -231,7 +232,8 @@
                         'خریداری شده': 'bg-green-100 text-green-800',
                         'آماده تحویل': 'bg-cyan-100 text-cyan-800',
                         'تحویل داده شده': 'bg-indigo-100 text-indigo-800',
-                        'لغو شده': 'bg-red-100 text-red-800'
+                        'لغو شده': 'bg-red-100 text-red-800',
+                        'مرجوع شده': 'bg-purple-100 text-purple-800'
                     } %}
                     {% set row_bg_colors = {
                         'جدید': 'bg-blue-50',
@@ -239,7 +241,8 @@
                         'خریداری شده': 'bg-green-50',
                         'آماده تحویل': 'bg-cyan-50',
                         'تحویل داده شده': 'bg-indigo-50',
-                        'لغو شده': 'bg-red-50'
+                        'لغو شده': 'bg-red-50',
+                        'مرجوع شده': 'bg-purple-50'
                     } %}
                     <tr class="hover:bg-gray-100 dark:hover:bg-gray-700 transition cursor-pointer {{ row_bg_colors[order.status] }}" @click="if(!$event.target.closest('.no-modal')) { $dispatch('show-order', {id: {{ order.id }}, customer_name: '{{ order.customer.full_name|e }}', customer_phone: '{{ order.customer.phone_number|e }}', products_info: `{{ order.products_info|e }}`, total_price: {{ order.total_price or 0 }}, deposit_amount: {{ order.deposit_amount or 0 }}, created_at: '{{ order.created_at|to_shamsi }} {{ order.created_at.strftime('%H:%M') if order.created_at else '' }}', status: '{{ order.status }}', admin_name: '{{ order.created_by_user.name or order.created_by_user.username if order.created_by_user else '-' }}', admin_username: '{{ order.created_by_user.username if order.created_by_user else '-' }}', notes: `{{ order.notes|e }}` }) }">
                         <td class="px-4 py-2">{{ order.id }}</td>
@@ -262,7 +265,7 @@
                         <td class="px-4 py-2">
                             <form method="post" action="{{ url_for('instore_orders.change_status', order_id=order.id) }}" style="display:inline;" onChange="this.submit()">
                                 <select name="status" class="rounded border-gray-300 dark:bg-gray-800 dark:text-gray-200 no-modal">
-                                    {% for st in ['در حال پیگیری','آماده تحویل','تحویل داده شده','لغو شده'] %}
+                                    {% for st in ['در حال پیگیری','آماده تحویل','تحویل داده شده','لغو شده','مرجوع شده'] %}
                                         <option value="{{ st }}" {% if order.status == st %}selected{% endif %}>{{ st }}</option>
                                     {% endfor %}
                                 </select>
@@ -557,7 +560,7 @@ function orderForm() {
             const ctx = document.getElementById('pie-chart-canvas');
             if (!ctx) return;
             const data = {
-                labels: ['جدید', 'در حال پیگیری', 'خریداری شده', 'آماده تحویل', 'تحویل داده شده', 'لغو شده'],
+                labels: ['جدید', 'در حال پیگیری', 'خریداری شده', 'آماده تحویل', 'تحویل داده شده', 'لغو شده', 'مرجوع شده'],
                 datasets: [{
                     data: [
                         {{ (stats.status_counts['جدید'] or 0)|digits_to_persian }},
@@ -565,7 +568,8 @@ function orderForm() {
                         {{ (stats.status_counts['خریداری شده'] or 0)|digits_to_persian }},
                         {{ (stats.status_counts['آماده تحویل'] or 0)|digits_to_persian }},
                         {{ (stats.status_counts['تحویل داده شده'] or 0)|digits_to_persian }},
-                        {{ (stats.status_counts['لغو شده'] or 0)|digits_to_persian }}
+                        {{ (stats.status_counts['لغو شده'] or 0)|digits_to_persian }},
+                        {{ (stats.status_counts['مرجوع شده'] or 0)|digits_to_persian }}
                     ],
                     backgroundColor: [
                         '#3b82f6', // آبی
@@ -573,7 +577,8 @@ function orderForm() {
                         '#22c55e', // سبز
                         '#38bdf8', // فیروزه‌ای (آماده تحویل)
                         '#6366f1', // بنفش
-                        '#ef4444'  // قرمز
+                        '#ef4444',  // قرمز
+                        '#8b5cf6'   // بنفش مینیمال
                     ],
                     borderWidth: 1
                 }]

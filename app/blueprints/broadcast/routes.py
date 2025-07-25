@@ -7,7 +7,7 @@ from flask import render_template, Blueprint, request, jsonify, flash, redirect,
 from flask_login import login_required, current_user
 from sqlalchemy import func, desc
 from app import db
-from app.models import BroadcastMessage, Customer, CustomerSegment
+from app.models import BroadcastMessage, Person, CustomerSegment
 from app.forms import BroadcastMessageForm
 from app.decorators import permission_required
 import json
@@ -30,7 +30,7 @@ def index():
         desc(BroadcastMessage.created_at)).all()
     # افزودن نام ارسال‌کننده و هدف قابل نمایش
     display_messages = []
-    from app.models import User, Customer, Mechanic
+    from app.models import User, Person
     import json
     for msg in messages:
         # نام ارسال‌کننده
@@ -43,9 +43,9 @@ def index():
         elif msg.target_type == 'specific' and msg.target_customers:
             try:
                 ids = json.loads(msg.target_customers)
-                customers = Customer.query.filter(Customer.id.in_(ids)).all()
+                customers = Person.query.filter(Person.id.in_(ids), Person.person_type == 'customer').all()
                 target_display = '، '.join([
-                    (f"{c.first_name} {c.last_name}".strip() if c.first_name or c.last_name else c.phone_number)
+                    (c.full_name if c.full_name else c.phone_number)
                     for c in customers
                 ]) if customers else 'مشتری خاص'
             except Exception:
