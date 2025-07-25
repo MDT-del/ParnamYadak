@@ -476,3 +476,5 @@ def create_app(config_name='default'):
             return redirect(url_for('dashboard.index'))
 
         return app
+#   S e c u r i t y   a n d   s e s s i o n   m a n a g e m e n t   m o d u l e s   a d d e d  
+ 
