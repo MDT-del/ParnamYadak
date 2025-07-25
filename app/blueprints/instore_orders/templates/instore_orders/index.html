@@ -244,10 +244,10 @@
                         'لغو شده': 'bg-red-50',
                         'مرجوع شده': 'bg-purple-50'
                     } %}
-                    <tr class="hover:bg-gray-100 dark:hover:bg-gray-700 transition cursor-pointer {{ row_bg_colors[order.status] }}" @click="if(!$event.target.closest('.no-modal')) { $dispatch('show-order', {id: {{ order.id }}, customer_name: '{{ order.customer.full_name|e }}', customer_phone: '{{ order.customer.phone_number|e }}', products_info: `{{ order.products_info|e }}`, total_price: {{ order.total_price or 0 }}, deposit_amount: {{ order.deposit_amount or 0 }}, created_at: '{{ order.created_at|to_shamsi }} {{ order.created_at.strftime('%H:%M') if order.created_at else '' }}', status: '{{ order.status }}', admin_name: '{{ order.created_by_user.name or order.created_by_user.username if order.created_by_user else '-' }}', admin_username: '{{ order.created_by_user.username if order.created_by_user else '-' }}', notes: `{{ order.notes|e }}` }) }">
+                    <tr class="hover:bg-gray-100 dark:hover:bg-gray-700 transition cursor-pointer {{ row_bg_colors[order.status] }}" @click="if(!$event.target.closest('.no-modal')) { $dispatch('show-order', {id: {{ order.id }}, person_name: '{{ order.person.full_name|e }}', person_phone: '{{ order.person.phone_number|e }}', products_info: `{{ order.products_info|e }}`, total_price: {{ order.total_price or 0 }}, deposit_amount: {{ order.deposit_amount or 0 }}, created_at: '{{ order.created_at|to_shamsi }} {{ order.created_at.strftime('%H:%M') if order.created_at else '' }}', status: '{{ order.status }}', admin_name: '{{ order.created_by_user.name or order.created_by_user.username if order.created_by_user else '-' }}', admin_username: '{{ order.created_by_user.username if order.created_by_user else '-' }}', notes: `{{ order.notes|e }}` }) }">
                         <td class="px-4 py-2">{{ order.id }}</td>
-                        <td class="px-4 py-2">{{ order.customer.full_name or '-' }}</td>
-                        <td class="px-4 py-2">{{ order.customer.phone_number or '-' }}</td>
+                        <td class="px-4 py-2">{{ order.person.full_name or '-' }}</td>
+                        <td class="px-4 py-2">{{ order.person.phone_number or '-' }}</td>
                         <td class="px-4 py-2">
                             {% set products = order.products_info | safe | loads %}
                             <ul class="list-disc pr-2">
@@ -371,8 +371,8 @@
             <template x-if="order">
                 <div class="space-y-2">
                     <div><b>کد سفارش:</b> <span x-text="order.id"></span></div>
-                    <div><b>نام مشتری:</b> <span x-text="order.customer_name"></span></div>
-                    <div><b>تلفن:</b> <span x-text="order.customer_phone"></span></div>
+                    <div><b>نام شخص:</b> <span x-text="order.person_name"></span></div>
+                    <div><b>تلفن:</b> <span x-text="order.person_phone"></span></div>
                     <div><b>محصولات:</b>
                         <ul>
                             <template x-for="p in parseProducts(order.products_info)" :key="p.name + p.qty + (p.quality || '')">

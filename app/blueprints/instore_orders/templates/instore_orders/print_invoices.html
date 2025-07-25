@@ -42,8 +42,8 @@
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
-                <div class="mb-1"><span class="font-semibold">نام مشتری:</span> {{ item.order.customer_name or '-' }}</div>
-                <div class="mb-1"><span class="font-semibold">شماره تلفن:</span> {{ item.order.customer_phone or '-' }}</div>
+                <div class="mb-1"><span class="font-semibold">نام شخص:</span> {{ item.order.person.full_name or '-' }}</div>
+                <div class="mb-1"><span class="font-semibold">شماره تلفن:</span> {{ item.order.person.phone_number or '-' }}</div>
                 <div class="mb-1"><span class="font-semibold">وضعیت سفارش:</span> {{ item.order.status }}</div>
             </div>
             <div>
