@@ -100,9 +100,9 @@
                             </td>
                             <td>
                                 <strong>صورتحساب برای:</strong><br>
-                                {{ order.customer.first_name }} {{ order.customer.last_name or '' }}<br>
-                                {{ order.customer.phone_number }}<br>
-                                {{ order.customer.address }}
+                                {{ order.person.full_name }}<br>
+                                {{ order.person.phone_number }}<br>
+                                {{ order.person.address }}
                             </td>
                         </tr>
                     </table>

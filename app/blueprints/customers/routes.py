@@ -149,7 +149,7 @@ def edit_customer(customer_id):
 def api_register_customer():
     """
     API برای ثبت مشتری جدید (برای ربات یا سایر کلاینت‌ها)
-    ورودی: first_name, last_name, phone_number, address, telegram_id, username
+    ورودی: full_name, phone_number, address, telegram_id, username
     """
     from app.models import Notification, Role, db
     data = request.get_json()
@@ -250,7 +250,7 @@ def customer_status():
 def api_create_customer():
     """
     API برای ایجاد مشتری جدید از ربات تلگرام
-    ورودی: telegram_id, first_name, last_name, username, phone_number
+    ورودی: full_name, phone_number, address, telegram_id, username
     """
     try:
         data = request.get_json()

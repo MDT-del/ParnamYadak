@@ -8,13 +8,9 @@
 <div class="max-w-2xl mx-auto mt-8 bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8">
     <form method="post">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-                <label class="block text-gray-700 dark:text-gray-200 mb-2">نام</label>
-                <input type="text" name="first_name" value="{{ mechanic.first_name }}" required class="w-full rounded-lg border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white focus:ring-indigo-500 focus:border-indigo-500">
-            </div>
-            <div>
-                <label class="block text-gray-700 dark:text-gray-200 mb-2">نام خانوادگی</label>
-                <input type="text" name="last_name" value="{{ mechanic.last_name or '' }}" class="w-full rounded-lg border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white focus:ring-indigo-500 focus:border-indigo-500">
+            <div class="md:col-span-2">
+                <label class="block text-gray-700 dark:text-gray-200 mb-2">نام کامل</label>
+                <input type="text" name="full_name" value="{{ mechanic.full_name }}" required class="w-full rounded-lg border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white focus:ring-indigo-500 focus:border-indigo-500">
             </div>
             <div>
                 <label class="block text-gray-700 dark:text-gray-200 mb-2">شماره تلفن</label>
@@ -22,25 +18,25 @@
             </div>
             <div>
                 <label class="block text-gray-700 dark:text-gray-200 mb-2">شماره کارت</label>
-                <input type="text" name="card_number" value="{{ mechanic.card_number or '' }}" class="w-full rounded-lg border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white focus:ring-indigo-500 focus:border-indigo-500">
+                <input type="text" name="card_number" value="{{ mechanic.mechanic_profile.card_number or '' }}" class="w-full rounded-lg border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white focus:ring-indigo-500 focus:border-indigo-500">
             </div>
             <div>
                 <label class="block text-gray-700 dark:text-gray-200 mb-2">شماره شبا</label>
-                <input type="text" name="sheba_number" value="{{ mechanic.sheba_number or '' }}" class="w-full rounded-lg border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white focus:ring-indigo-500 focus:border-indigo-500">
+                <input type="text" name="sheba_number" value="{{ mechanic.mechanic_profile.sheba_number or '' }}" class="w-full rounded-lg border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white focus:ring-indigo-500 focus:border-indigo-500">
             </div>
             <div class="md:col-span-2">
                 <label class="block text-gray-700 dark:text-gray-200 mb-2">آدرس مغازه</label>
-                <input type="text" name="shop_address" value="{{ mechanic.shop_address or '' }}" class="w-full rounded-lg border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white focus:ring-indigo-500 focus:border-indigo-500">
+                <input type="text" name="shop_address" value="{{ mechanic.mechanic_profile.shop_address or '' }}" class="w-full rounded-lg border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white focus:ring-indigo-500 focus:border-indigo-500">
             </div>
             <div class="md:col-span-2">
                 <label class="block text-gray-700 dark:text-gray-200 mb-2">شماره جواز کسب</label>
-                <input type="text" name="business_license" value="{{ mechanic.business_license or '' }}" class="w-full rounded-lg border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white focus:ring-indigo-500 focus:border-indigo-500">
+                <input type="text" name="business_license" value="{{ mechanic.mechanic_profile.business_license or '' }}" class="w-full rounded-lg border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white focus:ring-indigo-500 focus:border-indigo-500">
             </div>
         </div>
         <div class="flex justify-between mt-8">
-            <a href="{{ url_for('mechanics.detail', mechanic_id=mechanic.id) }}" class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors">بازگشت</a>
+            <a href="{{ url_for('mechanics.detail', person_id=mechanic.id) }}" class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors">بازگشت</a>
             <button type="submit" class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">ذخیره تغییرات</button>
         </div>
     </form>
 </div>
-{% endblock %} 
+{% endblock %}

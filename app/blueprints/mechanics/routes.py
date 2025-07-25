@@ -6,7 +6,7 @@
 from flask import render_template, request, jsonify, redirect, url_for, flash
 from flask_login import login_required, current_user
 from app.blueprints.mechanics import mechanics_bp
-from app.models import Mechanic, BotOrder, db, Notification, Role, AuditLog
+from app.models import Person, MechanicProfile, BotOrder, db, Notification, Role, AuditLog
 from app.utils import shamsi_datetime
 import json
 from datetime import datetime, timedelta
@@ -23,21 +23,19 @@ def index():
     """
     if request.args.get('ajax') == '1':
         q = request.args.get('q', '').strip()
-        query = Mechanic.query
+        query = Person.query.filter_by(person_type='mechanic')
         if q:
             query = query.filter(
                 db.or_(
-                    Mechanic.first_name.ilike(f'%{q}%'),
-                    Mechanic.last_name.ilike(f'%{q}%'),
-                    Mechanic.phone_number.ilike(f'%{q}%')
+                    Person.full_name.ilike(f'%{q}%'),
+                    Person.phone_number.ilike(f'%{q}%')
                 )
             )
         mechanics = query.limit(20).all()
         return {'mechanics': [
             {
                 'id': m.id,
-                'first_name': m.first_name,
-                'last_name': m.last_name,
+                'full_name': m.full_name,
                 'phone_number': m.phone_number
             } for m in mechanics
         ]}
@@ -48,22 +46,21 @@ def index():
     date_to = request.args.get('date_to', '')
     sort = request.args.get('sort', '')
     
-    query = Mechanic.query
+    query = Person.query.filter_by(person_type='mechanic')
     
     # فیلتر وضعیت
     if status == 'approved':
-        query = query.filter_by(is_approved=True)
+        query = query.join(MechanicProfile).filter(MechanicProfile.is_approved == True)
     elif status == 'pending':
-        query = query.filter_by(is_approved=False)
+        query = query.outerjoin(MechanicProfile).filter(MechanicProfile.is_approved == False)
     
     # فیلتر جستجو
     if search:
         query = query.filter(
             db.or_(
-                Mechanic.first_name.ilike(f'%{search}%'),
-                Mechanic.last_name.ilike(f'%{search}%'),
-                Mechanic.phone_number.ilike(f'%{search}%'),
-                Mechanic.telegram_id.ilike(f'%{search}%')
+                Person.full_name.ilike(f'%{search}%'),
+                Person.phone_number.ilike(f'%{search}%'),
+                Person.telegram_id.ilike(f'%{search}%')
             )
         )
     
@@ -71,24 +68,24 @@ def index():
     if date_from:
         try:
             from_date = datetime.strptime(date_from, '%Y-%m-%d')
-            query = query.filter(Mechanic.created_at >= from_date)
+            query = query.filter(Person.registration_date >= from_date)
         except ValueError:
             pass
     
     if date_to:
         try:
             to_date = datetime.strptime(date_to, '%Y-%m-%d') + timedelta(days=1)
-            query = query.filter(Mechanic.created_at < to_date)
+            query = query.filter(Person.registration_date < to_date)
         except ValueError:
             pass
     
     # مرتب‌سازی
     if sort == 'commission':
-        query = query.order_by(Mechanic.total_commission.desc())
+        query = query.join(MechanicProfile).order_by(MechanicProfile.total_commission.desc())
     elif sort == 'orders':
-        query = query.order_by(Mechanic.total_orders.desc())
+        query = query.order_by(Person.total_orders.desc())
     else:
-        query = query.order_by(Mechanic.created_at.desc())
+        query = query.order_by(Person.registration_date.desc())
     
     mechanics = query.paginate(
         page=page, per_page=20, error_out=False
@@ -115,39 +112,38 @@ def export():
     date_from = request.args.get('date_from', '')
     date_to = request.args.get('date_to', '')
     
-    query = Mechanic.query
+    query = Person.query.filter_by(person_type='mechanic')
     
     # اعمال فیلترها
     if status == 'approved':
-        query = query.filter_by(is_approved=True)
+        query = query.join(MechanicProfile).filter(MechanicProfile.is_approved == True)
     elif status == 'pending':
-        query = query.filter_by(is_approved=False)
+        query = query.outerjoin(MechanicProfile).filter(MechanicProfile.is_approved == False)
     
     if search:
         query = query.filter(
             db.or_(
-                Mechanic.first_name.ilike(f'%{search}%'),
-                Mechanic.last_name.ilike(f'%{search}%'),
-                Mechanic.phone_number.ilike(f'%{search}%'),
-                Mechanic.telegram_id.ilike(f'%{search}%')
+                Person.full_name.ilike(f'%{search}%'),
+                Person.phone_number.ilike(f'%{search}%'),
+                Person.telegram_id.ilike(f'%{search}%')
             )
         )
     
     if date_from:
         try:
             from_date = datetime.strptime(date_from, '%Y-%m-%d')
-            query = query.filter(Mechanic.created_at >= from_date)
+            query = query.filter(Person.registration_date >= from_date)
         except ValueError:
             pass
     
     if date_to:
         try:
             to_date = datetime.strptime(date_to, '%Y-%m-%d') + timedelta(days=1)
-            query = query.filter(Mechanic.created_at < to_date)
+            query = query.filter(Person.registration_date < to_date)
         except ValueError:
             pass
     
-    mechanics = query.order_by(Mechanic.created_at.desc()).all()
+    mechanics = query.order_by(Person.registration_date.desc()).all()
     
     # ایجاد فایل اکسل
     wb = Workbook()
@@ -170,11 +166,11 @@ def export():
         ws.cell(row=row, column=1, value=mechanic.full_name)
         ws.cell(row=row, column=2, value=mechanic.phone_number)
         ws.cell(row=row, column=3, value=mechanic.telegram_id)
-        ws.cell(row=row, column=4, value='تایید شده' if mechanic.is_approved else 'در انتظار تایید')
-        ws.cell(row=row, column=5, value=f"{mechanic.commission_percentage}%")
+        ws.cell(row=row, column=4, value='تایید شده' if mechanic.mechanic_profile and mechanic.mechanic_profile.is_approved else 'در انتظار تایید')
+        ws.cell(row=row, column=5, value=f"{mechanic.mechanic_profile.commission_percentage}%" if mechanic.mechanic_profile else '0%')
         ws.cell(row=row, column=6, value=mechanic.total_orders)
-        ws.cell(row=row, column=7, value=mechanic.total_commission)
-        ws.cell(row=row, column=8, value=mechanic.created_at.strftime('%Y-%m-%d %H:%M') if mechanic.created_at else '')
+        ws.cell(row=row, column=7, value=mechanic.mechanic_profile.total_commission if mechanic.mechanic_profile else 0)
+        ws.cell(row=row, column=8, value=mechanic.registration_date.strftime('%Y-%m-%d %H:%M') if mechanic.registration_date else '')
     
     # تنظیم عرض ستون‌ها
     for column in ws.columns:
@@ -203,30 +199,35 @@ def export():
     )
 
 
-@mechanics_bp.route('/<int:mechanic_id>')
+@mechanics_bp.route('/<int:person_id>')
 @login_required
-def detail(mechanic_id):
+def detail(person_id):
     """
     نمایش جزئیات مکانیک
     """
-    mechanic = Mechanic.query.get_or_404(mechanic_id)
+    mechanic = Person.query.filter_by(id=person_id, person_type='mechanic').first_or_404()
     return render_template('mechanics/detail.html', mechanic=mechanic, current_user=current_user)
 
 
-@mechanics_bp.route('/<int:mechanic_id>/approve', methods=['POST'])
+@mechanics_bp.route('/<int:person_id>/approve', methods=['POST'])
 @login_required
-def approve(mechanic_id):
+def approve(person_id):
     """
     تایید مکانیک
     """
-    mechanic = Mechanic.query.get_or_404(mechanic_id)
+    mechanic = Person.query.filter_by(id=person_id, person_type='mechanic').first_or_404()
     commission_percentage = request.form.get('commission_percentage', type=float)
     
     if not commission_percentage or commission_percentage < 0:
         return jsonify({'success': False, 'message': 'درصد کمیسیون نامعتبر است'})
     
     try:
-        mechanic.approve(current_user.id, commission_percentage)
+        if not mechanic.mechanic_profile:
+            mechanic.mechanic_profile = MechanicProfile()
+        mechanic.mechanic_profile.is_approved = True
+        mechanic.mechanic_profile.commission_percentage = commission_percentage
+        mechanic.mechanic_profile.approved_by = current_user.id
+        db.session.commit()
         
         # ارسال پیام تلگرام به مکانیک پس از تایید
         if mechanic.telegram_id:
@@ -272,16 +273,18 @@ def approve(mechanic_id):
         return jsonify({'success': False, 'message': 'خطا در تایید مکانیک'})
 
 
-@mechanics_bp.route('/<int:mechanic_id>/reject', methods=['POST'])
+@mechanics_bp.route('/<int:person_id>/reject', methods=['POST'])
 @login_required
-def reject(mechanic_id):
+def reject(person_id):
     """
     رد درخواست مکانیک
     """
-    mechanic = Mechanic.query.get_or_404(mechanic_id)
+    mechanic = Person.query.filter_by(id=person_id, person_type='mechanic').first_or_404()
     
     try:
-        # حذف مکانیک
+        # حذف شخص و پروفایل مکانیک
+        if mechanic.mechanic_profile:
+            db.session.delete(mechanic.mechanic_profile)
         db.session.delete(mechanic)
         db.session.commit()
         
@@ -309,21 +312,22 @@ def reject(mechanic_id):
         return jsonify({'success': False, 'message': 'خطا در رد مکانیک'})
 
 
-@mechanics_bp.route('/<int:mechanic_id>/update_commission', methods=['POST'])
+@mechanics_bp.route('/<int:person_id>/update_commission', methods=['POST'])
 @login_required
-def update_commission(mechanic_id):
+def update_commission(person_id):
     """
     بروزرسانی درصد کمیسیون
     """
-    mechanic = Mechanic.query.get_or_404(mechanic_id)
+    mechanic = Person.query.filter_by(id=person_id, person_type='mechanic').first_or_404()
     commission_percentage = request.form.get('commission_percentage', type=float)
     
     if not commission_percentage or commission_percentage < 0:
         return jsonify({'success': False, 'message': 'درصد کمیسیون نامعتبر است'})
     
     try:
-        mechanic.commission_percentage = commission_percentage
-        db.session.commit()
+        if mechanic.mechanic_profile:
+            mechanic.mechanic_profile.commission_percentage = commission_percentage
+            db.session.commit()
         
         return jsonify({
             'success': True,
@@ -340,7 +344,7 @@ def api_mechanics():
     """
     API برای دریافت لیست مکانیک‌ها (برای ربات)
     """
-    mechanics = Mechanic.query.filter_by(is_approved=True).all()
+    mechanics = Person.query.filter_by(person_type='mechanic').join(MechanicProfile).filter(MechanicProfile.is_approved==True).all()
     
     result = []
     for mechanic in mechanics:
@@ -349,7 +353,7 @@ def api_mechanics():
             'telegram_id': mechanic.telegram_id,
             'full_name': mechanic.full_name,
             'phone_number': mechanic.phone_number,
-            'commission_percentage': mechanic.commission_percentage
+            'commission_percentage': mechanic.mechanic_profile.commission_percentage if mechanic.mechanic_profile else 0
         })
     
     return jsonify(result)
@@ -369,8 +373,7 @@ def api_register_mechanic():
         file = None
 
     telegram_id = data.get('telegram_id')
-    first_name = data.get('first_name')
-    last_name = data.get('last_name')
+    full_name = data.get('full_name')
     phone_number = data.get('phone_number')
     card_number = data.get('card_number')
     sheba_number = data.get('sheba_number')
@@ -390,16 +393,16 @@ def api_register_mechanic():
         file.save(file_path)
         business_license_image = os.path.relpath(file_path, os.path.join('app', 'static')).replace('\\', '/').replace('\\', '/')
 
-    if not all([telegram_id, first_name, phone_number]):
+    if not all([telegram_id, full_name, phone_number]):
         return jsonify({'success': False, 'message': 'اطلاعات ناقص'})
 
     try:
         # بررسی تکراری نبودن
-        existing_mechanic = Mechanic.query.filter_by(telegram_id=telegram_id).first()
+        existing_mechanic = Person.query.filter_by(telegram_id=telegram_id, person_type='mechanic').first()
         if existing_mechanic:
             return jsonify({'success': False, 'message': 'شما قبلاً ثبت‌نام کرده‌اید'})
         # بررسی تکراری نبودن شماره تلفن
-        existing_phone = Mechanic.query.filter_by(phone_number=phone_number).first()
+        existing_phone = Person.query.filter_by(phone_number=phone_number, person_type='mechanic').first()
         if existing_phone:
             # اگر شماره تلفن قبلاً ثبت شده، telegram_id را به آن اضافه کن (در صورت نبود)
             if not existing_phone.telegram_id:
@@ -408,38 +411,28 @@ def api_register_mechanic():
                 return jsonify({'success': True, 'message': 'مکانیک با موفقیت به‌روزرسانی شد', 'mechanic_id': existing_phone.id})
             else:
                 return jsonify({'success': False, 'message': 'این شماره تلفن قبلاً ثبت شده است.'})
-        # ایجاد مکانیک جدید
-        mechanic = Mechanic(
+        # ایجاد شخص جدید
+        person = Person(
             telegram_id=telegram_id,
-            first_name=first_name,
-            last_name=last_name,
+            full_name=full_name,
             phone_number=phone_number,
+            person_type='mechanic',
+            address=shop_address,
+            username=username
+        )
+        db.session.add(person)
+        db.session.flush()
+
+        # ایجاد پروفایل مکانیک
+        mechanic_profile = MechanicProfile(
+            person_id=person.id,
             card_number=card_number,
             sheba_number=sheba_number,
             shop_address=shop_address,
             business_license=business_license,
-            business_license_image=business_license_image,
-            username=username
+            business_license_image=business_license_image
         )
-        db.session.add(mechanic)
-        
-        # ایجاد مشتری مکانیک
-        from app.models import Customer
-        customer = Customer(
-            telegram_id=telegram_id,
-            first_name=first_name,
-            last_name=last_name,
-            phone_number=phone_number,
-            customer_type='مکانیک',  # نوع مشتری مکانیک
-            address=shop_address,  # ذخیره آدرس در جدول Customer
-            username=username
-        )
-        db.session.add(customer)
-        
-        # بروزرسانی اطلاعات اولین سفارش مشتری
-        customer.update_first_order_info()
-        db.session.add(customer)
-        
+        db.session.add(mechanic_profile)
         db.session.commit()
         
         # ایجاد اعلان برای ادمین‌ها
@@ -448,12 +441,12 @@ def api_register_mechanic():
             admin_role = Role.query.filter_by(name='admin').first()
             if admin_role:
                 notification = Notification(
-                    message=f'مکانیک جدید {first_name} {last_name or ""} ثبت‌نام کرده است',
+                    message=f'مکانیک جدید {full_name} ثبت‌نام کرده است',
                     role_id=admin_role.id
                 )
                 db.session.add(notification)
                 db.session.commit()
-                logging.info(f"نوتیفیکیشن برای مکانیک جدید {first_name} {last_name} ایجاد شد")
+                logging.info(f"نوتیفیکیشن برای مکانیک جدید {full_name} ایجاد شد")
         except Exception as e:
             # اگر خطایی در ایجاد اعلان رخ داد، آن را لاگ کنیم اما ثبت‌نام را متوقف نکنیم
             import logging
@@ -462,7 +455,7 @@ def api_register_mechanic():
         return jsonify({
             'success': True,
             'message': 'درخواست ثبت‌نام با موفقیت ارسال شد',
-            'id': mechanic.id
+            'id': person.id
         })
 
     except Exception as e:
@@ -485,22 +478,25 @@ def mechanic_status():
     telegram_id = request.args.get('telegram_id', type=int)
     if not telegram_id:
         return jsonify({'success': False, 'message': 'telegram_id الزامی است'}), 400
-    mechanic = Mechanic.query.filter_by(telegram_id=telegram_id).first()
+    mechanic = Person.query.filter_by(telegram_id=telegram_id, person_type='mechanic').first()
     if not mechanic:
         return jsonify({'success': False, 'message': 'مکانیک یافت نشد'}), 404
-    if mechanic.is_approved:
-        status = 'approved'
-    elif mechanic.is_rejected:
-        status = 'rejected'
-    else:
-        status = 'pending'
+    
+    status = 'pending'
+    commission_percentage = 0
+    if mechanic.mechanic_profile:
+        if mechanic.mechanic_profile.is_approved:
+            status = 'approved'
+        elif mechanic.mechanic_profile.is_rejected:
+            status = 'rejected'
+        commission_percentage = mechanic.mechanic_profile.commission_percentage or 0
+
     return jsonify({
         'success': True,
         'status': status,
-        'commission_percentage': mechanic.commission_percentage or 0,
+        'commission_percentage': commission_percentage,
         'mechanic_id': mechanic.id,
-        'first_name': mechanic.first_name,
-        'last_name': mechanic.last_name,
+        'full_name': mechanic.full_name,
         'phone_number': mechanic.phone_number
     })
 
@@ -517,67 +513,61 @@ def user_status():
     if not telegram_id:
         return jsonify({'success': False, 'message': 'telegram_id الزامی است'}), 400
     
-    # ابتدا بررسی کن که آیا مکانیک است
-    mechanic = Mechanic.query.filter_by(telegram_id=telegram_id).first()
-    if mechanic:
-        if mechanic.is_approved:
-            status = 'approved'
-        elif mechanic.is_rejected:
-            status = 'rejected'
-        else:
+    # بررسی هر دو نوع شخص (مکانیک و مشتری)
+    person = Person.query.filter_by(telegram_id=telegram_id).first()
+    if person:
+        if person.person_type == 'mechanic':
             status = 'pending'
-        
-        return jsonify({
-            'success': True,
-            'status': status,
-            'role': 'mechanic',
-            'commission_percentage': mechanic.commission_percentage or 0,
-            'user_id': mechanic.id,
-            'first_name': mechanic.first_name,
-            'last_name': mechanic.last_name,
-            'phone_number': mechanic.phone_number
-        })
-    
-    # اگر مکانیک نبود، بررسی کن که آیا مشتری است
-    customer = Customer.query.filter_by(telegram_id=telegram_id).first()
-    if customer:
-        return jsonify({
-            'success': True,
-            'status': 'approved',  # مشتریان به طور خودکار تایید شده هستند
-            'role': 'customer',
-            'user_id': customer.id,
-            'first_name': customer.first_name,
-            'last_name': customer.last_name,
-            'phone_number': customer.phone_number
-        })
+            commission_percentage = 0
+            if person.mechanic_profile:
+                if person.mechanic_profile.is_approved:
+                    status = 'approved'
+                elif person.mechanic_profile.is_rejected:
+                    status = 'rejected'
+                commission_percentage = person.mechanic_profile.commission_percentage or 0
+            
+            return jsonify({
+                'success': True,
+                'status': status,
+                'role': 'mechanic',
+                'commission_percentage': commission_percentage,
+                'user_id': person.id,
+                'full_name': person.full_name,
+                'phone_number': person.phone_number
+            })
+        elif person.person_type == 'customer':
+            return jsonify({
+                'success': True,
+                'status': 'approved',  # مشتریان به طور خودکار تایید شده هستند
+                'role': 'customer',
+                'user_id': person.id,
+                'full_name': person.full_name,
+                'phone_number': person.phone_number
+            })
     
     # اگر هیچ‌کدام نبود، کاربر ثبت‌نام نکرده
     return jsonify({'success': False, 'message': 'کاربر یافت نشد'}), 404
 
 
-@mechanics_bp.route('/<int:mechanic_id>/edit', methods=['GET', 'POST'])
+@mechanics_bp.route('/<int:person_id>/edit', methods=['GET', 'POST'])
 @login_required
 # فقط ادمین‌ها
-def edit_mechanic(mechanic_id):
+def edit_mechanic(person_id):
     from app import db
-    mechanic = Mechanic.query.get_or_404(mechanic_id)
+    mechanic = Person.query.filter_by(id=person_id, person_type='mechanic').first_or_404()
     if not current_user.has_role('admin'):
         flash('دسترسی فقط برای ادمین!', 'danger')
-        return redirect(url_for('mechanics.detail', mechanic_id=mechanic_id))
+        return redirect(url_for('mechanics.detail', person_id=person_id))
     if request.method == 'POST':
-        mechanic.first_name = request.form.get('first_name')
-        mechanic.last_name = request.form.get('last_name')
+        mechanic.full_name = request.form.get('full_name')
         mechanic.phone_number = request.form.get('phone_number')
-        mechanic.card_number = request.form.get('card_number')
-        mechanic.sheba_number = request.form.get('sheba_number')
-        mechanic.shop_address = request.form.get('shop_address')
-        mechanic.business_license = request.form.get('business_license')
+        mechanic.address = request.form.get('shop_address')
         
-        # به‌روزرسانی آدرس در جدول Customer
-        from app.models import Customer
-        customer = Customer.query.filter_by(telegram_id=mechanic.telegram_id).first()
-        if customer:
-            customer.address = request.form.get('shop_address')
+        if mechanic.mechanic_profile:
+            mechanic.mechanic_profile.card_number = request.form.get('card_number')
+            mechanic.mechanic_profile.sheba_number = request.form.get('sheba_number')
+            mechanic.mechanic_profile.shop_address = request.form.get('shop_address')
+            mechanic.mechanic_profile.business_license = request.form.get('business_license')
         
         db.session.commit()
         # ثبت لاگ ویرایش
@@ -585,5 +575,5 @@ def edit_mechanic(mechanic_id):
         db.session.add(log)
         db.session.commit()
         flash('اطلاعات مکانیک با موفقیت ویرایش شد.', 'success')
-        return redirect(url_for('mechanics.detail', mechanic_id=mechanic_id))
-    return render_template('mechanics/edit.html', mechanic=mechanic) 
+        return redirect(url_for('mechanics.detail', person_id=person_id))
+    return render_template('mechanics/edit.html', mechanic=mechanic)

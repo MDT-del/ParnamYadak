@@ -5,12 +5,8 @@
 <div class="max-w-xl mx-auto bg-white dark:bg-gray-800 rounded-xl shadow p-8 mt-8">
     <form method="POST">
         <div class="mb-4">
-            <label class="block text-sm font-medium mb-1">نام</label>
-            <input type="text" name="first_name" class="w-full rounded-lg border-2 border-gray-300 focus:border-gray-400 dark:border-gray-600 dark:focus:border-gray-400 dark:bg-gray-700 dark:text-gray-200 bg-white text-sm transition-all" value="{{ customer.first_name or '' }}">
-        </div>
-        <div class="mb-4">
-            <label class="block text-sm font-medium mb-1">نام خانوادگی</label>
-            <input type="text" name="last_name" class="w-full rounded-lg border-2 border-gray-300 focus:border-gray-400 dark:border-gray-600 dark:focus:border-gray-400 dark:bg-gray-700 dark:text-gray-200 bg-white text-sm transition-all" value="{{ customer.last_name or '' }}">
+            <label class="block text-sm font-medium mb-1">نام کامل</label>
+            <input type="text" name="full_name" class="w-full rounded-lg border-2 border-gray-300 focus:border-gray-400 dark:border-gray-600 dark:focus:border-gray-400 dark:bg-gray-700 dark:text-gray-200 bg-white text-sm transition-all" value="{{ customer.full_name or '' }}">
         </div>
         <div class="mb-4">
             <label class="block text-sm font-medium mb-1">نام کاربری</label>

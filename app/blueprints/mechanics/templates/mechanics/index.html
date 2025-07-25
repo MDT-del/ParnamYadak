@@ -24,7 +24,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-green-100 text-sm font-medium">تایید شده</p>
-                    <p class="text-3xl font-bold">{{ mechanics.items|selectattr('is_approved', 'equalto', true)|list|length|digits_to_persian }}</p>
+                    <p class="text-3xl font-bold">{{ mechanics.items|selectattr('mechanic_profile.is_approved', 'equalto', true)|list|length|digits_to_persian }}</p>
                 </div>
                 <div class="p-3 bg-green-400/30 rounded-xl">
                     <i class="bi bi-check-circle text-2xl"></i>
@@ -36,7 +36,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-orange-100 text-sm font-medium">در انتظار تایید</p>
-                    <p class="text-3xl font-bold">{{ mechanics.items|selectattr('is_approved', 'equalto', false)|list|length|digits_to_persian }}</p>
+                    <p class="text-3xl font-bold">{{ mechanics.items|rejectattr('mechanic_profile.is_approved', 'equalto', true)|list|length|digits_to_persian }}</p>
                 </div>
                 <div class="p-3 bg-orange-400/30 rounded-xl">
                     <i class="bi bi-clock text-2xl"></i>
@@ -48,7 +48,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-purple-100 text-sm font-medium">مجموع کمیسیون</p>
-                    <p class="text-3xl font-bold">{{ mechanics.items|sum(attribute='total_commission')|format_price|digits_to_persian }} تومان</p>
+                    <p class="text-3xl font-bold">{{ mechanics.items|map(attribute='mechanic_profile.total_commission')|sum|format_price|digits_to_persian }} تومان</p>
                 </div>
                 <div class="p-3 bg-purple-400/30 rounded-xl">
                     <i class="bi bi-currency-dollar text-2xl"></i>
@@ -131,7 +131,7 @@
                             <div class="flex items-center">
                                 <div class="flex-shrink-0 h-10 w-10">
                                     <div class="h-10 w-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg">
-                                        {{ mechanic.first_name[0] }}{% if mechanic.last_name %}{{ mechanic.last_name[0] }}{% endif %}
+                                        {{ mechanic.full_name[0] if mechanic.full_name }}
                                     </div>
                                 </div>
                                 <div class="mr-4">
@@ -150,16 +150,16 @@
                                     <i class="bi bi-telephone text-blue-500"></i>
                                     <span dir="ltr">{{ mechanic.phone_number|digits_to_persian }}</span>
                                 </div>
-                                {% if mechanic.shop_address %}
+                                {% if mechanic.address %}
                                 <div class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
                                     <i class="bi bi-geo-alt text-green-500"></i>
-                                    <span class="truncate max-w-xs">{{ mechanic.shop_address[:50] }}{% if mechanic.shop_address|length > 50 %}...{% endif %}</span>
+                                    <span class="truncate max-w-xs">{{ mechanic.address[:50] }}{% if mechanic.address|length > 50 %}...{% endif %}</span>
                                 </div>
                                 {% endif %}
                             </div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            {% if mechanic.is_approved %}
+                            {% if mechanic.mechanic_profile and mechanic.mechanic_profile.is_approved %}
                                 <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
                                     <i class="bi bi-check-circle ml-1"></i>
                                     تایید شده
@@ -172,12 +172,12 @@
                             {% endif %}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            {% if mechanic.is_approved %}
+                            {% if mechanic.mechanic_profile and mechanic.mechanic_profile.is_approved %}
                                 <div class="text-sm font-medium text-gray-900 dark:text-white">
-                                    {{ mechanic.commission_percentage|digits_to_persian }}%
+                                    {{ mechanic.mechanic_profile.commission_percentage|digits_to_persian }}%
                                 </div>
                                 <div class="text-xs text-gray-500 dark:text-gray-400">
-                                    {{ mechanic.total_commission|format_price|digits_to_persian }} تومان
+                                    {{ mechanic.mechanic_profile.total_commission|format_price|digits_to_persian }} تومان
                                 </div>
                             {% else %}
                                 <span class="text-sm text-gray-400">-</span>
@@ -189,19 +189,19 @@
                                     <i class="bi bi-bag-check text-indigo-500"></i>
                                     <span>{{ mechanic.total_orders|digits_to_persian }} سفارش</span>
                                 </div>
-                                {% if mechanic.total_orders > 0 %}
+                                {% if mechanic.total_orders > 0 and mechanic.mechanic_profile and mechanic.mechanic_profile.total_commission %}
                                 <div class="text-xs text-gray-500 dark:text-gray-400">
-                                    میانگین: {{ (mechanic.total_commission / mechanic.total_orders)|round(0)|digits_to_persian }} تومان
+                                    میانگین: {{ (mechanic.mechanic_profile.total_commission / mechanic.total_orders)|round(0)|digits_to_persian }} تومان
                                 </div>
                                 {% endif %}
                             </div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                            {{ mechanic.created_at|to_shamsi|digits_to_persian if mechanic.created_at else '' }}
+                            {{ mechanic.registration_date|to_shamsi|digits_to_persian if mechanic.registration_date else '' }}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <div class="flex space-x-2 space-x-reverse">
-                                <a href="{{ url_for('mechanics.detail', mechanic_id=mechanic.id) }}" 
+                                <a href="{{ url_for('mechanics.detail', person_id=mechanic.id) }}" 
                                    class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300">
                                     <i class="bi bi-eye"></i>
                                 </a>

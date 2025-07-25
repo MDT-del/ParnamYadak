@@ -6,7 +6,7 @@
 from flask import render_template, redirect, url_for, flash, Blueprint, request, make_response
 from flask_login import login_required
 from app import db
-from app.models import Order, Coupon, InStoreOrder, Customer, BotOrder
+from app.models import Order, Coupon, InStoreOrder, Person, BotOrder
 from app.decorators import permission_required
 
 orders_bp = Blueprint('orders', __name__, template_folder='templates')
@@ -32,7 +32,7 @@ def index():
     for o in all_orders:
         orders_combined.append({
             'id': o.id,
-            'customer': o.customer,
+            'person': o.person,
             'date': o.order_date,
             'total_price': o.total_price,
             'status': o.status,
@@ -42,7 +42,7 @@ def index():
     for i in all_instore:
         orders_combined.append({
             'id': i.id,
-            'customer': i.customer,
+            'person': i.person,
             'date': i.created_at,
             'total_price': i.total_price,
             'status': i.status,
@@ -50,16 +50,14 @@ def index():
             # 'view_url' حذف شد
         })
     for b in all_bot_orders:
-        # ایجاد مشتری مجازی برای سفارشات ربات
-        virtual_customer = type('obj', (object,), {
+        # ایجاد شخص مجازی برای سفارشات ربات
+        virtual_person = type('obj', (object,), {
             'full_name': b.customer_name or f'مکانیک {b.telegram_id}',
-            'phone_number': b.customer_phone,
-            'first_name': b.customer_name or f'مکانیک {b.telegram_id}',
-            'last_name': ''
+            'phone_number': b.customer_phone
         })
         orders_combined.append({
             'id': b.id,
-            'customer': virtual_customer,
+            'person': virtual_person,
             'date': b.created_at,
             'total_price': b.total_amount,
             'status': b.status,
@@ -69,9 +67,9 @@ def index():
     # --- فیلتر جستجو ---
     if search_query:
         def match(order):
-            c = order['customer']
-            name = (c.first_name or '') + ' ' + (c.last_name or '') if c else ''
-            phone = c.phone_number if c else ''
+            p = order['person']
+            name = p.full_name if p else ''
+            phone = p.phone_number if p else ''
             return (search_query in name) or (search_query in phone)
         orders_combined = [o for o in orders_combined if match(o)]
     if type_filter:
