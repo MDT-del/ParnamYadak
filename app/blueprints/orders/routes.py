@@ -1,12 +1,12 @@
 # ---------------------------------------------
 # فایل: routes.py (orders)
-# توضیح: مدیریت سفارشات، مشاهده، ویرایش وضعیت، اعمال و حذف کوپن، صدور فاکتور
+# توضیح: مدیریت سفارشات، مشاهده، ویرایش وضعیت، صدور فاکتور
 # ---------------------------------------------
 
 from flask import render_template, redirect, url_for, flash, Blueprint, request, make_response
 from flask_login import login_required
 from app import db
-from app.models import Order, Coupon, InStoreOrder, Person, BotOrder
+from app.models import Order, InStoreOrder, Person, BotOrder
 from app.decorators import permission_required
 
 orders_bp = Blueprint('orders', __name__, template_folder='templates')
@@ -14,7 +14,7 @@ orders_bp = Blueprint('orders', __name__, template_folder='templates')
 
 @orders_bp.route('/')
 @login_required
-@permission_required('manage_orders')  # ⬇️ اعمال دسترسی
+@permission_required('manage_orders')
 def index():
     """
     صفحه اصلی مدیریت سفارشات (نمایش لیست سفارشات)
@@ -47,10 +47,8 @@ def index():
             'total_price': i.total_price,
             'status': i.status,
             'type': 'حضوری'
-            # 'view_url' حذف شد
         })
     for b in all_bot_orders:
-        # ایجاد شخص مجازی برای سفارشات ربات
         virtual_person = type('obj', (object,), {
             'full_name': b.customer_name or f'مکانیک {b.telegram_id}',
             'phone_number': b.customer_phone
@@ -74,9 +72,7 @@ def index():
         orders_combined = [o for o in orders_combined if match(o)]
     if type_filter:
         orders_combined = [o for o in orders_combined if o['type'] == type_filter]
-    # مرتب‌سازی ترکیبی بر اساس تاریخ نزولی
     orders_combined.sort(key=lambda x: x['date'], reverse=True)
-    # صفحه‌بندی دستی
     total = len(orders_combined)
     start = (page - 1) * per_page
     end = start + per_page
@@ -110,7 +106,7 @@ def index():
 
 @orders_bp.route('/view/<int:order_id>')
 @login_required
-@permission_required('manage_orders')  # ⬇️ اعمال دسترسی
+@permission_required('manage_orders')
 def view_order(order_id):
     """
     نمایش جزئیات یک سفارش خاص و وضعیت آن
@@ -131,7 +127,7 @@ def view_order(order_id):
 
 @orders_bp.route('/update_status/<int:order_id>', methods=['POST'])
 @login_required
-@permission_required('manage_orders')  # ⬇️ اعمال دسترسی
+@permission_required('manage_orders')
 def update_status(order_id):
     """
     تغییر وضعیت سفارش توسط مدیر
@@ -155,7 +151,7 @@ def update_status(order_id):
 
 @orders_bp.route('/invoice/<int:order_id>')
 @login_required
-@permission_required('manage_orders')  # ⬇️ اعمال دسترسی
+@permission_required('manage_orders')
 def invoice(order_id):
     """
     صدور و نمایش فاکتور سفارش
@@ -168,59 +164,3 @@ def invoice(order_id):
     return render_template('invoice.html',
                            order=order,
                            title=f"فاکتور سفارش #{order.id}")
-
-
-@orders_bp.route('/apply_coupon/<int:order_id>', methods=['POST'])
-@login_required
-@permission_required('manage_orders')
-def apply_coupon(order_id):
-    """
-    اعمال کوپن تخفیف روی سفارش
-    """
-    order = db.session.get(Order, order_id)
-    if not order:
-        flash('سفارش مورد نظر یافت نشد.', 'danger')
-        return redirect(url_for('orders.index'))
-
-    coupon_code = request.form.get('coupon_code')
-    if not coupon_code:
-        flash('کد کوپن وارد نشده است.', 'warning')
-        return redirect(url_for('orders.view_order', order_id=order.id))
-
-    # پیدا کردن کوپن
-    coupon = Coupon.query.filter_by(code=coupon_code).first()
-    if not coupon:
-        flash('کوپن یافت نشد.', 'warning')
-        return redirect(url_for('orders.view_order', order_id=order.id))
-
-    # اعمال کوپن
-    success, message = order.apply_coupon(coupon)
-    if success:
-        db.session.commit()
-        flash(message, 'success')
-    else:
-        flash(message, 'warning')
-
-    return redirect(url_for('orders.view_order', order_id=order.id))
-
-
-@orders_bp.route('/remove_coupon/<int:order_id>', methods=['POST'])
-@login_required
-@permission_required('manage_orders')
-def remove_coupon(order_id):
-    """
-    حذف کوپن تخفیف از سفارش
-    """
-    order = db.session.get(Order, order_id)
-    if not order:
-        flash('سفارش مورد نظر یافت نشد.', 'danger')
-        return redirect(url_for('orders.index'))
-
-    success, message = order.remove_coupon()
-    if success:
-        db.session.commit()
-        flash(message, 'success')
-    else:
-        flash(message, 'warning')
-
-    return redirect(url_for('orders.view_order', order_id=order.id))

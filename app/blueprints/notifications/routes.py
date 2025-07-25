@@ -1,6 +1,11 @@
+# ---------------------------------------------
+# فایل: routes.py (notifications)
+# توضیح: مدیریت اعلان‌های سیستم
+# ---------------------------------------------
+
 from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for
 from flask_login import login_required, current_user
-from app.models import Notification, Mechanic, Customer
+from app.models import Notification, Person
 from app import db
 from app.decorators import permission_required
 import logging
@@ -15,25 +20,20 @@ def index():
     صفحه اصلی اعلان‌ها
     """
     try:
-        # دریافت اعلان‌های خوانده نشده کاربر
         unread_notifications = Notification.query.filter_by(
             user_id=current_user.id,
             is_read=False
         ).order_by(Notification.created_at.desc()).limit(10).all()
         
-        # دریافت اعلان‌های نقش کاربر
         role_notifications = Notification.query.filter_by(
             role_id=current_user.roles[0].id if current_user.roles else None,
             is_read=False
         ).order_by(Notification.created_at.desc()).limit(10).all()
         
-        # لیست ترکیبی اعلان‌ها (کاربر و نقش)
         notifications = list(unread_notifications) + list(role_notifications)
-        # حذف اعلان‌های تکراری (بر اساس id)
         notifications = {n.id: n for n in notifications}.values()
         notifications = sorted(notifications, key=lambda n: n.created_at, reverse=True)
         
-        # تعداد کل اعلان‌ها
         total_notifications = Notification.query.filter(
             (Notification.user_id == current_user.id) |
             (Notification.role_id == (current_user.roles[0].id if current_user.roles else None))
@@ -55,24 +55,20 @@ def index():
 @login_required
 def get_notifications_count():
     """
-    دریافت تعداد اعلان‌های خوانده نشده به تفکیک نوع (سفارش جدید، مکانیک جدید و ...)
+    دریافت تعداد اعلان‌های خوانده نشده به تفکیک نوع (سفارش جدید�� مکانیک جدید و ...)
     """
     try:
-        # اعلان‌های کاربر
         user_notifications = Notification.query.filter_by(
             user_id=current_user.id,
             is_read=False
         ).all()
-        # اعلان‌های نقش
         role_notifications = []
         if current_user.roles:
             role_notifications = Notification.query.filter_by(
                 role_id=current_user.roles[0].id,
                 is_read=False
             ).all()
-        # ترکیب و حذف تکراری‌ها
         all_notifications = {n.id: n for n in (list(user_notifications) + list(role_notifications))}.values()
-        # شمارش بر اساس نوع پیام
         new_orders = 0
         new_mechanics = 0
         task_notifications = 0
@@ -118,14 +114,12 @@ def get_notifications_list():
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 20, type=int)
         
-        # اعلان‌های کاربر
         user_notifications = Notification.query.filter_by(
             user_id=current_user.id
         ).order_by(Notification.created_at.desc()).paginate(
             page=page, per_page=per_page, error_out=False
         )
         
-        # اعلان‌های نقش
         role_notifications = []
         if current_user.roles:
             role_notifications = Notification.query.filter_by(
@@ -136,7 +130,6 @@ def get_notifications_list():
         
         notifications = []
         
-        # ترکیب اعلان‌ها
         for notification in user_notifications.items:
             notifications.append({
                 'id': notification.id,
@@ -155,7 +148,6 @@ def get_notifications_list():
                 'type': 'role'
             })
         
-        # مرتب‌سازی بر اساس تاریخ
         notifications.sort(key=lambda x: x['created_at'], reverse=True)
         
         return jsonify({
@@ -183,17 +175,14 @@ def mark_notifications_read():
         data = request.get_json()
         notification_ids = data.get('notification_ids', [])
         mark_all = data.get('type') == 'all'
-        # همه نقش‌های کاربر
         role_ids = [role.id for role in current_user.roles] if current_user.roles else []
         if mark_all:
-            # همه اعلان‌های خوانده‌نشده کاربر و نقش‌هایش
             notifications = Notification.query.filter(
                 ((Notification.user_id == current_user.id) |
                  (Notification.role_id.in_(role_ids) if role_ids else False)),
                 Notification.is_read == False
             ).all()
         else:
-            # فقط اعلان‌های انتخاب شده
             notifications = Notification.query.filter(
                 Notification.id.in_(notification_ids),
                 ((Notification.user_id == current_user.id) |
@@ -231,7 +220,6 @@ def mark_single_notification_read(notification_id):
                 'message': 'اعلان یافت نشد'
             }), 404
         
-        # بررسی دسترسی
         if notification.user_id != current_user.id and notification.role_id != (current_user.roles[0].id if current_user.roles else None):
             return jsonify({
                 'success': False,
@@ -263,13 +251,11 @@ def delete_read_notifications():
     حذف اعلان‌های خوانده شده
     """
     try:
-        # حذف اعلان‌های خوانده شده کاربر
         user_deleted = Notification.query.filter_by(
             user_id=current_user.id,
             is_read=True
         ).delete()
         
-        # حذف اعلان‌های خوانده شده نقش
         role_deleted = 0
         if current_user.roles:
             role_deleted = Notification.query.filter_by(
@@ -306,9 +292,7 @@ def all_notifications():
     try:
         page = request.args.get('page', 1, type=int)
         per_page = 50
-        # همه نقش‌های کاربر
         role_ids = [role.id for role in current_user.roles] if current_user.roles else []
-        # همه اعلان‌های کاربر و نقش‌هایش
         notifications_query = Notification.query.filter(
             (Notification.user_id == current_user.id) |
             (Notification.role_id.in_(role_ids) if role_ids else False)
@@ -375,20 +359,19 @@ def mechanic_registered_notification():
     """
     try:
         data = request.get_json()
-        mechanic_id = data.get('mechanic_id')
+        person_id = data.get('person_id')
         telegram_id = data.get('telegram_id')
         first_name = data.get('first_name', '')
         last_name = data.get('last_name', '')
         phone_number = data.get('phone_number', '')
         
-        if not mechanic_id:
-            return jsonify({'success': False, 'message': 'شناسه مکانیک الزامی است'}), 400
+        if not person_id:
+            return jsonify({'success': False, 'message': 'شناسه شخص الزامی است'}), 400
         
-        mechanic = Mechanic.query.get(mechanic_id)
-        if not mechanic:
-            return jsonify({'success': False, 'message': 'مکانیک یافت نشد'}), 404
+        person = Person.query.get(person_id)
+        if not person:
+            return jsonify({'success': False, 'message': 'شخص یافت نشد'}), 404
         
-        # ایجاد نوتیفیکیشن برای همه نقش‌ها
         from app.models import Role
         all_roles = Role.query.all()
         notifications = []
@@ -425,21 +408,19 @@ def customer_registered_notification():
     """
     try:
         data = request.get_json()
-        customer_id = data.get('customer_id')
+        person_id = data.get('person_id')
         telegram_id = data.get('telegram_id')
         first_name = data.get('first_name', '')
         last_name = data.get('last_name', '')
         phone_number = data.get('phone_number', '')
         
-        if not customer_id:
-            return jsonify({'success': False, 'message': 'شناسه مشتری الزامی است'}), 400
+        if not person_id:
+            return jsonify({'success': False, 'message': 'شناسه شخص الزامی است'}), 400
         
-        from app.models import Customer
-        customer = Customer.query.get(customer_id)
-        if not customer:
-            return jsonify({'success': False, 'message': 'مشتری یافت نشد'}), 404
+        person = Person.query.get(person_id)
+        if not person:
+            return jsonify({'success': False, 'message': 'شخص یافت نشد'}), 404
         
-        # ایجاد نوتیفیکیشن برای نقش ادمین
         from app.models import Role
         admin_role = Role.query.filter_by(name='admin').first()
         
@@ -483,7 +464,6 @@ def order_registered_notification():
         if not order_id:
             return jsonify({'success': False, 'message': 'شناسه سفارش الزامی است'}), 400
         
-        # ایجاد نوتیفیکیشن برای همه نقش‌ها
         from app.models import Role
         all_roles = Role.query.all()
         notifications = []
@@ -525,15 +505,14 @@ def api_notify_order_created():
         role = data.get('role')
         if not order_id or not telegram_id:
             return jsonify({'success': False, 'message': 'اطلاعات ناقص'}), 400
-        # ثبت نوتیفیکیشن (نمونه ساده)
         from app.models import Notification
         notif = Notification(
-            message=f'سفارش جدید از ربات توسط {role or "کاربر"} (تلگرام آیدی: {telegram_id}) ثبت شد. شناسه سفارش: {order_id}',
-            user_id=None  # می‌توان به ادمین خاص یا همه ادمین‌ها اختصاص داد
+            message=f'سفارش جدید از ربات تو��ط {role or "کاربر"} (تلگرام آیدی: {telegram_id}) ثبت شد. شناسه سفارش: {order_id}',
+            user_id=None
         )
         from app import db
         db.session.add(notif)
         db.session.commit()
         return jsonify({'success': True, 'message': 'اعلان سفارش جدید ثبت شد'})
     except Exception as e:
-        return jsonify({'success': False, 'message': f'خطا: {e}'}) 
+        return jsonify({'success': False, 'message': f'خطا: {e}'})

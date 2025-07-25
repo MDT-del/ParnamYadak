@@ -358,43 +358,16 @@ def create_app(config_name='default'):
                 # در صورت خطا، اجازه دسترسی بده
                 pass
 
-        # --- Middleware برای بررسی فعال بودن نشست کاربر ---
-        from flask_login import logout_user, current_user
-        from app.models import SessionLog
-        from flask import session, flash
-
-        @app.before_request
-        def check_active_session():
-            try:
-                # فقط اگر کاربر لاگین است و مسیرهای خاص نباشد
-                if current_user.is_authenticated:
-                    session_id = session.get('session_id')
-                    if session_id:
-                        session_log = SessionLog.query.get(session_id)
-                        now = datetime.datetime.utcnow()
-                        if session_log:
-                            # بررسی اتمام خودکار نشست بعد از ۱۵ دقیقه بی‌فعالیتی
-                            if session_log.last_activity and (now - session_log.last_activity).total_seconds() > 900:
-                                session_log.is_active = False
-                                session_log.logout_time = now
-                                db.session.commit()
-                                logout_user()
-                                session.pop('session_id', None)
-                                flash('به دلیل عدم فعالیت، نشست شما به پایان رسید. لطفاً مجدداً وارد شوید.', 'warning')
-                                return redirect(url_for('auth.login'))
-                            # اگر نشست فعال است، last_activity را به‌روزرسانی کن
-                            if session_log.is_active:
-                                session_log.last_activity = now
-                                db.session.commit()
-                        if not session_log or not session_log.is_active:
-                            logout_user()
-                            session.pop('session_id', None)
-                            flash('نشست شما توسط مدیر سیستم خاتمه یافته است.', 'warning')
-                            return redirect(url_for('auth.login'))
-            except Exception as e:
-                app.logger.error(f"Error in session check: {e}")
-                # در صورت خطا، اجازه دسترسی بده
-                pass
+        # --- راه‌اندازی مدیریت Session و امنیت پیشرفته ---
+        try:
+            from .session_manager import init_session_manager
+            from .security_utils import init_security_utils
+            
+            init_session_manager(app)
+            init_security_utils(app)
+            app.logger.info("Security and session management initialized")
+        except Exception as e:
+            app.logger.error(f"Error initializing security modules: {e}")
 
         # --- ایجاد مجوزهای پیش‌فرض در دیتابیس ---
         def insert_initial_data():
@@ -476,5 +449,3 @@ def create_app(config_name='default'):
             return redirect(url_for('dashboard.index'))
 
         return app
-#   S e c u r i t y   a n d   s e s s i o n   m a n a g e m e n t   m o d u l e s   a d d e d  
- 

@@ -9,9 +9,8 @@ from flask_wtf.file import FileField, FileAllowed
 from wtforms import StringField, PasswordField, BooleanField, SubmitField, TextAreaField, FloatField, IntegerField, SelectField, SelectMultipleField, DecimalField, HiddenField
 from wtforms.validators import DataRequired, Email, EqualTo, Optional, Length, NumberRange, ValidationError
 from wtforms_sqlalchemy.fields import QuerySelectMultipleField, QuerySelectField
-from .models import Category, Role
+from .models import Role, Permission, Person, InventoryProduct
 from wtforms.widgets import ListWidget, CheckboxInput
-from .models import Permission
 from wtforms.fields import DateTimeLocalField as DateTimeField, DateField
 import re
 import json
@@ -56,10 +55,6 @@ def validate_phone_number(form, field):
 
 
 # توابع کمکی برای پر کردن فیلدهای انتخابی
-def category_query():
-    return Category.query.order_by(Category.name).all()
-
-
 def permission_query():
     return Permission.query.order_by(Permission.id).all()
 
@@ -95,15 +90,7 @@ class ProductForm(FlaskForm):
                            Length(min=2, max=100)
                        ])
 
-    # ⬇️ یک کلاس CSS به این فیلد اضافه شد ⬇️
-    categories = QuerySelectMultipleField(
-        'دسته‌بندی‌ها',
-        query_factory=category_query,
-        get_label=lambda category: category.full_path,
-        render_kw={'class': 'choices-select'}  # این خط جدید است
-    )
-
-    description = TextAreaField('توضیحات',
+    description = TextAreaField('توضیح��ت',
                                 validators=[Optional(),
                                             Length(max=1000)])
     price = FloatField('قیمت',
@@ -122,25 +109,6 @@ class ProductForm(FlaskForm):
         'عکس محصول (اختیاری)',
         validators=[FileAllowed(['jpg', 'png', 'jpeg'], 'فقط عکس مجاز است!')])
     submit = SubmitField('ثبت محصول')
-
-
-class CategoryForm(FlaskForm):
-    """فرم افزودن و ویرایش دسته‌بندی"""
-    name = StringField('نام دسته‌بندی',
-                       validators=[
-                           DataRequired(message="نام دسته‌بندی الزامی است."),
-                           Length(min=2, max=100)
-                       ])
-
-    parent = QuerySelectField(
-        'دسته والد (اختیاری)',
-        query_factory=category_query,
-        # ⬇️ این خط مهم‌ترین تغییر است ⬇️
-        # به فرم می‌گوییم که برای نمایش هر گزینه، از ویژگی full_path استفاده کند
-        get_label=lambda category: category.full_path,
-        allow_blank=True,
-        blank_text='-- انتخاب به عنوان دسته اصلی --')
-    submit = SubmitField('ثبت دسته‌بندی')
 
 
 # --- فرم‌های جدید برای مدیریت کاربران ---
@@ -293,7 +261,7 @@ class BroadcastMessageForm(FlaskForm):
     status = SelectField('وضعیت',
                          choices=[('draft', 'پیش‌نویس'),
                                   ('scheduled', 'زمان‌بندی شده'),
-                                  ('sent', 'ارسال شده')],
+                                  ('sent', 'ارسال ��ده')],
                          default='draft')
 
     scheduled_at = DateTimeField('زمان ارسال',
@@ -312,11 +280,9 @@ class BroadcastMessageForm(FlaskForm):
 
                 # بررسی وجود مشتری یا مکانیک
                 if self.target_type.data == 'specific':
-                    from app.models import Customer
-                    existing = Customer.query.filter(Customer.id.in_(ids)).count()
+                    existing = Person.query.filter(Person.id.in_(ids), Person.person_type == 'customer').count()
                 else:
-                    from app.models import Mechanic
-                    existing = Mechanic.query.filter(Mechanic.id.in_(ids)).count()
+                    existing = Person.query.filter(Person.id.in_(ids), Person.person_type == 'mechanic').count()
 
                 if existing != len(ids):
                     raise ValidationError('برخی از گیرندگان یافت نشدند')
@@ -477,9 +443,8 @@ class InvoiceForm(FlaskForm):
     def __init__(self, *args, **kwargs):
         super(InvoiceForm, self).__init__(*args, **kwargs)
         # پر کردن لیست مشتریان
-        from app.models import Customer
         self.customer_id.choices = [(c.id, c.full_name)
-                                    for c in Customer.query.all()]
+                                    for c in Person.query.filter_by(person_type='customer').all()]
 
     def validate_items(self, field):
         """اعتبارسنجی موارد فاکتور"""
@@ -498,14 +463,13 @@ class InvoiceForm(FlaskForm):
                         raise ValidationError(f'فیلد {field_name} الزامی است')
 
                 # بررسی وجود محصول
-                from app.models import Product
-                product = Product.query.get(item['product_id'])
+                product = InventoryProduct.query.get(item['product_id'])
                 if not product:
                     raise ValidationError(
                         f'محصول با شناسه {item["product_id"]} یافت نشد')
 
                 # بررسی موجودی
-                if item['quantity'] > product.stock:
+                if item['quantity'] > product.available_quantity:
                     raise ValidationError(
                         f'موجودی محصول {product.name} کافی نیست')
 
@@ -535,7 +499,7 @@ class PreOrderForm(FlaskForm):
                    message='شماره تلفن باید بین 10 تا 20 کاراکتر باشد')
         ])
 
-    shipping_required = BooleanField('ارسال پستی')
+    shipping_required = BooleanField('��رسال پستی')
 
     province = StringField(
         'استان',
@@ -569,7 +533,7 @@ class PreOrderForm(FlaskForm):
                               ])
 
     products_info = HiddenField(
-        'اطلاعات محصولات',
+        'اطلاعات محصولا��',
         validators=[DataRequired(message='اطلاعات محصولات الزامی است')])
 
     def __init__(self, *args, **kwargs):

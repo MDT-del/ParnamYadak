@@ -1,6 +1,6 @@
 from flask import jsonify, request, abort
 from . import api_bp
-from app.models import Product
+from app.models import InventoryProduct
 
 API_TOKEN = 'testtoken123'  # برای تست، بعداً JWT جایگزین شود
 
@@ -31,12 +31,12 @@ def protected():
 @api_bp.route('/products', methods=['GET'])
 @require_api_auth
 def get_products():
-    products = Product.query.all()
+    products = InventoryProduct.query.all()
     return jsonify([
         {
             'id': p.id,
             'name': p.name,
-            'price': p.price,
-            'stock': getattr(p, 'stock', None)
+            'price': p.batches.first().purchase_price if p.batches.first() else 0,
+            'stock': p.available_quantity
         } for p in products
-    ]) 
+    ])
