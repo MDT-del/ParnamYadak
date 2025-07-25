@@ -210,6 +210,21 @@ else
     print_success "Migration بدون مشکل اجرا شد."
 fi
 
+# 8.3. ایجاد کاربر ادمین اولیه
+print_info "ایجاد کاربر ادمین اولیه..."
+if docker compose run --rm web python seed_admin.py; then
+    print_success "کاربر ادمین با موفقیت ایجاد شد!"
+    echo ""
+    echo -e "${GREEN}📋 اطلاعات ورود به پنل:${NC}"
+    echo "  🌐 آدرس: http://localhost:5000"
+    echo "  👤 نام کاربری: admin"
+    echo "  🔑 رمز عبور: admin123"
+    echo ""
+    echo -e "${YELLOW}⚠️ حتماً رمز عبور را بعد از اولین ورود تغییر دهید!${NC}"
+else
+    print_warning "مشکل در ایجاد کاربر ادمین. ممکن است از قبل موجود باشد."
+fi
+
 # 9. تنظیم دسترسی پوشه‌های داخل کانتینر (در صورت نیاز)
 print_info "تنظیم دسترسی پوشه‌های static, logs, uploads..."
 docker exec -u root parnamyadak_app chmod -R 777 /app/logs /app/uploads /app/static 2>/dev/null || true
@@ -254,11 +269,14 @@ print_success "پروژه پرنام یدک با موفقیت اجرا شد!"
 echo ""
 echo -e "${BLUE}[📋] اطلاعات مفید:${NC}"
 echo "    🌐 آدرس پنل: http://localhost:5000"
+echo "    👤 نام کاربری ادمین: admin"
+echo "    🔑 رمز عبور ادمین: admin123"
 echo "    📊 مشاهده لاگ‌ها: docker compose logs -f"
 echo "    🔄 ری‌استارت: docker compose restart"
 echo "    🛑 توقف پروژه: docker compose down"
 echo "    🗄️ بک‌آپ دیتابیس: docker exec parnamyadak_db pg_dump -U $DB_USER $DB_NAME > backup.sql"
 echo "    🔧 حل مشکل migration: ./install.sh (اجرای مجدد)"
+echo "    👑 ایجاد مجدد ادمین: docker compose run --rm web python seed_admin.py"
 echo ""
 echo -e "${YELLOW}[⚠️] نکات مهم:${NC}"
 echo "    - در صورت مشکل، ابتدا لاگ‌ها را بررسی کنید"
