@@ -507,7 +507,7 @@ def user_status():
     ورودی: ?telegram_id=...
     خروجی: {"success": true, "status": "approved", "role": "mechanic"/"customer", ...}
     """
-    from app.models import Customer
+    # استفاده از مدل Person که شامل هم مشتری و هم مکانیک است
     
     telegram_id = request.args.get('telegram_id', type=int)
     if not telegram_id:

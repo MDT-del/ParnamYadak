@@ -76,11 +76,11 @@ if docker compose run --rm web python seed_admin.py; then
     echo "  - نقش‌های مختلف (Manager, Employee, Support, Inventory) ایجاد شده‌اند"
     echo ""
     echo -e "${BLUE}📋 نقش‌های ایجاد شده:${NC}"
-    echo "  👑 Admin - دسترسی کامل"
-    echo "  👔 Manager - مدیر (اکثر دسترسی‌ها)"
-    echo "  👤 Employee - کارمند (دسترسی محدود)"
-    echo "  🎧 Support - پشتیبانی"
-    echo "  📦 Inventory - انباردار"
+    echo "  👑 Admin - دسترسی کامل (17 مجوز)"
+    echo "  👔 Manager - مدیر (11 مجوز)"
+    echo "  👤 Employee - کارمند (5 مجوز)"
+    echo "  🎧 Support - پشتیبانی (6 مجوز)"
+    echo "  👁️ Viewer - بازدیدکننده (5 مجوز)"
     echo ""
 else
     print_error "خطا در ایجاد مدیر سیستم!"

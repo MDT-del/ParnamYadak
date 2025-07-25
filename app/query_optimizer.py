@@ -52,11 +52,12 @@ class QueryOptimizer:
         """
         دریافت مشتریان با آمار کامل
         """
-        return Customer.query.options(
-            selectinload(Customer.orders),
-            selectinload(Customer.instore_orders),
-            selectinload(Customer.pre_orders)
-        ).order_by(Customer.total_spent.desc())
+        from app.models import Person
+        return Person.query.filter_by(person_type='customer').options(
+            selectinload(Person.orders),
+            selectinload(Person.instore_orders),
+            selectinload(Person.pre_orders)
+        ).order_by(Person.total_spent.desc())
     
     @staticmethod
     def get_users_with_roles():
@@ -142,9 +143,10 @@ class QueryOptimizer:
         """
         دریافت مشتریان با آخرین سفارشات
         """
-        return Customer.query.options(
-            selectinload(Customer.orders.and_(Order.order_date.isnot(None))).order_by(Order.order_date.desc()).limit(limit)
-        ).order_by(Customer.last_order_date.desc().nullslast())
+        from app.models import Person, Order
+        return Person.query.filter_by(person_type='customer').options(
+            selectinload(Person.orders.and_(Order.order_date.isnot(None))).order_by(Order.order_date.desc()).limit(limit)
+        ).order_by(Person.last_order_date.desc().nullslast())
     
     @staticmethod
     def get_products_with_low_stock(threshold=10):
@@ -236,20 +238,16 @@ def optimize_customer_search(phone=None, name=None, page=1, per_page=20):
     """
     بهینه‌سازی جستجوی مشتریان
     """
-    query = Customer.query
-    
+    from app.models import Person
+    query = Person.query.filter_by(person_type='customer')
+
     if phone:
-        query = query.filter(Customer.phone_number.ilike(f'%{phone}%'))
-    
+        query = query.filter(Person.phone_number.ilike(f'%{phone}%'))
+
     if name:
-        query = query.filter(
-            or_(
-                Customer.first_name.ilike(f'%{name}%'),
-                Customer.last_name.ilike(f'%{name}%')
-            )
-        )
-    
-    return query.order_by(Customer.registration_date.desc()).paginate(
+        query = query.filter(Person.full_name.ilike(f'%{name}%'))
+
+    return query.order_by(Person.registration_date.desc()).paginate(
         page=page, per_page=per_page, error_out=False
     )
 
@@ -308,9 +306,9 @@ def get_dashboard_stats_optimized():
         # آمار کلی
         func.sum(Order.final_price).label('total_revenue'),
         func.count(Order.id).label('total_orders'),
-        func.count(Customer.id).label('total_customers'),
+        func.count(func.case((Person.person_type == 'customer', Person.id), else_=None)).label('total_customers'),
         func.count(Product.id).label('total_products')
-    ).outerjoin(Customer).outerjoin(Product).first()
+    ).outerjoin(Person).outerjoin(Product).first()
     
     return {
         'today': {
@@ -344,27 +342,27 @@ def get_recent_activities_optimized(limit=10):
         Order.order_date.label('date'),
         Order.status.label('status'),
         'order'.label('type'),
-        Customer.first_name.label('customer_name'),
+        Person.full_name.label('customer_name'),
         Order.final_price.label('amount')
-    ).join(Customer).order_by(Order.order_date.desc()).limit(limit)
+    ).join(Person).filter(Person.person_type == 'customer').order_by(Order.order_date.desc()).limit(limit)
     
     pre_orders = db.session.query(
         PreOrder.id.label('id'),
         PreOrder.created_at.label('date'),
         PreOrder.status.label('status'),
         'pre_order'.label('type'),
-        Customer.first_name.label('customer_name'),
+        Person.full_name.label('customer_name'),
         PreOrder.total_price.label('amount')
-    ).join(Customer).order_by(PreOrder.created_at.desc()).limit(limit)
+    ).join(Person).filter(Person.person_type == 'customer').order_by(PreOrder.created_at.desc()).limit(limit)
     
     tickets = db.session.query(
         SupportTicket.id.label('id'),
         SupportTicket.created_at.label('date'),
         SupportTicket.status.label('status'),
         'ticket'.label('type'),
-        Customer.first_name.label('customer_name'),
+        Person.full_name.label('customer_name'),
         func.literal(0).label('amount')
-    ).join(Customer).order_by(SupportTicket.created_at.desc()).limit(limit)
+    ).join(Person).filter(Person.person_type == 'customer').order_by(SupportTicket.created_at.desc()).limit(limit)
     
     # ترکیب نتایج
     all_activities = []
@@ -403,17 +401,14 @@ def get_customer_analytics_optimized():
     بهینه‌سازی تحلیل مشتریان
     """
     return db.session.query(
-        Customer.id,
-        Customer.first_name,
-        Customer.last_name,
-        Customer.phone_number,
-        Customer.total_orders,
-        Customer.total_spent,
-        Customer.loyalty_points,
-        Customer.customer_level,
+        Person.id,
+        Person.full_name,
+        Person.phone_number,
+        Person.total_orders,
+        Person.total_spent,
         func.count(Order.id).label('recent_orders'),
         func.sum(Order.final_price).label('recent_spent')
-    ).outerjoin(Order).group_by(Customer.id).order_by(desc(Customer.total_spent)).all()
+    ).filter(Person.person_type == 'customer').outerjoin(Order).group_by(Person.id).order_by(desc(Person.total_spent)).all()
 
 
 def get_sales_report_optimized(start_date=None, end_date=None):

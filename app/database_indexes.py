@@ -5,7 +5,7 @@
 
 from sqlalchemy import Index, UniqueConstraint
 from app.models import (
-    Product, Category, Order, OrderItem, Customer, User, 
+    Product, Category, Order, OrderItem, Person, User,
     SupportTicket, BroadcastMessage, PreOrder, InStoreOrder,
     Task, Notification, Coupon, FinancialTransaction
 )
@@ -56,20 +56,19 @@ class DatabaseIndexes:
     orderitem_order_index = Index('idx_orderitem_order', OrderItem.order_id)
     orderitem_product_index = Index('idx_orderitem_product', OrderItem.product_id)
     
-    # Index های جدول Customer
-    customer_phone_index = Index('idx_customer_phone', Customer.phone_number)
-    customer_telegram_index = Index('idx_customer_telegram', Customer.telegram_id)
-    customer_device_index = Index('idx_customer_device', Customer.device_id)
-    customer_level_index = Index('idx_customer_level', Customer.customer_level)
-    customer_registration_index = Index('idx_customer_registration', Customer.registration_date)
-    customer_last_order_index = Index('idx_customer_last_order', Customer.last_order_date)
-    
+    # Index های جدول Person (مشتریان و مکانیک‌ها)
+    person_phone_index = Index('idx_person_phone', Person.phone_number)
+    person_telegram_index = Index('idx_person_telegram', Person.telegram_id)
+    person_type_index = Index('idx_person_type', Person.person_type)
+    person_registration_index = Index('idx_person_registration', Person.registration_date)
+    person_last_order_index = Index('idx_person_last_order', Person.last_order_date)
+
     # Index ترکیبی برای جستجوی مشتریان
-    customer_search_index = Index(
-        'idx_customer_search',
-        Customer.first_name,
-        Customer.last_name,
-        Customer.phone_number
+    person_search_index = Index(
+        'idx_person_search',
+        Person.full_name,
+        Person.phone_number,
+        Person.person_type
     )
     
     # Index های جدول User

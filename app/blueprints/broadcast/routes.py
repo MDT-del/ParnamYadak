@@ -216,25 +216,29 @@ def api_customer_segments():
     """
     API برای دریافت تقسیم‌بندی مشتریان
     """
+    from app.models import Person
     segments = [{
         'id': 'all',
         'name': 'همه مشتریان',
-        'count': Customer.query.count()
+        'count': Person.query.filter_by(person_type='customer').count()
     }, {
         'id': 'new',
         'name': 'مشتریان جدید',
-        'count': Customer.query.filter(
-            Customer.registration_date >= datetime.datetime.now() - timedelta(days=30)).count()
+        'count': Person.query.filter(
+            Person.person_type == 'customer',
+            Person.registration_date >= datetime.datetime.now() - timedelta(days=30)).count()
     }, {
         'id': 'active',
         'name': 'مشتریان فعال',
-        'count': Customer.query.filter(
-            Customer.last_order_date >= datetime.datetime.now() - timedelta(days=90)).count()
+        'count': Person.query.filter(
+            Person.person_type == 'customer',
+            Person.last_order_date >= datetime.datetime.now() - timedelta(days=90)).count()
     }, {
         'id': 'inactive',
         'name': 'مشتریان غیرفعال',
-        'count': Customer.query.filter(
-            Customer.last_order_date < datetime.datetime.now() - timedelta(days=90)).count()
+        'count': Person.query.filter(
+            Person.person_type == 'customer',
+            Person.last_order_date < datetime.datetime.now() - timedelta(days=90)).count()
     }]
 
     return jsonify(segments)
@@ -245,19 +249,23 @@ def api_customer_segments():
 @permission_required('manage_broadcasts')
 def api_customers_by_segment(segment_id):
     """API برای دریافت مشتریان بر اساس تقسیم‌بندی"""
+    from app.models import Person
     if segment_id == 'all':
-        customers = Customer.query.all()
+        customers = Person.query.filter_by(person_type='customer').all()
     elif segment_id == 'new':
-        customers = Customer.query.filter(
-            Customer.registration_date >= datetime.datetime.now() -
+        customers = Person.query.filter(
+            Person.person_type == 'customer',
+            Person.registration_date >= datetime.datetime.now() -
             timedelta(days=30)).all()
     elif segment_id == 'active':
-        customers = Customer.query.filter(
-            Customer.last_order_date >= datetime.datetime.now() -
+        customers = Person.query.filter(
+            Person.person_type == 'customer',
+            Person.last_order_date >= datetime.datetime.now() -
             timedelta(days=90)).all()
     elif segment_id == 'inactive':
-        customers = Customer.query.filter(
-            Customer.last_order_date < datetime.datetime.now() -
+        customers = Person.query.filter(
+            Person.person_type == 'customer',
+            Person.last_order_date < datetime.datetime.now() -
             timedelta(days=90)).all()
     else:
         customers = []
@@ -297,12 +305,16 @@ def api_mechanics():
 
 def get_target_customers(message):
     """دریافت لیست مشتریان هدف"""
+    from app.models import Person
     if message.target_type == 'all':
-        return Customer.query.all()
+        return Person.query.filter_by(person_type='customer').all()
     elif message.target_type == 'specific':
         if message.target_customers:
             customer_ids = json.loads(message.target_customers)
-            return Customer.query.filter(Customer.id.in_(customer_ids)).all()
+            return Person.query.filter(
+                Person.person_type == 'customer',
+                Person.id.in_(customer_ids)
+            ).all()
         return []
     else:
         return []
@@ -310,13 +322,16 @@ def get_target_customers(message):
 
 def get_target_mechanics(message):
     """دریافت لیست مکانیک‌های هدف"""
-    from app.models import Mechanic
+    from app.models import Person, MechanicProfile
     if message.target_type == 'mechanic_all':
-        return Mechanic.query.filter_by(is_approved=True).all()
+        return Person.query.filter_by(person_type='mechanic').join(MechanicProfile).filter(MechanicProfile.is_approved == True).all()
     elif message.target_type == 'mechanic_specific':
         if message.target_customers:
             mechanic_ids = json.loads(message.target_customers)
-            return Mechanic.query.filter(Mechanic.id.in_(mechanic_ids)).all()
+            return Person.query.filter(
+                Person.person_type == 'mechanic',
+                Person.id.in_(mechanic_ids)
+            ).all()
     return []
 
 

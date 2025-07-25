@@ -299,38 +299,47 @@ class ProductCache:
         cache_manager.clear_pattern("products_list:*")
 
 
-class CustomerCache:
-    """کش مشتریان"""
-    
+class PersonCache:
+    """کش اشخاص (مشتریان و مکانیک‌ها)"""
+
     @staticmethod
-    def get_customer_key(customer_id):
-        return f"customer:{customer_id}"
-    
+    def get_person_key(person_id):
+        return f"person:{person_id}"
+
     @staticmethod
-    def get_customer_by_phone_key(phone):
-        return f"customer_phone:{phone}"
-    
+    def get_person_by_phone_key(phone):
+        return f"person_phone:{phone}"
+
     @staticmethod
-    def cache_customer(customer):
-        """کش کردن مشتری"""
-        if customer:
+    def cache_person(person):
+        """کش کردن شخص"""
+        if person:
             cache_manager.set(
-                CustomerCache.get_customer_key(customer.id),
-                customer.to_dict(),
+                PersonCache.get_person_key(person.id),
+                {
+                    'id': person.id,
+                    'full_name': person.full_name,
+                    'phone_number': person.phone_number,
+                    'person_type': person.person_type,
+                    'telegram_id': person.telegram_id
+                },
                 timeout=3600  # 1 ساعت
             )
             # کش کردن بر اساس شماره تلفن
-            if customer.phone_number:
+            if person.phone_number:
                 cache_manager.set(
-                    CustomerCache.get_customer_by_phone_key(customer.phone_number),
-                    customer.id,
+                    PersonCache.get_person_by_phone_key(person.phone_number),
+                    person.id,
                     timeout=3600
                 )
-    
+
     @staticmethod
-    def get_cached_customer(customer_id):
-        """دریافت مشتری از کش"""
-        return cache_manager.get(CustomerCache.get_customer_key(customer_id))
+    def get_cached_person(person_id):
+        """دریافت شخص از کش"""
+        return cache_manager.get(PersonCache.get_person_key(person_id))
+
+# برای سازگاری با کدهای قدیمی
+CustomerCache = PersonCache
     
     @staticmethod
     def get_customer_id_by_phone(phone):
