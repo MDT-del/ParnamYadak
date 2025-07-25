@@ -197,7 +197,6 @@ class Order(db.Model):
     status = db.Column(db.String(30), nullable=False, default='در حال بررسی')
     total_price = db.Column(db.Float, nullable=False)
 
-    # اطلاعات مالی اضافی
     discount_amount = db.Column(db.Float, default=0.0)
     tax_amount = db.Column(db.Float, default=0.0)
     shipping_cost = db.Column(db.Float, default=0.0)
@@ -205,7 +204,6 @@ class Order(db.Model):
     payment_method = db.Column(db.String(50), default='نقدی')
     payment_status = db.Column(db.String(30), default='پرداخت نشده')
 
-    # اطلاعات فاکتور
     invoice_number = db.Column(db.String(50), unique=True, nullable=True)
     invoice_date = db.Column(db.DateTime, nullable=True)
 
@@ -220,7 +218,6 @@ class Order(db.Model):
         return f'<Order {self.id}>'
 
     def generate_invoice_number(self):
-        """تولید شماره فاکتور"""
         if not self.invoice_number:
             year = self.order_date.year
             month = self.order_date.month
@@ -230,7 +227,6 @@ class Order(db.Model):
             self.invoice_number = f"INV-{year}{month:02d}-{count+1:04d}"
 
     def calculate_final_price(self):
-        """محاسبه قیمت نهایی"""
         self.final_price = self.total_price - self.discount_amount + self.tax_amount + self.shipping_cost
 
     
@@ -248,12 +244,9 @@ class OrderItem(db.Model):
         return f'<OrderItem {self.id}>'
 
 
-# --- مدل‌های جدید برای سیستم مالی و پشتیبانی ---
-
 class FinancialTransaction(db.Model):
-    """مدل برای تراکنش‌های مالی"""
     id = db.Column(db.Integer, primary_key=True)
-    transaction_type = db.Column(db.String(50), nullable=False)  # فروش، بازگشت، تخفیف، commission_payment
+    transaction_type = db.Column(db.String(50), nullable=False)
     amount = db.Column(db.Float, nullable=False)
     description = db.Column(db.String(255), nullable=True)
     order_id = db.Column(db.Integer, db.ForeignKey('order.id'), nullable=True)
@@ -261,15 +254,14 @@ class FinancialTransaction(db.Model):
     mechanic_id = db.Column(db.BigInteger, db.ForeignKey('person.id'), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
-    # فیلدهای جدید برای پرداخت کمیسیون
-    payment_method = db.Column(db.String(50), nullable=True)  # bank_transfer, cash, check, other
-    tracking_number = db.Column(db.String(100), nullable=True)  # شماره پیگیری
-    payment_date = db.Column(db.DateTime, nullable=True)  # تاریخ واریز
-    card_number = db.Column(db.String(20), nullable=True)  # شماره کارت مبدا
-    check_number = db.Column(db.String(50), nullable=True)  # شماره چک
-    receipt_image = db.Column(db.String(255), nullable=True)  # مسیر فایل فیش واریز
-    notes = db.Column(db.Text, nullable=True)  # توضیحات
-    created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)  # کاربر ثبت‌کننده
+    payment_method = db.Column(db.String(50), nullable=True)
+    tracking_number = db.Column(db.String(100), nullable=True)
+    payment_date = db.Column(db.DateTime, nullable=True)
+    card_number = db.Column(db.String(20), nullable=True)
+    check_number = db.Column(db.String(50), nullable=True)
+    receipt_image = db.Column(db.String(255), nullable=True)
+    notes = db.Column(db.Text, nullable=True)
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
 
     order = db.relationship('Order', backref='transactions')
     customer = db.relationship('Person', foreign_keys=[customer_id], backref='transactions_as_customer')
@@ -281,19 +273,17 @@ class FinancialTransaction(db.Model):
 
 
 class BroadcastMessage(db.Model):
-    """مدل برای پیام‌های همگانی"""
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
     message = db.Column(db.Text, nullable=False)
-    message_type = db.Column(db.String(16), default='text', nullable=False, server_default='text', comment='نوع پیام فقط متن')
-    target_type = db.Column(db.String(20), default='all')  # all, specific, vip, new_customers
-    target_persons = db.Column(db.Text, nullable=True)  # JSON array of person IDs (قبلاً customer IDs)
-    status = db.Column(db.String(16), default='draft', nullable=False, server_default='draft', comment='وضعیت: draft یا sent')
+    message_type = db.Column(db.String(16), default='text', nullable=False, server_default='text')
+    target_type = db.Column(db.String(20), default='all')
+    target_persons = db.Column(db.Text, nullable=True)
+    status = db.Column(db.String(16), default='draft', nullable=False, server_default='draft')
     sent_at = db.Column(db.DateTime, nullable=True)
     created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
-    # آمار ارسال
     total_sent = db.Column(db.Integer, default=0)
     total_delivered = db.Column(db.Integer, default=0)
     total_read = db.Column(db.Integer, default=0)
@@ -305,12 +295,11 @@ class BroadcastMessage(db.Model):
 
 
 class CustomerSegment(db.Model):
-    """مدل برای تقسیم‌بندی مشتریان (در ساختار جدید: تقسیم‌بندی اشخاص)"""
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text, nullable=True)
-    criteria = db.Column(db.Text, nullable=False)  # JSON criteria (باید بر اساس person_id و ویژگی‌های Person باشد)
-    person_count = db.Column(db.Integer, default=0)  # تعداد اشخاص در این سگمنت (قبلاً customer_count)
+    criteria = db.Column(db.Text, nullable=False)
+    person_count = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 
@@ -319,26 +308,23 @@ class CustomerSegment(db.Model):
 
 
 class License(db.Model):
-    """مدل برای مدیریت لایسنس سیستم"""
     id = db.Column(db.Integer, primary_key=True)
     license_key = db.Column(db.String(255), unique=True, nullable=False)
-    license_hash = db.Column(db.String(512), nullable=False)  # هش شده
+    license_hash = db.Column(db.String(512), nullable=False)
     is_active = db.Column(db.Boolean, default=False)
     activation_date = db.Column(db.DateTime, nullable=True)
     expiry_date = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
-    # اطلاعات اضافی
     customer_name = db.Column(db.String(200), nullable=True)
     customer_email = db.Column(db.String(200), nullable=True)
     max_users = db.Column(db.Integer, default=5)
-    features = db.Column(db.Text, nullable=True)  # JSON features
+    features = db.Column(db.Text, nullable=True)
 
     def __repr__(self):
         return f'<License {self.license_key[:8]}...>'
 
     def is_valid(self):
-        """بررسی اعتبار لایسنس"""
         if not self.is_active:
             return False
         if self.expiry_date and datetime.datetime.utcnow() > self.expiry_date:
@@ -347,76 +333,45 @@ class License(db.Model):
 
 
 class PreOrder(db.Model):
-    """
-    مدل پیش‌سفارش - برای ثبت سفارش‌های حضوری اشخاص (مشتری یا مکانیک)
-    به جای ذخیره نام و شماره تلفن، به رکورد Person ارجاع داده می‌شود.
-    """
     __tablename__ = 'pre_orders'
 
     id = db.Column(db.Integer, primary_key=True)
-    # ارجاع به شخص
-    person_id = db.Column(db.Integer, db.ForeignKey('person.id'), nullable=False, comment='شناسه شخص')
+    person_id = db.Column(db.Integer, db.ForeignKey('person.id'), nullable=False)
     person = db.relationship('Person', backref='pre_orders')
-    # فیلدهای آدرس (اختیاری - فقط برای ارسال پستی)
-    shipping_required = db.Column(db.Boolean,
-                                  default=False,
-                                  comment='نیاز به ارسال پستی')
-    province = db.Column(db.String(50), comment='استان')
-    city = db.Column(db.String(50), comment='شهرستان')
-    address = db.Column(db.Text, comment='آدرس کامل')
-    postal_code = db.Column(db.String(10), comment='کد پستی')
-    # وضعیت پیش‌سفارش
-    status = db.Column(db.String(20),
-                       default='درحال پیگیری',
-                       comment='وضعیت پیش‌سفارش')
-    # اطلاعات محصولات
-    products_info = db.Column(db.Text,
-                              nullable=False,
-                              comment='اطلاعات محصولات (JSON)')
-    total_price = db.Column(db.Numeric(10, 2), comment='قیمت کل')
-    # تاریخ‌ها
-    created_at = db.Column(db.DateTime,
-                           default=datetime.datetime.utcnow,
-                           comment='تاریخ ایجاد')
-    updated_at = db.Column(db.DateTime,
-                           default=datetime.datetime.utcnow,
-                           onupdate=datetime.datetime.utcnow,
-                           comment='تاریخ بروزرسانی')
-    purchased_at = db.Column(db.DateTime, comment='تاریخ خریداری شدن')
-    delivered_at = db.Column(db.DateTime, comment='تاریخ تحویل')
-    # ارتباط با سفارش (در صورت تبدیل)
-    order_id = db.Column(db.Integer,
-                         db.ForeignKey('order.id'),
-                         comment='شناسه سفارش مرتبط')
+    shipping_required = db.Column(db.Boolean, default=False)
+    province = db.Column(db.String(50))
+    city = db.Column(db.String(50))
+    address = db.Column(db.Text)
+    postal_code = db.Column(db.String(10))
+    status = db.Column(db.String(20), default='درحال پیگیری')
+    products_info = db.Column(db.Text, nullable=False)
+    total_price = db.Column(db.Numeric(10, 2))
+    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+    purchased_at = db.Column(db.DateTime)
+    delivered_at = db.Column(db.DateTime)
+    order_id = db.Column(db.Integer, db.ForeignKey('order.id'))
     order = db.relationship('Order', backref='pre_orders')
-    # کاربر ایجاد کننده
-    created_by = db.Column(db.Integer,
-                           db.ForeignKey('user.id'),
-                           nullable=False,
-                           comment='کاربر ایجاد کننده')
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     user = db.relationship('User', backref='created_pre_orders')
-    # یادداشت‌ها
-    notes = db.Column(db.Text, comment='یادداشت‌های اضافی')
+    notes = db.Column(db.Text)
     def __repr__(self):
         return f'<PreOrder {self.id}: {self.person_id}>'
     @property
     def status_color(self):
-        """رنگ وضعیت پیش‌سفارش"""
         colors = {
-            'درحال پیگیری': 'warning',  # زرد
-            'خریداری شده': 'info',  # بنفش
-            'تحویل داده شده': 'success',  # سبز
-            'لغو شده': 'danger'  # قرمز
+            'درحال پیگیری': 'warning',
+            'خریداری شده': 'info',
+            'تحویل داده شده': 'success',
+            'لغو شده': 'danger'
         }
         return colors.get(self.status, 'secondary')
     @property
     def is_overdue(self):
-        """بررسی اینکه آیا پیش‌سفارش بیشتر از 3 روز قدیمی است"""
         if self.status == 'تحویل داده شده' or self.status == 'لغو شده':
             return False
         return (datetime.datetime.utcnow() - self.created_at).days > 3
     def to_dict(self):
-        """تبدیل به دیکشنری برای API"""
         return {
             'id': self.id,
             'person_id': self.person_id,
@@ -439,58 +394,34 @@ class PreOrder(db.Model):
 
 
 class InStoreOrder(db.Model):
-    """
-    مدل سفارش حضوری
-    این مدل برای ثبت سفارشات حضوری اشخاص (مشتری یا مکانیک) استفاده می‌شود و به رکورد Person ارجاع می‌دهد.
-    """
+    __tablename__ = 'instore_order'
     id = db.Column(db.Integer, primary_key=True)
-    # ارجاع به شخص
-    person_id = db.Column(db.Integer, db.ForeignKey('person.id'), nullable=False, comment='شناسه شخص')
+    person_id = db.Column(db.Integer, db.ForeignKey('person.id'), nullable=False)
     person = db.relationship('Person', backref='instore_orders')
-    products_info = db.Column(
-        db.Text,
-        nullable=False)  # JSON string: [{product_id, name, qty, price}]
+    products_info = db.Column(db.Text, nullable=False)
     total_price = db.Column(db.Float, nullable=False, default=0)
-    deposit_amount = db.Column(db.Float, nullable=True,
-                               comment='مبلغ بیعانه')  # مبلغ بیعانه
-    product_type = db.Column(db.String(20), nullable=True,
-                             comment='نوع کالا')  # وارداتی/شرکتی/ایرانی
-    shipping_required = db.Column(db.Boolean,
-                                  default=False,
-                                  comment='ارسال پستی')
-    store_stock = db.Column(db.Boolean, default=False, comment='انبار مغازه')
-    notes = db.Column(db.Text, nullable=True, comment='یادداشت')
-    province = db.Column(db.String(50), nullable=True, comment='استان')
-    city = db.Column(db.String(50), nullable=True, comment='شهرستان')
-    address = db.Column(db.Text, nullable=True, comment='آدرس کامل')
-    postal_code = db.Column(db.String(10), nullable=True, comment='کد پستی')
-    status = db.Column(db.String(30),
-                       nullable=False,
-                       default='جدید',
-                       comment='وضعیت سفارش')
-    created_at = db.Column(db.DateTime,
-                           default=tehran_now,
-                           comment='تاریخ ایجاد')
-    updated_at = db.Column(db.DateTime,
-                           default=tehran_now,
-                           onupdate=tehran_now,
-                           comment='تاریخ بروزرسانی')
-    # کاربر ثبت کننده سفارش
-    created_by = db.Column(db.Integer,
-                           db.ForeignKey('user.id'),
-                           nullable=True,
-                           comment='کاربر ثبت کننده')
+    deposit_amount = db.Column(db.Float, nullable=True)
+    product_type = db.Column(db.String(20), nullable=True)
+    shipping_required = db.Column(db.Boolean, default=False)
+    store_stock = db.Column(db.Boolean, default=False)
+    notes = db.Column(db.Text, nullable=True)
+    province = db.Column(db.String(50), nullable=True)
+    city = db.Column(db.String(50), nullable=True)
+    address = db.Column(db.Text, nullable=True)
+    postal_code = db.Column(db.String(10), nullable=True)
+    status = db.Column(db.String(30), nullable=False, default='جدید')
+    created_at = db.Column(db.DateTime, default=tehran_now)
+    updated_at = db.Column(db.DateTime, default=tehran_now, onupdate=tehran_now)
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     created_by_user = db.relationship('User', backref='created_instore_orders')
     
-    # اطلاعات فاکتور
-    invoice_number = db.Column(db.String(50), unique=True, nullable=True, comment='شماره فاکتور')
-    invoice_date = db.Column(db.DateTime, nullable=True, comment='تاریخ صدور فاکتور')
+    invoice_number = db.Column(db.String(50), unique=True, nullable=True)
+    invoice_date = db.Column(db.DateTime, nullable=True)
     
     def __repr__(self):
         return f'<InStoreOrder {self.id}: {self.person_id}>'
     
     def generate_invoice_number(self):
-        """تولید شماره فاکتور"""
         if not self.invoice_number:
             year = self.created_at.year
             month = self.created_at.month
@@ -501,99 +432,47 @@ class InStoreOrder(db.Model):
             self.invoice_date = self.created_at
 
 
-# --- مدل وظیفه (Task) و اعلان (Notification) ---
-
-
 class Task(db.Model):
-    """
-    مدل وظیفه (Task) برای کارتابل
-    هر وظیفه می‌تواند به یک نقش یا کاربر خاص اختصاص یابد.
-    """
     id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(200), nullable=False, comment='عنوان وظیفه')
-    description = db.Column(db.Text, nullable=True, comment='توضیحات')
-    status = db.Column(
-        db.String(30), default='جدید',
-        comment='وضعیت وظیفه')  # جدید، در حال انجام، انجام شده، لغو شده
-    due_date = db.Column(db.String(20),
-                         nullable=True,
-                         comment='موعد انجام (تاریخ شمسی)')
-    created_at = db.Column(db.DateTime,
-                           default=datetime.datetime.utcnow,
-                           comment='تاریخ ایجاد')
-    updated_at = db.Column(db.DateTime,
-                           default=datetime.datetime.utcnow,
-                           onupdate=datetime.datetime.utcnow)
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    status = db.Column(db.String(30), default='جدید')
+    due_date = db.Column(db.String(20), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 
-    # ارتباط با نقش هدف (اختیاری)
-    role_id = db.Column(db.Integer,
-                        db.ForeignKey('role.id'),
-                        nullable=True,
-                        comment='نقش هدف')
+    role_id = db.Column(db.Integer, db.ForeignKey('role.id'), nullable=True)
     role = db.relationship('Role', backref='tasks')
 
-    # ارتباط با کاربر هدف (اختیاری)
-    assigned_user_id = db.Column(db.Integer,
-                                 db.ForeignKey('user.id'),
-                                 nullable=True,
-                                 comment='کاربر هدف')
-    assigned_user = db.relationship('User',
-                                    foreign_keys=[assigned_user_id],
-                                    backref='assigned_tasks')
+    assigned_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    assigned_user = db.relationship('User', foreign_keys=[assigned_user_id], backref='assigned_tasks')
 
-    created_by = db.Column(db.Integer,
-                           db.ForeignKey('user.id'),
-                           nullable=False,
-                           comment='ایجادکننده')
-    creator = db.relationship('User',
-                              foreign_keys=[created_by],
-                              backref='created_tasks')
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    creator = db.relationship('User', foreign_keys=[created_by], backref='created_tasks')
 
     def __repr__(self):
         return f'<Task {self.title}>'
 
 
 class Notification(db.Model):
-    """
-    مدل اعلان درون‌برنامه‌ای
-    هر اعلان می‌تواند به یک کاربر یا نقش اختصاص یابد و به یک وظیفه مرتبط باشد.
-    """
     id = db.Column(db.Integer, primary_key=True)
-    message = db.Column(db.String(255), nullable=False, comment='متن اعلان')
-    is_read = db.Column(db.Boolean, default=False, comment='خوانده شده')
+    message = db.Column(db.String(255), nullable=False)
+    is_read = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
-    # ارتباط با کاربر هدف (اختیاری)
-    user_id = db.Column(db.Integer,
-                        db.ForeignKey('user.id'),
-                        nullable=True,
-                        comment='کاربر هدف')
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     user = db.relationship('User', backref='notifications')
 
-    # ارتباط با نقش هدف (اختیاری)
-    role_id = db.Column(db.Integer,
-                        db.ForeignKey('role.id'),
-                        nullable=True,
-                        comment='نقش هدف')
+    role_id = db.Column(db.Integer, db.ForeignKey('role.id'), nullable=True)
     role = db.relationship('Role', backref='notifications')
 
-    # ارتباط با وظیفه (اختیاری) - حذف شده چون اعلان‌ها مستقل هستند
-    # task_id = db.Column(db.Integer,
-    #                     db.ForeignKey('task.id'),
-    #                     nullable=True,
-    #                     comment='وظیفه مرتبط')
-    # task = db.relationship('Task', backref='notifications')
-
-    notification_type = db.Column(db.String(50), nullable=True, comment='نوع اعلان')
+    notification_type = db.Column(db.String(50), nullable=True)
 
     def __repr__(self):
         return f'<Notification {self.message[:20]}>'
 
 
 class SessionLog(db.Model):
-    """
-    ثبت نشست‌های کاربران برای امنیت و مدیریت نشست‌ها
-    """
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     ip_address = db.Column(db.String(45), nullable=True)
@@ -611,9 +490,6 @@ class SessionLog(db.Model):
 
 
 class AuditLog(db.Model):
-    """
-    ثبت لاگ فرآیندهای مهم سیستم برای امنیت و پیگیری
-    """
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     action = db.Column(db.String(100), nullable=False)
@@ -628,50 +504,32 @@ class AuditLog(db.Model):
 
 
 class BackupFile(db.Model):
-    """
-    ثبت اطلاعات بک‌آپ‌های دیتابیس
-    """
     id = db.Column(db.Integer, primary_key=True)
     filename = db.Column(db.String(255), nullable=False)
     filepath = db.Column(db.String(512), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     is_downloaded = db.Column(db.Boolean, default=False)
-    downloaded_by = db.Column(db.Integer,
-                              db.ForeignKey('user.id'),
-                              nullable=True)
+    downloaded_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     downloaded_at = db.Column(db.DateTime, nullable=True)
 
-    downloader = db.relationship('User',
-                                 backref='downloaded_backups',
-                                 foreign_keys=[downloaded_by])
+    downloader = db.relationship('User', backref='downloaded_backups', foreign_keys=[downloaded_by])
 
     def __repr__(self):
         return f'<BackupFile {self.filename} {self.created_at}>'
 
 
-# ==================== مدل‌های جدید برای ربات تلگرام ====================
-
-
 class InventoryAlert(db.Model):
-    """
-    مدل اعلان‌های موجودی
-    """
     id = db.Column(db.Integer, primary_key=True)
     product_id = db.Column(db.Integer, db.ForeignKey('inventory_product.id'), nullable=False)
     person_id = db.Column(db.Integer, db.ForeignKey('person.id'), nullable=False)
     
-    # نوع اعلان (موجودی کم، موجودی تمام شد، موجودی اضافه شد)
     alert_type = db.Column(db.String(20), nullable=False)
-    # آستانه موجودی
     threshold_quantity = db.Column(db.Integer, nullable=True)
-    # وضعیت اعلان
-    status = db.Column(db.String(20), default='فعال')  # فعال، غیرفعال، ارسال شده
+    status = db.Column(db.String(20), default='فعال')
     
-    # تاریخ‌ها
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     sent_at = db.Column(db.DateTime, nullable=True)
     
-    # روابط
     product = db.relationship('InventoryProduct', backref='inventory_alerts')
     person = db.relationship('Person', backref='inventory_alerts')
     
@@ -680,32 +538,24 @@ class InventoryAlert(db.Model):
 
 
 class PushNotification(db.Model):
-    """
-    مدل اعلان‌های فوری
-    """
     id = db.Column(db.Integer, primary_key=True)
     person_id = db.Column(db.Integer, db.ForeignKey('person.id'), nullable=False)
     telegram_id = db.Column(db.BigInteger, nullable=True)
     
-    # محتوای اعلان
     title = db.Column(db.String(200), nullable=False)
     message = db.Column(db.Text, nullable=False)
-    notification_type = db.Column(db.String(50), nullable=False)  # order_status, inventory, promotion, etc.
+    notification_type = db.Column(db.String(50), nullable=False)
     
-    # وضعیت ارسال
-    status = db.Column(db.String(20), default='در انتظار')  # در انتظار، ارسال شده، ناموفق
+    status = db.Column(db.String(20), default='در انتظار')
     sent_at = db.Column(db.DateTime, nullable=True)
     delivered_at = db.Column(db.DateTime, nullable=True)
     read_at = db.Column(db.DateTime, nullable=True)
     
-    # اطلاعات اضافی (JSON)
     extra_data = db.Column(db.Text, nullable=True)
     
-    # تاریخ‌ها
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     scheduled_at = db.Column(db.DateTime, nullable=True)
     
-    # روابط
     person = db.relationship('Person', backref='push_notifications')
     
     def __repr__(self):
@@ -713,38 +563,28 @@ class PushNotification(db.Model):
 
 
 class InventoryProduct(PaginationMixin, db.Model):
-    """
-    مدل محصولات انبار
-    این مدل جایگزین مدل Product قدیمی می‌شود و شامل مدیریت موجودی و پارت‌ها است.
-    """
     __table_args__ = (db.UniqueConstraint('name', 'quality', name='_name_quality_uc'),)
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(200), nullable=False, index=True, comment='نام محصول')
-    quality = db.Column(db.String(20), nullable=False, default='ایرانی', comment='کیفیت: ایرانی، شرکتی، وارداتی')
+    name = db.Column(db.String(200), nullable=False, index=True)
+    quality = db.Column(db.String(20), nullable=False, default='ایرانی')
     
-    # شماره محصول (فرمت: P-XXXX)
-    product_number = db.Column(db.String(10), unique=True, nullable=False, index=True, comment='شماره محصول')
+    product_number = db.Column(db.String(10), unique=True, nullable=False, index=True)
     
-    # آمار کلی
-    total_quantity = db.Column(db.Integer, default=0, comment='موجودی کل')
-    reserved_quantity = db.Column(db.Integer, default=0, comment='موجودی رزرو شده')
-    available_quantity = db.Column(db.Integer, default=0, comment='موجودی قابل فروش')
-    sold_quantity = db.Column(db.Integer, default=0, comment='تعداد فروخته شده')
+    total_quantity = db.Column(db.Integer, default=0)
+    reserved_quantity = db.Column(db.Integer, default=0)
+    available_quantity = db.Column(db.Integer, default=0)
+    sold_quantity = db.Column(db.Integer, default=0)
     
-    # تاریخ‌ها
-    created_at = db.Column(db.DateTime, default=tehran_now, comment='تاریخ ثبت اولیه')
-    updated_at = db.Column(db.DateTime, default=tehran_now, onupdate=tehran_now, comment='تاریخ بروزرسانی')
+    created_at = db.Column(db.DateTime, default=tehran_now)
+    updated_at = db.Column(db.DateTime, default=tehran_now, onupdate=tehran_now)
     
-    # روابط
     batches = db.relationship('InventoryBatch', backref='product', lazy='dynamic', cascade='all, delete-orphan')
     
     def __repr__(self):
         return f'<InventoryProduct {self.product_number} - {self.name} ({self.quality})>'
     
     def generate_product_number(self):
-        """تولید شماره محصول جدید"""
         if not self.product_number:
-            # پیدا کردن آخرین شماره محصول
             last_product = InventoryProduct.query.order_by(InventoryProduct.id.desc()).first()
             if last_product and last_product.product_number:
                 try:
@@ -759,16 +599,12 @@ class InventoryProduct(PaginationMixin, db.Model):
         return self.product_number
     
     def update_quantities(self):
-        """بروزرسانی آمار موجودی بر اساس پارت‌ها"""
-        # محاسبه موجودی کل از تمام پارت‌ها (حتی آنهایی که موجودی صفر دارند)
         total = sum(batch.remaining_quantity for batch in self.batches)
         self.total_quantity = total
         self.available_quantity = total - self.reserved_quantity
-        # اطمینان از اینکه موجودی قابل فروش منفی نباشد
         if self.available_quantity < 0:
             self.available_quantity = 0
         
-        # محاسبه تعداد فروخته شده از تاریخچه
         from sqlalchemy import func
         sold_history = db.session.query(func.sum(InventoryHistory.quantity)).filter(
             InventoryHistory.product_id == self.id,
@@ -777,7 +613,6 @@ class InventoryProduct(PaginationMixin, db.Model):
         self.sold_quantity = sold_history
         
         db.session.commit()
-        # اعلان موجودی کم
         if self.available_quantity < 2:
             admin_role = Role.query.filter_by(name='Admin').first()
             if admin_role:
@@ -792,11 +627,9 @@ class InventoryProduct(PaginationMixin, db.Model):
                 db.session.commit()
     
     def can_reserve(self, quantity):
-        """بررسی امکان رزرو موجودی"""
         return self.available_quantity >= quantity
     
     def reserve_quantity(self, quantity):
-        """رزرو موجودی"""
         if self.can_reserve(quantity):
             self.reserved_quantity += quantity
             self.available_quantity -= quantity
@@ -805,49 +638,37 @@ class InventoryProduct(PaginationMixin, db.Model):
         return False
     
     def release_reservation(self, quantity):
-        """آزادسازی رزرو"""
         if self.reserved_quantity >= quantity:
             self.reserved_quantity -= quantity
             self.available_quantity += quantity
-            # حذف db.session.commit() از اینجا
             return True
         return False
 
 
 class InventoryBatch(db.Model):
-    """
-    مدل پارت‌های خرید انبار
-    هر محصول می‌تواند چندین پارت خرید داشته باشد.
-    """
     id = db.Column(db.Integer, primary_key=True)
     product_id = db.Column(db.Integer, db.ForeignKey('inventory_product.id'), nullable=False)
     
-    # شماره پارت (فرمت: P-XXXX-B)
-    batch_number = db.Column(db.String(15), unique=True, nullable=False, index=True, comment='شماره پارت')
+    batch_number = db.Column(db.String(15), unique=True, nullable=False, index=True)
     
-    # اطلاعات پارت
-    initial_quantity = db.Column(db.Integer, nullable=False, comment='موجودی اولیه پارت')
-    remaining_quantity = db.Column(db.Integer, nullable=False, comment='موجودی باقی‌مانده')
-    reserved_quantity = db.Column(db.Integer, default=0, comment='موجودی رزرو شده')
-    sold_quantity = db.Column(db.Integer, default=0, comment='تعداد فروخته شده')
-    purchase_price = db.Column(db.Float, nullable=True, comment='قیمت خرید (اختیاری)')
+    initial_quantity = db.Column(db.Integer, nullable=False)
+    remaining_quantity = db.Column(db.Integer, nullable=False)
+    reserved_quantity = db.Column(db.Integer, default=0)
+    sold_quantity = db.Column(db.Integer, default=0)
+    purchase_price = db.Column(db.Float, nullable=True)
     
-    # اطلاعات ثبت‌کننده
-    created_by = db.Column(db.Integer, db.ForeignKey('person.id'), nullable=False, comment='شخص ثبت‌کننده')
+    created_by = db.Column(db.Integer, db.ForeignKey('person.id'), nullable=False)
     created_by_person = db.relationship('Person', backref='created_batches')
-    created_at = db.Column(db.DateTime, default=tehran_now, comment='تاریخ ورود به انبار')
+    created_at = db.Column(db.DateTime, default=tehran_now)
     
     def __repr__(self):
         return f'<InventoryBatch {self.batch_number} - {self.product.name} - {self.initial_quantity} units>'
     
     def generate_batch_number(self):
-        """تولید شماره پارت جدید"""
         if not self.batch_number:
-            # پیدا کردن آخرین پارت برای این محصول
             last_batch = InventoryBatch.query.filter_by(product_id=self.product_id).order_by(InventoryBatch.id.desc()).first()
             if last_batch and last_batch.batch_number:
                 try:
-                    # استخراج شماره پارت از فرمت P-XXXX-B
                     parts = last_batch.batch_number.split('-')
                     if len(parts) == 3 and parts[2].isdigit():
                         batch_num = int(parts[2]) + 1
@@ -858,13 +679,11 @@ class InventoryBatch(db.Model):
             else:
                 batch_num = 1
             
-            # استفاده از شماره محصول
             product_number = self.product.product_number if self.product else f"P-{self.product_id:04d}"
             self.batch_number = f"{product_number}-{batch_num}"
         return self.batch_number
     
     def consume_quantity(self, quantity):
-        """مصرف موجودی از پارت (FIFO)"""
         if self.remaining_quantity >= quantity:
             self.remaining_quantity -= quantity
             db.session.commit()
@@ -873,72 +692,46 @@ class InventoryBatch(db.Model):
 
 
 class BotOrder(db.Model):
-    """
-    مدل سفارشات ربات تلگرام
-    """
     id = db.Column(db.Integer, primary_key=True)
     
-    # اطلاعات مشتری
-    customer_phone = db.Column(db.String(20), nullable=False, index=True, comment='شماره تلفن مشتری')
-    customer_name = db.Column(db.String(100), nullable=True, comment='نام مشتری')
-    customer_address = db.Column(db.Text, nullable=True, comment='آدرس مشتری')
-    telegram_id = db.Column(db.BigInteger, nullable=True, comment='آیدی تلگرام')
+    customer_phone = db.Column(db.String(20), nullable=False, index=True)
+    customer_name = db.Column(db.String(100), nullable=True)
+    customer_address = db.Column(db.Text, nullable=True)
+    telegram_id = db.Column(db.BigInteger, nullable=True)
     
-    # اطلاعات مکانیک (اختیاری)
-    mechanic_person_id = db.Column(db.BigInteger, db.ForeignKey('person.id'), nullable=True, comment='مکانیک مرتبط')
-    # اطلاعات مشتری (اختیاری)
-    person_id = db.Column(db.Integer, db.ForeignKey('person.id'), nullable=True, comment='شخص مرتبط')
+    mechanic_person_id = db.Column(db.BigInteger, db.ForeignKey('person.id'), nullable=True)
+    person_id = db.Column(db.Integer, db.ForeignKey('person.id'), nullable=True)
     
-    # اطلاعات سفارش
-    order_items = db.Column(db.Text, nullable=False, comment='آیتم‌های سفارش (JSON)')
-    total_amount = db.Column(db.Float, nullable=False, comment='مبلغ کل')
-    commission_amount = db.Column(db.Float, default=0.0, comment='مبلغ کمیسیون')
-    commission_paid = db.Column(db.Boolean, default=False, comment='کمیسیون پرداخت شده')
+    order_items = db.Column(db.Text, nullable=False)
+    total_amount = db.Column(db.Float, nullable=False)
+    commission_amount = db.Column(db.Float, default=0.0)
+    commission_paid = db.Column(db.Boolean, default=False)
     
-    # وضعیت سفارش
-    status = db.Column(db.String(30), default='در انتظار بررسی', comment='وضعیت سفارش')
-    # وضعیت‌ها:
-    # - در انتظار بررسی
-    # - در حال تامین
-    # - تایید شده
-    # - پرداخت شده
-    # - تکمیل شده
-    # - لغو شده
-    # - در انتظار پرداخت
-    # - در انتظار تایید پرداخت
-    # - در انتظار تایید کاربر
-    # - موجود
-    # - عدم موجودی
+    status = db.Column(db.String(30), default='در انتظار بررسی')
     
-    # اطلاعات پرداخت
-    payment_receipt = db.Column(db.String(255), nullable=True, comment='فایل رسید پرداخت')
-    payment_confirmed = db.Column(db.Boolean, default=False, comment='پرداخت تایید شده')
-    payment_confirmed_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True, comment='کاربر تاییدکننده پرداخت')
-    payment_confirmed_at = db.Column(db.DateTime, nullable=True, comment='تاریخ تایید پرداخت')
+    payment_receipt = db.Column(db.String(255), nullable=True)
+    payment_confirmed = db.Column(db.Boolean, default=False)
+    payment_confirmed_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    payment_confirmed_at = db.Column(db.DateTime, nullable=True)
     
-    # تاریخ‌ها
-    created_at = db.Column(db.DateTime, default=tehran_now, comment='تاریخ ثبت سفارش')
-    updated_at = db.Column(db.DateTime, default=tehran_now, onupdate=tehran_now, comment='تاریخ بروزرسانی')
-    expires_at = db.Column(db.DateTime, nullable=True, comment='تاریخ انقضای رزرو')
+    created_at = db.Column(db.DateTime, default=tehran_now)
+    updated_at = db.Column(db.DateTime, default=tehran_now, onupdate=tehran_now)
+    expires_at = db.Column(db.DateTime, nullable=True)
     
-    # روابط
     payment_confirmed_by_user = db.relationship('User', backref='confirmed_bot_orders')
     items = db.relationship('BotOrderItem', backref='order', lazy='dynamic', cascade='all, delete-orphan')
     person = db.relationship('Person', foreign_keys=[person_id], backref='bot_orders_as_customer')
     mechanic_person = db.relationship('Person', foreign_keys=[mechanic_person_id], backref='bot_orders_as_mechanic')
     
-    # اضافه کردن فیلد receipt_image
-    receipt_image = db.Column(db.String(256), nullable=True, comment='مسیر عکس رسید پرداخت')
+    receipt_image = db.Column(db.String(256), nullable=True)
     
-    # اطلاعات فاکتور
-    invoice_number = db.Column(db.String(50), unique=True, nullable=True, comment='شماره فاکتور')
-    invoice_date = db.Column(db.DateTime, nullable=True, comment='تاریخ صدور فاکتور')
+    invoice_number = db.Column(db.String(50), unique=True, nullable=True)
+    invoice_date = db.Column(db.DateTime, nullable=True)
     
     def __repr__(self):
         return f'<BotOrder {self.id} - {self.customer_phone}>'
     
     def generate_invoice_number(self):
-        """تولید شماره فاکتور"""
         if not self.invoice_number:
             year = self.created_at.year
             month = self.created_at.month
@@ -949,51 +742,35 @@ class BotOrder(db.Model):
             self.invoice_date = self.created_at
     
     def calculate_commission(self):
-        """محاسبه کمیسیون مکانیک یا مشتری عادی"""
         if self.mechanic_person and self.mechanic_person.person_type == 'mechanic' and self.mechanic_person.mechanic_profile:
             self.commission_amount = self.total_amount * (self.mechanic_person.mechanic_profile.commission_percentage / 100)
         else:
-            # برای سفارشات مشتریان عادی، کمیسیون باید صفر باشد
             self.commission_amount = 0.0
         db.session.commit()
 
 
 class BotOrderItem(db.Model):
-    """
-    مدل آیتم‌های سفارش ربات
-    """
     id = db.Column(db.Integer, primary_key=True)
     order_id = db.Column(db.Integer, db.ForeignKey('bot_order.id'), nullable=False)
     
-    # اطلاعات محصول
-    product_name = db.Column(db.String(200), nullable=False, comment='نام محصول وارد شده')
-    product_id = db.Column(db.Integer, db.ForeignKey('inventory_product.id'), nullable=True, comment='محصول مرتبط در انبار')
-    quantity = db.Column(db.Integer, nullable=False, comment='تعداد')
-    unit_price = db.Column(db.Float, nullable=False, comment='قیمت واحد')
-    total_price = db.Column(db.Float, nullable=False, comment='قیمت کل')
+    product_name = db.Column(db.String(200), nullable=False)
+    product_id = db.Column(db.Integer, db.ForeignKey('inventory_product.id'), nullable=True)
+    quantity = db.Column(db.Integer, nullable=False)
+    unit_price = db.Column(db.Float, nullable=False)
+    total_price = db.Column(db.Float, nullable=False)
     
-    # وضعیت آیتم
-    status = db.Column(db.String(30), default='در انتظار بررسی', comment='وضعیت آیتم')
-    # وضعیت‌ها:
-    # - در انتظار بررسی
-    # - موجود
-    # - در حال تامین
-    # - عدم موجودی
+    status = db.Column(db.String(30), default='در انتظار بررسی')
     
-    # رزرو موجودی
-    reserved_quantity = db.Column(db.Integer, default=0, comment='موجودی رزرو شده')
+    reserved_quantity = db.Column(db.Integer, default=0)
     
-    # عکس محصول (اختیاری)
-    photo = db.Column(db.String(255), nullable=True, comment='مسیر عکس محصول')
+    photo = db.Column(db.String(255), nullable=True)
     
-    # روابط
     product = db.relationship('InventoryProduct', backref='bot_order_items')
     
     def __repr__(self):
         return f'<BotOrderItem {self.product_name} - {self.quantity} units>'
     
     def reserve_inventory(self):
-        """رزرو موجودی برای این آیتم"""
         import logging
         if self.product:
             logging.info(f"[RESERVE] Try reserve: product={self.product.name}, available={self.product.available_quantity}, requested={self.quantity}")
@@ -1011,82 +788,62 @@ class BotOrderItem(db.Model):
         return False
     
     def release_reservation(self):
-        """آزادسازی رزرو"""
         if self.reserved_quantity > 0:
             self.product.release_reservation(self.reserved_quantity)
             self.reserved_quantity = 0
-            # حذف db.session.commit() از اینجا
 
 class PaymentHistory(db.Model):
-    """تاریخچه پرداخت‌ها - شامل همه پرداخت‌های اشخاص (مشتریان و مکانیک‌ها)"""
     id = db.Column(db.Integer, primary_key=True)
     
-    # نوع پرداخت
-    payment_type = db.Column(db.String(50), nullable=False)  # order_payment, commission, refund, etc.
+    payment_type = db.Column(db.String(50), nullable=False)
     
-    # اطلاعات پرداخت‌کننده
-    payer_type = db.Column(db.String(20), nullable=False)  # customer, mechanic
-    person_id = db.Column(db.Integer, db.ForeignKey('person.id'), nullable=False)  # شخص پرداخت‌کننده (مشتری یا مکانیک)
+    payer_type = db.Column(db.String(20), nullable=False)
+    person_id = db.Column(db.Integer, db.ForeignKey('person.id'), nullable=False)
     
-    # مبلغ و اطلاعات مالی
     amount = db.Column(db.Float, nullable=False)
-    payment_method = db.Column(db.String(50), nullable=True)  # cash, card, transfer, etc.
-    payment_status = db.Column(db.String(30), default='pending')  # pending, completed, failed, refunded
+    payment_method = db.Column(db.String(50), nullable=True)
+    payment_status = db.Column(db.String(30), default='pending')
     
-    # مرجع پرداخت
-    reference_type = db.Column(db.String(50), nullable=True)  # order, bot_order, commission, etc.
+    reference_type = db.Column(db.String(50), nullable=True)
     reference_id = db.Column(db.Integer, nullable=True)
     
-    # اطلاعات اضافی
     description = db.Column(db.Text, nullable=True)
-    receipt_file = db.Column(db.String(255), nullable=True)  # مسیر فایل رسید
+    receipt_file = db.Column(db.String(255), nullable=True)
     
-    # تاریخ‌ها
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     completed_at = db.Column(db.DateTime, nullable=True)
     
-    # کاربر تاییدکننده (در صورت نیاز)
     confirmed_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     confirmed_at = db.Column(db.DateTime, nullable=True)
     
-    # روابط
     person = db.relationship('Person', backref='payment_history')
     confirmed_by_user = db.relationship('User', backref='confirmed_payments')   
     def __repr__(self):
         return f'<PaymentHistory {self.payment_type}: {self.amount}>'
 
 class InventoryHistory(db.Model):
-    """تاریخچه مدیریت کالا - شامل ورود، خروج، رزرو و آزادسازی"""
     id = db.Column(db.Integer, primary_key=True)
     
-    # محصول و پارت
     product_id = db.Column(db.Integer, db.ForeignKey('inventory_product.id'), nullable=False)
     batch_id = db.Column(db.Integer, db.ForeignKey('inventory_batch.id'), nullable=True)
     
-    # نوع عملیات
-    operation_type = db.Column(db.String(50), nullable=False)  # add, remove, reserve, release, adjust
+    operation_type = db.Column(db.String(50), nullable=False)
     
-    # مقدار
     quantity = db.Column(db.Integer, nullable=False)
-    quantity_before = db.Column(db.Integer, nullable=True)  # موجودی قبل از عملیات
-    quantity_after = db.Column(db.Integer, nullable=True)   # موجودی بعد از عملیات
+    quantity_before = db.Column(db.Integer, nullable=True)
+    quantity_after = db.Column(db.Integer, nullable=True)
     
-    # مرجع عملیات
-    reference_type = db.Column(db.String(50), nullable=True)  # order, bot_order, manual, etc.
+    reference_type = db.Column(db.String(50), nullable=True)
     reference_id = db.Column(db.Integer, nullable=True)
     
-    # اطلاعات اضافی
     description = db.Column(db.Text, nullable=True)
-    unit_price = db.Column(db.Float, nullable=True)  # قیمت واحد (در صورت فروش)
+    unit_price = db.Column(db.Float, nullable=True)
     
-    # شخص انجام‌دهنده
     person_id = db.Column(db.Integer, db.ForeignKey('person.id'), nullable=True)
     person = db.relationship('Person', backref='inventory_operations')
     
-    # تاریخ‌ها
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     
-    # روابط
     product = db.relationship('InventoryProduct', backref='inventory_history')
     batch = db.relationship('InventoryBatch', backref='inventory_history')
     
@@ -1094,35 +851,26 @@ class InventoryHistory(db.Model):
         return f'<InventoryHistory {self.product_id}: {self.operation_type} {self.quantity}>'
 
 class CommissionHistory(db.Model):
-    """تاریخچه پرداخت کمیسیون اشخاص (مکانیک‌ها)"""
     id = db.Column(db.Integer, primary_key=True)
     
-    # مکانیک
     person_id = db.Column(db.BigInteger, db.ForeignKey('person.id'), nullable=False)
     
-    # سفارش مرتبط
     order_id = db.Column(db.Integer, db.ForeignKey('bot_order.id'), nullable=False)
     
-    # اطلاعات کمیسیون
     commission_amount = db.Column(db.Float, nullable=False)
     commission_percentage = db.Column(db.Float, nullable=False)
     order_total = db.Column(db.Float, nullable=False)
     
-    # وضعیت پرداخت
-    payment_status = db.Column(db.String(30), default='pending')  # pending, paid, cancelled
+    payment_status = db.Column(db.String(30), default='pending')
     payment_date = db.Column(db.DateTime, nullable=True)
     
-    # اطلاعات پرداخت
     payment_method = db.Column(db.String(50), nullable=True)
-    payment_reference = db.Column(db.String(100), nullable=True)  # شماره تراکنش
+    payment_reference = db.Column(db.String(100), nullable=True)
     
-    # کاربر پرداخت‌کننده
     paid_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     
-    # تاریخ‌ها
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     
-    # روابط
     person = db.relationship('Person', backref='commission_history')
     order = db.relationship('BotOrder', backref='commission_history')
     paid_by_user = db.relationship('User', backref='paid_commissions')   
@@ -1130,12 +878,11 @@ class CommissionHistory(db.Model):
         return f'<CommissionHistory {self.person_id}: {self.commission_amount}>'
 
 class BroadcastHistory(db.Model):
-    """تاریخچه ارسال پیام‌های انبوه به اشخاص (مشتری یا مکانیک)"""
     id = db.Column(db.Integer, primary_key=True)
     broadcast_id = db.Column(db.Integer, db.ForeignKey('broadcast_message.id'), nullable=False)
-    person_id = db.Column(db.Integer, db.ForeignKey('person.id'), nullable=False)  # شخص دریافت‌کننده
+    person_id = db.Column(db.Integer, db.ForeignKey('person.id'), nullable=False)
     sent_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
-    status = db.Column(db.String(20), default='pending')  # pending, sent, failed
+    status = db.Column(db.String(20), default='pending')
     error_message = db.Column(db.Text, nullable=True)
 
     broadcast = db.relationship('BroadcastMessage', backref='history')
@@ -1145,10 +892,9 @@ class BroadcastHistory(db.Model):
         return f'<BroadcastHistory {self.person_id} - {self.broadcast_id}>'
 
 class SalesHistory(db.Model):
-    """تاریخچه فروش به اشخاص (مشتری یا مکانیک)"""
     id = db.Column(db.Integer, primary_key=True)
-    person_id = db.Column(db.Integer, db.ForeignKey('person.id'), nullable=False)  # شخص خریدار
-    order_id = db.Column(db.Integer, db.ForeignKey('order.id'), nullable=False)  # سفارش مرتبط
+    person_id = db.Column(db.Integer, db.ForeignKey('person.id'), nullable=False)
+    order_id = db.Column(db.Integer, db.ForeignKey('order.id'), nullable=False)
     sale_amount = db.Column(db.Float, nullable=False)
     sale_date = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     payment_method = db.Column(db.String(50), nullable=True)
@@ -1161,27 +907,20 @@ class SalesHistory(db.Model):
         return f'<SalesHistory {self.person_id} - {self.order_id}>'
 
 class TaskHistory(db.Model):
-    """تاریخچه کارتابل و تسک‌ها"""
     id = db.Column(db.Integer, primary_key=True)
     
-    # تسک
     task_id = db.Column(db.Integer, db.ForeignKey('task.id'), nullable=False)
     
-    # کاربر
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     
-    # نوع عملیات
-    action_type = db.Column(db.String(50), nullable=False)  # created, assigned, status_changed, completed, etc.
+    action_type = db.Column(db.String(50), nullable=False)
     
-    # اطلاعات عملیات
     old_status = db.Column(db.String(30), nullable=True)
     new_status = db.Column(db.String(30), nullable=True)
     notes = db.Column(db.Text, nullable=True)
     
-    # تاریخ‌ها
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     
-    # روابط
     task = db.relationship('Task', backref='history')
     user = db.relationship('User', backref='task_history')   
     def __repr__(self):
@@ -1189,16 +928,13 @@ class TaskHistory(db.Model):
 
 
 class InStoreOrderBatch(db.Model):
-    """
-    واسط بین سفارش حضوری و پارت‌های انبار برای مدیریت رزرو، فروش و مرجوعی به صورت دقیق و FIFO
-    """
     __tablename__ = 'instore_order_batch'
     id = db.Column(db.Integer, primary_key=True)
     order_id = db.Column(db.Integer, db.ForeignKey('instore_order.id'), nullable=False)
     batch_id = db.Column(db.Integer, db.ForeignKey('inventory_batch.id'), nullable=False)
-    reserved_qty = db.Column(db.Integer, default=0, nullable=False)  # مقدار رزرو شده
-    sold_qty = db.Column(db.Integer, default=0, nullable=False)      # مقدار فروخته شده
-    returned_qty = db.Column(db.Integer, default=0, nullable=False)  # مقدار مرجوع شده
+    reserved_qty = db.Column(db.Integer, default=0, nullable=False)
+    sold_qty = db.Column(db.Integer, default=0, nullable=False)
+    returned_qty = db.Column(db.Integer, default=0, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 
@@ -1209,45 +945,32 @@ class InStoreOrderBatch(db.Model):
         return f'<InStoreOrderBatch order={self.order_id} batch={self.batch_id} reserved={self.reserved_qty} sold={self.sold_qty} returned={self.returned_qty}>'
 
 class Person(db.Model):
-    """
-    مدل واحد برای همه اشخاص (مشتری، مکانیک و ...)
-    شماره تلفن شناسه یکتا است.
-    """
     id = db.Column(db.Integer, primary_key=True)
     full_name = db.Column(db.String(200), nullable=False)
     phone_number = db.Column(db.String(20), unique=True, nullable=False, index=True)
     telegram_id = db.Column(db.BigInteger, nullable=True, index=True)
-    person_type = db.Column(db.String(20), nullable=False, comment='customer, mechanic, ...')
-    # فیلدهای تکمیلی
-    username = db.Column(db.String(100), nullable=True, comment='نام کاربری (اختیاری)')
-    address = db.Column(db.Text, nullable=True, comment='آدرس کامل')
-    city = db.Column(db.String(50), nullable=True, comment='شهر')
-    province = db.Column(db.String(50), nullable=True, comment='استان')
-    postal_code = db.Column(db.String(10), nullable=True, comment='کد پستی')
-    # فیلدهای آماری و وفاداری
-    total_orders = db.Column(db.Integer, default=0, comment='تعداد سفارشات')
-    total_spent = db.Column(db.Float, default=0.0, comment='مجموع خرید')
-    registration_date = db.Column(db.DateTime, default=datetime.datetime.utcnow, comment='تاریخ ثبت‌نام')
-    last_order_date = db.Column(db.DateTime, nullable=True, comment='تاریخ آخرین سفارش')
-    first_order_date = db.Column(db.DateTime, nullable=True, comment='تاریخ اولین سفارش')
-    first_order_type = db.Column(db.String(20), nullable=True, comment='نوع اولین سفارش: تلگرام، حضوری، ربات')
-    # سایر فیلدهای مشترک در صورت نیاز
+    person_type = db.Column(db.String(20), nullable=False)
+    username = db.Column(db.String(100), nullable=True)
+    address = db.Column(db.Text, nullable=True)
+    city = db.Column(db.String(50), nullable=True)
+    province = db.Column(db.String(50), nullable=True)
+    postal_code = db.Column(db.String(10), nullable=True)
+    total_orders = db.Column(db.Integer, default=0)
+    total_spent = db.Column(db.Float, default=0.0)
+    registration_date = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    last_order_date = db.Column(db.DateTime, nullable=True)
+    first_order_date = db.Column(db.DateTime, nullable=True)
+    first_order_type = db.Column(db.String(20), nullable=True)
 
     def __repr__(self):
         return f'<Person {self.full_name} - {self.phone_number}>'
 
-    # متدهای محاسبه وفاداری و ... را می‌توان اینجا اضافه کرد
-
 class MechanicProfile(db.Model):
-    """
-    اطلاعات تکمیلی فقط برای مکانیک‌ها
-    """
     id = db.Column(db.Integer, primary_key=True)
     person_id = db.Column(db.Integer, db.ForeignKey('person.id'), nullable=False, unique=True)
     commission_percentage = db.Column(db.Float, default=0.0)
     business_license = db.Column(db.String(100), nullable=True)
     business_license_image = db.Column(db.String(255), nullable=True)
     shop_address = db.Column(db.Text, nullable=True)
-    # سایر فیلدهای خاص مکانیک در آینده
 
     person = db.relationship('Person', backref=db.backref('mechanic_profile', uselist=False))
