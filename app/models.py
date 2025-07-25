@@ -938,6 +938,7 @@ class InStoreOrderBatch(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 
+    # استفاده از string reference برای جلوگیری از مشکل circular import
     order = db.relationship('InStoreOrder', backref=db.backref('batches', lazy='dynamic', cascade='all, delete-orphan'))
     batch = db.relationship('InventoryBatch', backref=db.backref('order_links', lazy='dynamic', cascade='all, delete-orphan'))
 
