@@ -659,6 +659,12 @@ class InventoryBatch(db.Model):
     
     created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     created_by_user = db.relationship('User', backref='created_batches')
+
+    # برای سازگاری با کدهای قدیمی
+    @property
+    def created_by_person(self):
+        """برای سازگاری با کدهای قدیمی که از created_by_person استفاده می‌کنند"""
+        return self.created_by_user
     created_at = db.Column(db.DateTime, default=tehran_now)
     
     @property

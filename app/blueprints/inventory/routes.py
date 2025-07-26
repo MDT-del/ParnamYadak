@@ -217,7 +217,7 @@ def add_batch(product_id):
                 'remaining_quantity': batch.remaining_quantity,
                 'purchase_price': batch.purchase_price,
                 'created_at': shamsi_datetime(batch.created_at),
-                'created_by': batch.created_by_user.name
+                'created_by': batch.created_by_name
             }
         })
         
