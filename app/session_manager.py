@@ -8,6 +8,7 @@ from flask import session, request, redirect, url_for, flash, current_app
 from flask_login import logout_user, current_user
 from app.models import SessionLog
 from app import db, create_app  # <-- create_app را اینجا اضافه کنید
+from app.db_manager import safe_db_operation, DatabaseManager
 
 logger = logging.getLogger(__name__)
 
@@ -173,23 +174,31 @@ class SessionManager:
         # ========================================
         app = create_app()
         with app.app_context():
-            try:
+            def cleanup_operation():
                 cutoff_time = datetime.datetime.utcnow() - datetime.timedelta(
                     seconds=SessionManager.DEFAULT_SESSION_TIMEOUT
                 )
-                expired_sessions = SessionLog.query.filter(
+
+                # استفاده از bulk update برای بهتر بودن عملکرد
+                updated_count = db.session.query(SessionLog).filter(
                     SessionLog.is_active == True,
                     SessionLog.last_activity < cutoff_time
-                ).all()
-                for session_log in expired_sessions:
-                    session_log.is_active = False
-                    session_log.logout_time = datetime.datetime.utcnow()
-                db.session.commit()
-                if expired_sessions:
-                    logger.info(f"{len(expired_sessions)} نشست منقضی شده پاک‌سازی شد")
+                ).update({
+                    'is_active': False,
+                    'logout_time': datetime.datetime.utcnow()
+                }, synchronize_session=False)
+
+                return updated_count
+
+            try:
+                # استفاده از safe_db_operation
+                updated_count = safe_db_operation(cleanup_operation)
+
+                if updated_count > 0:
+                    logger.info(f"{updated_count} نشست منقضی شده پاک‌سازی شد")
+
             except Exception as e:
                 logger.error(f"خطا در پاک‌سازی نشست‌های منقضی: {e}")
-                db.session.rollback()
         # ========================================
         # پایان تغییرات
         # ========================================

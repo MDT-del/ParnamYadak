@@ -78,6 +78,11 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    environment:
+      # تنظیمات بهینه برای connection pool
+      - POSTGRES_MAX_CONNECTIONS=200
+      - POSTGRES_SHARED_BUFFERS=256MB
+      - POSTGRES_EFFECTIVE_CACHE_SIZE=1GB
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./backups:/backups
@@ -85,6 +90,15 @@ services:
       - "5432:5432"
     networks:
       - parnamyadak_network
+    command: >
+      postgres
+      -c max_connections=200
+      -c shared_buffers=256MB
+      -c effective_cache_size=1GB
+      -c maintenance_work_mem=64MB
+      -c checkpoint_completion_target=0.9
+      -c wal_buffers=16MB
+      -c default_statistics_target=100
 
   # ========================================
   # سرویس Redis برای کش

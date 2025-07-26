@@ -74,6 +74,10 @@ class Config:
     SQLALCHEMY_ENGINE_OPTIONS = {
         'pool_pre_ping': True,
         'pool_recycle': 300,
+        'pool_size': 5,          # تعداد اتصالات پایه
+        'max_overflow': 10,      # حداکثر اتصالات اضافی
+        'pool_timeout': 30,      # timeout برای گرفتن connection
+        'pool_reset_on_return': 'commit',  # reset connection بعد از استفاده
     }
 
     # Rate Limiter settings
