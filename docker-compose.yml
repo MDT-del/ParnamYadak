@@ -32,12 +32,14 @@ services:
       # فایل متغیرهای محیطی پنل
       - .env
     command:
-      # Gunicorn روی یک پورت ساده HTTP و بدون SSL اجرا می‌شود
+      # Gunicorn با worker sync (بدون نیاز به gevent)
       [
         "gunicorn",
-        "--worker-class", "gevent",
-        "-w", "5",
+        "--worker-class", "sync",
+        "-w", "4",
         "-b", "0.0.0.0:5000",
+        "--timeout", "120",
+        "--keep-alive", "2",
         "gunicorn_entrypoint:app"
       ]
     volumes:
