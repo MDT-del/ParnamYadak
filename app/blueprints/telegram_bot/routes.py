@@ -46,10 +46,17 @@ def api_get_orders():
         if status:
             query = query.filter(BotOrder.status == status)
         
-        if person_id:
+        if person_id and telegram_id:
+            # اگر هر دو ارسال شده، با OR جستجو کن
+            query = query.filter(
+                db.or_(
+                    BotOrder.person_id == person_id,
+                    BotOrder.telegram_id == telegram_id
+                )
+            )
+        elif person_id:
             query = query.filter(BotOrder.person_id == person_id)
-        
-        if telegram_id:
+        elif telegram_id:
             query = query.filter(BotOrder.telegram_id == telegram_id)
         
         if start_date:

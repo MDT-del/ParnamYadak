@@ -657,10 +657,17 @@ class InventoryBatch(db.Model):
     sold_quantity = db.Column(db.Integer, default=0)
     purchase_price = db.Column(db.Float, nullable=True)
     
-    created_by = db.Column(db.Integer, db.ForeignKey('person.id'), nullable=False)
-    created_by_person = db.relationship('Person', backref='created_batches')
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    created_by_user = db.relationship('User', backref='created_batches')
     created_at = db.Column(db.DateTime, default=tehran_now)
     
+    @property
+    def created_by_name(self):
+        """نام کاربر ثبت‌کننده"""
+        if self.created_by_user:
+            return self.created_by_user.name
+        return 'نامشخص'
+
     def __repr__(self):
         return f'<InventoryBatch {self.batch_number} - {self.product.name} - {self.initial_quantity} units>'
     
