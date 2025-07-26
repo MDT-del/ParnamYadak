@@ -279,12 +279,12 @@
                             </td>
                             <td class="py-3 px-4">
                                 <div class="flex gap-2">
-                                    <a href="{{ url_for('instore_orders.invoice', order_id=invoice.id) }}" 
+                                    <a href="{{ url_for('instore_orders.index') }}?order_id={{ invoice.id }}"
                                        class="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs rounded-full hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors">
                                         <i class="bi bi-eye"></i>
                                         مشاهده
                                     </a>
-                                    <a href="{{ url_for('financial_reports.customer_single_order_print', customer_id=invoice.customer.id if invoice.customer else 0, order_type='instore', order_id=invoice.id) }}" 
+                                    <a href="{{ url_for('financial_reports.customer_single_order_print', customer_id=invoice.person.id if invoice.person else 0, order_type='instore', order_id=invoice.id) }}"
                                        class="px-3 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 text-xs rounded-full hover:bg-green-200 dark:hover:bg-green-800 transition-colors">
                                         <i class="bi bi-printer"></i>
                                         پرینت

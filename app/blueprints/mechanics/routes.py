@@ -545,34 +545,15 @@ def user_status():
                 'phone_number': person.phone_number
             })
     
-    # اگر هیچ‌کدام نبود، کاربر جدید است - به عنوان مشتری ثبت کن
-    try:
-        new_customer = Person(
-            full_name=f'کاربر {telegram_id}',
-            phone_number=None,  # بعداً توسط کاربر تکمیل می‌شود
-            telegram_id=telegram_id,
-            person_type='customer'
-        )
-        db.session.add(new_customer)
-        db.session.commit()
+    # اگر هیچ‌کدام نبود، کاربر جدید است - اما بدون شماره تلفن نمی‌توان ثبت کرد
+    import logging
+    logging.info(f"[USER_STATUS] New user {telegram_id} found - needs registration")
 
-        import logging
-        logging.info(f"[USER_STATUS] Auto-registered new customer with telegram_id: {telegram_id}")
-
-        return jsonify({
-            'success': True,
-            'status': 'approved',  # مشتریان جدید خودکار تایید می‌شوند
-            'role': 'customer',
-            'user_id': new_customer.id,
-            'full_name': new_customer.full_name,
-            'phone_number': new_customer.phone_number
-        })
-
-    except Exception as e:
-        db.session.rollback()
-        import logging
-        logging.error(f"[USER_STATUS] Error auto-registering customer {telegram_id}: {e}")
-        return jsonify({'success': False, 'message': 'کاربر یافت نشد'}), 404
+    return jsonify({
+        'success': False,
+        'message': 'کاربر یافت نشد',
+        'needs_registration': True
+    }), 404
 
 
 @mechanics_bp.route('/<int:person_id>/edit', methods=['GET', 'POST'])

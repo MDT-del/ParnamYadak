@@ -196,7 +196,7 @@
     </div>
 
     <!-- سفارشات اخیر -->
-    {% if mechanic.bot_orders_as_mechanic.count() > 0 %}
+    {% if mechanic.bot_orders_as_mechanic|length > 0 %}
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
         <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
             <h3 class="text-lg font-semibold text-gray-900 dark:text-white">سفارشات اخیر</h3>

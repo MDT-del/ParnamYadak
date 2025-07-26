@@ -100,7 +100,8 @@ def index():
         order.created_by = current_user.id
         db.session.add(order)
         
-        # کاهش موجودی محصولات اگر از انبار مغازه باشد
+        # فقط بررسی موجودی کافی بودن - بدون تغییر موجودی
+        # موجودی در مرحله "آماده تحویل" رزرو می‌شود و در "تحویل داده شده" فروخته می‌شود
         if store_stock and products_info:
             try:
                 products_list = json.loads(products_info)
@@ -109,17 +110,12 @@ def index():
                         product = InventoryProduct.query.get(product_item['product_id'])
                         if product:
                             qty = int(product_item.get('qty', 0))
-                            if product.available_quantity >= qty:
-                                product.available_quantity -= qty
-                                product.sold_quantity += qty
-                                product.total_quantity -= qty
-                                product.updated_at = datetime.now()
-                            else:
+                            if product.available_quantity < qty:
                                 flash(f'موجودی محصول "{product.name}" کافی نیست. موجودی: {product.available_quantity}, درخواستی: {qty}', 'error')
                                 db.session.rollback()
                                 return redirect(url_for('instore_orders.index'))
             except Exception as e:
-                flash(f'خطا در کاهش موجودی محصولات: {str(e)}', 'error')
+                flash(f'خطا در بررسی موجودی محصولات: {str(e)}', 'error')
                 db.session.rollback()
                 return redirect(url_for('instore_orders.index'))
         
