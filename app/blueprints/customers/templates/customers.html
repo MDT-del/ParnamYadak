@@ -55,12 +55,38 @@
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100 text-right">{{ customer.telegram_id or '-' }}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300 text-right">{% if customer.username %}@{{ customer.username }}{% else %}-{% endif %}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
-                                <a href="{{ url_for('customers.view_customer', customer_id=customer.id) }}" class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300">مشاهده پروفایل</a>
+                                <div class="flex items-center space-x-2 space-x-reverse">
+                                    <!-- مشاهده پروفایل -->
+                                    <a href="{{ url_for('customers.view_customer', customer_id=customer.id) }}"
+                                       class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors"
+                                       title="مشاهده پروفایل">
+                                        <i class="bi bi-eye text-lg"></i>
+                                    </a>
+
+                                    <!-- ویرایش -->
+                                    <a href="{{ url_for('customers.edit_customer', customer_id=customer.id) }}"
+                                       class="text-yellow-600 hover:text-yellow-900 dark:text-yellow-400 dark:hover:text-yellow-300 transition-colors"
+                                       title="ویرایش اطلاعات">
+                                        <i class="bi bi-pencil-square text-lg"></i>
+                                    </a>
+
+                                    <!-- حذف -->
+                                    <button onclick="deleteCustomer({{ customer.id }}, '{{ customer.full_name }}')"
+                                            class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 transition-colors"
+                                            title="حذف مشتری">
+                                        <i class="bi bi-trash text-lg"></i>
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                         {% else %}
                         <tr>
-                            <td colspan="8" class="text-center px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">هیچ مشتری یافت نشد.</td>
+                            <td colspan="8" class="text-center px-6 py-8 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                <div class="flex flex-col items-center">
+                                    <i class="bi bi-people text-4xl text-gray-300 dark:text-gray-600 mb-2"></i>
+                                    <p>هیچ مشتری یافت نشد.</p>
+                                </div>
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -78,4 +104,70 @@
             </div>
         </div>
     </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function deleteCustomer(customerId, customerName) {
+    // نمایش تایید حذف
+    if (confirm(`آیا مطمئن هستید که می‌خواهید مشتری "${customerName}" را حذف کنید؟\n\nتوجه: این عمل غیرقابل بازگشت است و تمام اطلاعات مرتبط با این مشتری حذف خواهد شد.`)) {
+        // ارسال درخواست حذف
+        fetch(`{{ url_for('customers.delete_customer', customer_id=0) }}`.replace('0', customerId), {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // نمایش پیام موفقیت
+                showToast('مشتری با موفقیت حذف شد', 'success');
+                // بارگذاری مجدد صفحه بعد از 1 ثانیه
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            } else {
+                // نمایش پیام خطا
+                showToast(data.message || 'خطا در حذف مشتری', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('خطا در ارتباط با سرور', 'error');
+        });
+    }
+}
+
+function showToast(message, type = 'info') {
+    // ایجاد toast notification
+    const toast = document.createElement('div');
+    toast.className = `fixed top-4 left-4 z-50 px-6 py-3 rounded-lg shadow-lg text-white font-medium transition-all duration-300 transform translate-x-full`;
+
+    // تنظیم رنگ بر اساس نوع
+    if (type === 'success') {
+        toast.className += ' bg-green-500';
+    } else if (type === 'error') {
+        toast.className += ' bg-red-500';
+    } else {
+        toast.className += ' bg-blue-500';
+    }
+
+    toast.textContent = message;
+    document.body.appendChild(toast);
+
+    // انیمیشن ورود
+    setTimeout(() => {
+        toast.classList.remove('translate-x-full');
+    }, 100);
+
+    // حذف خودکار بعد از 3 ثانیه
+    setTimeout(() => {
+        toast.classList.add('translate-x-full');
+        setTimeout(() => {
+            document.body.removeChild(toast);
+        }, 300);
+    }, 3000);
+}
+</script>
 {% endblock %}

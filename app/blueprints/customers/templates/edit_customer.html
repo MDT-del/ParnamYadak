@@ -2,39 +2,183 @@
 {% block title %}{{ title }}{% endblock %}
 {% block page_title %}ویرایش اطلاعات مشتری{% endblock %}
 {% block content %}
-<div class="max-w-xl mx-auto bg-white dark:bg-gray-800 rounded-xl shadow p-8 mt-8">
-    <form method="POST">
-        <div class="mb-4">
-            <label class="block text-sm font-medium mb-1">نام کامل</label>
-            <input type="text" name="full_name" class="w-full rounded-lg border-2 border-gray-300 focus:border-gray-400 dark:border-gray-600 dark:focus:border-gray-400 dark:bg-gray-700 dark:text-gray-200 bg-white text-sm transition-all" value="{{ customer.full_name or '' }}">
+<div class="max-w-2xl mx-auto">
+    <!-- Header -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-3 space-x-reverse">
+                <div class="w-12 h-12 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center">
+                    <i class="bi bi-pencil-square text-white text-xl"></i>
+                </div>
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">ویرایش اطلاعات مشتری</h2>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">{{ customer.full_name }}</p>
+                </div>
+            </div>
+            <a href="{{ url_for('customers.index') }}"
+               class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
+                <i class="bi bi-arrow-right ml-2"></i>
+                بازگشت
+            </a>
         </div>
-        <div class="mb-4">
-            <label class="block text-sm font-medium mb-1">نام کاربری</label>
-            <input type="text" name="username" class="w-full rounded-lg border-2 border-gray-300 focus:border-gray-400 dark:border-gray-600 dark:focus:border-gray-400 dark:bg-gray-700 dark:text-gray-200 bg-white text-sm transition-all" value="{{ customer.username or '' }}">
-        </div>
-        <div class="mb-4">
-            <label class="block text-sm font-medium mb-1">شماره تلفن</label>
-            <input type="text" name="phone_number" class="w-full rounded-lg border-2 border-gray-300 focus:border-gray-400 dark:border-gray-600 dark:focus:border-gray-400 dark:bg-gray-700 dark:text-gray-200 bg-white text-sm transition-all" value="{{ customer.phone_number or '' }}">
-        </div>
-        <div class="mb-4">
-            <label class="block text-sm font-medium mb-1">آدرس</label>
-            <input type="text" name="address" class="w-full rounded-lg border-2 border-gray-300 focus:border-gray-400 dark:border-gray-600 dark:focus:border-gray-400 dark:bg-gray-700 dark:text-gray-200 bg-white text-sm transition-all" value="{{ customer.address or '' }}">
-        </div>
-        <div class="mb-4">
-            <label class="block text-sm font-medium mb-1">شهر</label>
-            <input type="text" name="city" class="w-full rounded-lg border-2 border-gray-300 focus:border-gray-400 dark:border-gray-600 dark:focus:border-gray-400 dark:bg-gray-700 dark:text-gray-200 bg-white text-sm transition-all" value="{{ customer.city or '' }}">
-        </div>
-        <div class="mb-4">
-            <label class="block text-sm font-medium mb-1">استان</label>
-            <input type="text" name="province" class="w-full rounded-lg border-2 border-gray-300 focus:border-gray-400 dark:border-gray-600 dark:focus:border-gray-400 dark:bg-gray-700 dark:text-gray-200 bg-white text-sm transition-all" value="{{ customer.province or '' }}">
-        </div>
-        <div class="mb-4">
-            <label class="block text-sm font-medium mb-1">کد پستی</label>
-            <input type="text" name="postal_code" class="w-full rounded-lg border-2 border-gray-300 focus:border-gray-400 dark:border-gray-600 dark:focus:border-gray-400 dark:bg-gray-700 dark:text-gray-200 bg-white text-sm transition-all" value="{{ customer.postal_code or '' }}">
-        </div>
-        <div class="flex justify-end">
-            <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg shadow">ذخیره تغییرات</button>
-        </div>
-    </form>
+    </div>
+
+    <!-- Form -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+        <form method="POST" class="space-y-6">
+            <!-- اطلاعات شخصی -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        <i class="bi bi-person text-blue-500 ml-1"></i>
+                        نام کامل
+                    </label>
+                    <input type="text" name="full_name" required
+                           class="w-full px-4 py-3 rounded-lg border-2 border-gray-300 focus:border-blue-500 dark:border-gray-600 dark:focus:border-blue-400 dark:bg-gray-700 dark:text-gray-200 bg-white text-sm transition-all"
+                           value="{{ customer.full_name or '' }}"
+                           placeholder="نام و نام خانوادگی">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        <i class="bi bi-at text-green-500 ml-1"></i>
+                        نام کاربری تلگرام
+                    </label>
+                    <input type="text" name="username"
+                           class="w-full px-4 py-3 rounded-lg border-2 border-gray-300 focus:border-blue-500 dark:border-gray-600 dark:focus:border-blue-400 dark:bg-gray-700 dark:text-gray-200 bg-white text-sm transition-all"
+                           value="{{ customer.username or '' }}"
+                           placeholder="بدون @ وارد کنید">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        <i class="bi bi-telephone text-purple-500 ml-1"></i>
+                        شماره تلفن
+                    </label>
+                    <input type="text" name="phone_number" required
+                           class="w-full px-4 py-3 rounded-lg border-2 border-gray-300 focus:border-blue-500 dark:border-gray-600 dark:focus:border-blue-400 dark:bg-gray-700 dark:text-gray-200 bg-white text-sm transition-all"
+                           value="{{ customer.phone_number or '' }}"
+                           placeholder="09123456789">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        <i class="bi bi-geo-alt text-red-500 ml-1"></i>
+                        شهر
+                    </label>
+                    <input type="text" name="city"
+                           class="w-full px-4 py-3 rounded-lg border-2 border-gray-300 focus:border-blue-500 dark:border-gray-600 dark:focus:border-blue-400 dark:bg-gray-700 dark:text-gray-200 bg-white text-sm transition-all"
+                           value="{{ customer.city or '' }}"
+                           placeholder="نام شهر">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        <i class="bi bi-map text-orange-500 ml-1"></i>
+                        استان
+                    </label>
+                    <input type="text" name="province"
+                           class="w-full px-4 py-3 rounded-lg border-2 border-gray-300 focus:border-blue-500 dark:border-gray-600 dark:focus:border-blue-400 dark:bg-gray-700 dark:text-gray-200 bg-white text-sm transition-all"
+                           value="{{ customer.province or '' }}"
+                           placeholder="نام استان">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        <i class="bi bi-mailbox text-indigo-500 ml-1"></i>
+                        کد پستی
+                    </label>
+                    <input type="text" name="postal_code"
+                           class="w-full px-4 py-3 rounded-lg border-2 border-gray-300 focus:border-blue-500 dark:border-gray-600 dark:focus:border-blue-400 dark:bg-gray-700 dark:text-gray-200 bg-white text-sm transition-all"
+                           value="{{ customer.postal_code or '' }}"
+                           placeholder="1234567890">
+                </div>
+            </div>
+
+            <!-- آدرس -->
+            <div class="mt-6">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <i class="bi bi-house text-teal-500 ml-1"></i>
+                    آدرس کامل
+                </label>
+                <textarea name="address" rows="3"
+                          class="w-full px-4 py-3 rounded-lg border-2 border-gray-300 focus:border-blue-500 dark:border-gray-600 dark:focus:border-blue-400 dark:bg-gray-700 dark:text-gray-200 bg-white text-sm transition-all resize-none"
+                          placeholder="آدرس کامل را وارد کنید...">{{ customer.address or '' }}</textarea>
+            </div>
+
+            <!-- دکمه‌ها -->
+            <div class="flex items-center justify-between pt-6 border-t border-gray-200 dark:border-gray-700">
+                <a href="{{ url_for('customers.view_customer', customer_id=customer.id) }}"
+                   class="px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
+                    <i class="bi bi-eye ml-2"></i>
+                    مشاهده پروفایل
+                </a>
+
+                <div class="flex space-x-3 space-x-reverse">
+                    <button type="button" onclick="history.back()"
+                            class="px-6 py-3 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors">
+                        <i class="bi bi-x-circle ml-2"></i>
+                        انصراف
+                    </button>
+
+                    <button type="submit"
+                            class="px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-lg shadow-lg transition-all transform hover:scale-105">
+                        <i class="bi bi-check-circle ml-2"></i>
+                        ذخیره تغییرات
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
 </div>
-{% endblock %} 
+{% endblock %}
+
+{% block scripts %}
+<script>
+// اعتبارسنجی فرم
+document.querySelector('form').addEventListener('submit', function(e) {
+    const fullName = document.querySelector('input[name="full_name"]').value.trim();
+    const phoneNumber = document.querySelector('input[name="phone_number"]').value.trim();
+
+    if (!fullName) {
+        e.preventDefault();
+        alert('لطفاً نام کامل را وارد کنید.');
+        return;
+    }
+
+    if (!phoneNumber) {
+        e.preventDefault();
+        alert('لطفاً شماره تلفن را وارد کنید.');
+        return;
+    }
+
+    // بررسی فرمت شماره تلفن
+    const phoneRegex = /^09\d{9}$/;
+    if (!phoneRegex.test(phoneNumber)) {
+        e.preventDefault();
+        alert('شماره تلفن باید با 09 شروع شده و 11 رقم باشد.');
+        return;
+    }
+});
+
+// تبدیل اعداد فارسی به انگلیسی
+function convertPersianToEnglish(str) {
+    const persianNumbers = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+    const englishNumbers = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+
+    for (let i = 0; i < persianNumbers.length; i++) {
+        str = str.replace(new RegExp(persianNumbers[i], 'g'), englishNumbers[i]);
+    }
+    return str;
+}
+
+// اعمال تبدیل اعداد روی فیلدهای عددی
+document.querySelector('input[name="phone_number"]').addEventListener('input', function() {
+    this.value = convertPersianToEnglish(this.value);
+});
+
+document.querySelector('input[name="postal_code"]').addEventListener('input', function() {
+    this.value = convertPersianToEnglish(this.value);
+});
+</script>
+{% endblock %}

@@ -347,3 +347,52 @@ def api_create_customer():
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+@customers_bp.route('/delete/<int:customer_id>', methods=['DELETE'])
+@login_required
+@permission_required('manage_customers')
+def delete_customer(customer_id):
+    """
+    حذف مشتری
+    """
+    try:
+        customer = db.session.get(Person, customer_id)
+        if not customer or customer.person_type != 'customer':
+            return jsonify({
+                'success': False,
+                'message': 'مشتری مورد نظر یافت نشد.'
+            }), 404
+
+        # بررسی وجود سفارشات مرتبط
+        from app.models import Order, InStoreOrder, BotOrder
+
+        # شمارش سفارشات
+        telegram_orders = Order.query.filter_by(customer_id=customer.id).count()
+        instore_orders = InStoreOrder.query.filter_by(person_id=customer.id).count()
+        bot_orders = BotOrder.query.filter_by(customer_phone=customer.phone_number).count()
+
+        total_orders = telegram_orders + instore_orders + bot_orders
+
+        if total_orders > 0:
+            return jsonify({
+                'success': False,
+                'message': f'این مشتری دارای {total_orders} سفارش است و قابل حذف نیست. ابتدا سفارشات را حذف کنید.'
+            }), 400
+
+        # حذف مشتری
+        customer_name = customer.full_name
+        db.session.delete(customer)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': f'مشتری "{customer_name}" با موفقیت حذف شد.'
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'message': f'خطا در حذف مشتری: {str(e)}'
+        }), 500
