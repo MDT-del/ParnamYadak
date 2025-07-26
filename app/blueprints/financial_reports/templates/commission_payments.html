@@ -93,7 +93,7 @@
                             <div class="flex items-center">
                                 <div class="flex-shrink-0 h-10 w-10">
                                     <div class="h-10 w-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg">
-                                        {{ mechanic.first_name[0] }}{% if mechanic.last_name %}{{ mechanic.last_name[0] }}{% endif %}
+                                        {{ mechanic.full_name[0] if mechanic.full_name else 'M' }}
                                     </div>
                                 </div>
                                 <div class="mr-4">

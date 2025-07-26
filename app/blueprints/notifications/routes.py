@@ -361,8 +361,13 @@ def mechanic_registered_notification():
         data = request.get_json()
         person_id = data.get('person_id')
         telegram_id = data.get('telegram_id')
-        first_name = data.get('first_name', '')
-        last_name = data.get('last_name', '')
+        full_name = data.get('full_name', '')
+        # پشتیبانی از فرمت قدیمی
+        if not full_name:
+            first_name = data.get('first_name', '')
+            last_name = data.get('last_name', '')
+            full_name = f"{first_name} {last_name}".strip()
+        
         phone_number = data.get('phone_number', '')
         
         if not person_id:
@@ -377,14 +382,14 @@ def mechanic_registered_notification():
         notifications = []
         for role in all_roles:
             notification = Notification(
-                message=f"مکانیک جدید {first_name} {last_name} (تلگرام: {telegram_id}) ثبت‌نام کرده است",
+                message=f"مکانیک جدید {full_name} (تلگرام: {telegram_id}) ثبت‌نام کرده است",
                 role_id=role.id,
                 user_id=None
             )
             db.session.add(notification)
             notifications.append((notification, role.id))
         db.session.commit()
-        logging.info(f"نوتیفیکیشن برای مکانیک جدید {first_name} {last_name} برای همه نقش‌ها ایجاد شد")
+        logging.info(f"نوتیفیکیشن برای مکانیک جدید {full_name} برای همه نقش‌ها ایجاد شد")
         
         return jsonify({
             'success': True,
@@ -410,8 +415,13 @@ def customer_registered_notification():
         data = request.get_json()
         person_id = data.get('person_id')
         telegram_id = data.get('telegram_id')
-        first_name = data.get('first_name', '')
-        last_name = data.get('last_name', '')
+        full_name = data.get('full_name', '')
+        # پشتیبانی از فرمت قدیمی
+        if not full_name:
+            first_name = data.get('first_name', '')
+            last_name = data.get('last_name', '')
+            full_name = f"{first_name} {last_name}".strip()
+        
         phone_number = data.get('phone_number', '')
         
         if not person_id:
@@ -426,13 +436,13 @@ def customer_registered_notification():
         
         if admin_role:
             notification = Notification(
-                message=f"مشتری جدید {first_name} {last_name} (تلگرام: {telegram_id}) ثبت‌نام کرده است",
+                message=f"مشتری جدید {full_name} (تلگرام: {telegram_id}) ثبت‌نام کرده است",
                 role_id=admin_role.id,
                 user_id=None
             )
             db.session.add(notification)
             db.session.commit()
-            logging.info(f"نوتیفیکیشن برای مشتری جدید {first_name} {last_name} ایجاد شد")
+            logging.info(f"نوتیفیکیشن برای مشتری جدید {full_name} ایجاد شد")
         
         return jsonify({
             'success': True,

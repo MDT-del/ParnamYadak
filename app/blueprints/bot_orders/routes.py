@@ -45,7 +45,7 @@ def index():
             mechanic = Person.query.filter_by(telegram_id=order.telegram_id, person_type='mechanic').first()
             if mechanic:
                 order.mechanic_info = {
-                    'name': f"{mechanic.first_name} {mechanic.last_name}".strip(),
+                    'name': mechanic.full_name,
                     'phone': mechanic.phone_number,
                     'commission_percentage': mechanic.commission_percentage
                 }
@@ -140,7 +140,7 @@ def detail(order_id):
         mechanic = Person.query.filter_by(telegram_id=order.telegram_id, person_type='mechanic').first()
         if mechanic:
             mechanic_info = {
-                'name': f"{mechanic.first_name} {mechanic.last_name}".strip(),
+                'name': mechanic.full_name,
                 'phone': mechanic.phone_number,
                 'commission_percentage': mechanic.commission_percentage
             }

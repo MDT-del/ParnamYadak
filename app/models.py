@@ -963,6 +963,55 @@ class Person(db.Model):
     first_order_date = db.Column(db.DateTime, nullable=True)
     first_order_type = db.Column(db.String(20), nullable=True)
 
+    def update_first_order_info(self):
+        """بروزرسانی اطلاعات اولین سفارش مشتری"""
+        try:
+            # جستجو در سفارشات تلگرام
+            first_telegram_order = None
+            if hasattr(self, 'orders') and self.orders:
+                first_telegram_order = self.orders.order_by('order_date').first()
+            
+            # جستجو در سفارشات حضوری
+            first_instore_order = None
+            if hasattr(self, 'instore_orders') and self.instore_orders:
+                first_instore_order = self.instore_orders.order_by('created_at').first()
+            
+            # جستجو در سفارشات ربات
+            first_bot_order = BotOrder.query.filter_by(person_id=self.id).order_by('created_at').first()
+            
+            # تعیین اولین سفارش
+            earliest_order = None
+            earliest_date = None
+            earliest_type = None
+            
+            if first_telegram_order:
+                earliest_order = first_telegram_order
+                earliest_date = first_telegram_order.order_date
+                earliest_type = 'تلگرام'
+            
+            if first_instore_order:
+                if not earliest_date or first_instore_order.created_at < earliest_date:
+                    earliest_order = first_instore_order
+                    earliest_date = first_instore_order.created_at
+                    earliest_type = 'حضوری'
+            
+            if first_bot_order:
+                if not earliest_date or first_bot_order.created_at < earliest_date:
+                    earliest_order = first_bot_order
+                    earliest_date = first_bot_order.created_at
+                    earliest_type = 'ربات'
+            
+            # بروزرسانی اطلاعات
+            if earliest_order:
+                self.first_order_date = earliest_date
+                self.first_order_type = earliest_type
+            else:
+                self.first_order_date = None
+                self.first_order_type = None
+                
+        except Exception as e:
+            logging.error(f"Error updating first order info for person {self.id}: {e}")
+
     def __repr__(self):
         return f'<Person {self.full_name} - {self.phone_number}>'
 
@@ -973,5 +1022,15 @@ class MechanicProfile(db.Model):
     business_license = db.Column(db.String(100), nullable=True)
     business_license_image = db.Column(db.String(255), nullable=True)
     shop_address = db.Column(db.Text, nullable=True)
+    
+    # اضافه کردن فیلدهای مفقود
+    card_number = db.Column(db.String(20), nullable=True)
+    sheba_number = db.Column(db.String(30), nullable=True)
+    is_approved = db.Column(db.Boolean, default=False)
+    is_rejected = db.Column(db.Boolean, default=False)
+    approved_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    total_commission = db.Column(db.Float, default=0.0)
+    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
     person = db.relationship('Person', backref=db.backref('mechanic_profile', uselist=False))
+    approved_by_user = db.relationship('User', backref='approved_mechanics')

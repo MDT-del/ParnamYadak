@@ -490,30 +490,82 @@ def api_register_mechanic():
     try:
         data = request.get_json()
         
-        required_fields = ['telegram_id', 'first_name', 'phone_number']
-        for field in required_fields:
-            if not data.get(field):
-                return jsonify({
-                    'success': False,
-                    'message': f'فیلد {field} الزامی است'
-                }), 400
+        # استفاده از full_name به عنوان فیلد استاندارد
+        full_name = data.get('full_name', '').strip()
         
-        existing_person = Person.query.filter_by(telegram_id=data['telegram_id']).first()
+        # پشتیبانی از فرمت قدیمی برای سازگاری با نسخه‌های قبلی
+        if not full_name:
+            first_name = data.get('first_name', '').strip()
+            last_name = data.get('last_name', '').strip()
+            full_name = f"{first_name} {last_name}".strip()
+        
+        telegram_id = data.get('telegram_id')
+        phone_number = data.get('phone_number', '').strip()
+        username = data.get('username', '').strip()
+        
+        # بررسی فیلدهای الزامی
+        if not all([telegram_id, full_name, phone_number]):
+            return jsonify({
+                'success': False,
+                'message': 'فیلدهای telegram_id، نام کامل و شماره تلفن الزامی است'
+            }), 400
+        
+        # بررسی تکراری نبودن telegram_id
+        existing_person = Person.query.filter_by(telegram_id=telegram_id, person_type='mechanic').first()
         if existing_person:
             return jsonify({
                 'success': False,
                 'message': 'شما قبلاً ثبت‌نام کرده‌اید'
             }), 400
         
+        # بررسی تکراری نبودن شماره تلفن
+        existing_phone = Person.query.filter_by(phone_number=phone_number, person_type='mechanic').first()
+        if existing_phone:
+            return jsonify({
+                'success': False,
+                'message': 'این شماره تلفن قبلاً ثبت شده است'
+            }), 400
+        
+        # ایجاد شخص جدید
         person = Person(
-            telegram_id=data['telegram_id'],
-            full_name=f"{data.get('first_name', '')} {data.get('last_name', '')}".strip(),
-            phone_number=data['phone_number'],
-            person_type='mechanic'
+            telegram_id=telegram_id,
+            full_name=full_name,
+            phone_number=phone_number,
+            person_type='mechanic',
+            username=username
         )
         
         db.session.add(person)
+        db.session.flush()  # برای دریافت person.id
+        
+        # ایجاد پروفایل مکانیک
+        from app.models import MechanicProfile
+        mechanic_profile = MechanicProfile(
+            person_id=person.id,
+            card_number=data.get('card_number', ''),
+            sheba_number=data.get('sheba_number', ''),
+            shop_address=data.get('shop_address', ''),
+            business_license=data.get('business_license', ''),
+            is_approved=False,
+            is_rejected=False
+        )
+        
+        db.session.add(mechanic_profile)
         db.session.commit()
+        
+        # ایجاد اعلان برای ادمین‌ها
+        try:
+            from app.models import Notification, Role
+            admin_role = Role.query.filter_by(name='admin').first()
+            if admin_role:
+                notification = Notification(
+                    message=f'مکانیک جدید {full_name} ثبت‌نام کرده است',
+                    role_id=admin_role.id
+                )
+                db.session.add(notification)
+                db.session.commit()
+        except Exception as e:
+            logging.error(f"Error creating admin notification: {e}")
         
         return jsonify({
             'success': True,
@@ -523,6 +575,7 @@ def api_register_mechanic():
         
     except Exception as e:
         db.session.rollback()
+        logging.error(f"Error in mechanic registration: {e}")
         return jsonify({
             'success': False,
             'message': 'خطا در ثبت‌نام',

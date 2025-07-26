@@ -53,9 +53,9 @@ def index():
         elif msg.target_type == 'mechanic_specific' and msg.target_customers:
             try:
                 ids = json.loads(msg.target_customers)
-                mechanics = Mechanic.query.filter(Mechanic.id.in_(ids)).all()
+                mechanics = Person.query.filter(Person.id.in_(ids), Person.person_type == 'mechanic').all()
                 target_display = '، '.join([
-                    (f"{m.first_name} {m.last_name}".strip() if m.first_name or m.last_name else m.phone_number)
+                    (m.full_name if m.full_name else m.phone_number)
                     for m in mechanics
                 ]) if mechanics else 'مکانیک خاص'
             except Exception:
@@ -282,16 +282,16 @@ def api_customers_by_segment(segment_id):
 @login_required
 @permission_required('manage_broadcasts')
 def api_mechanics():
-    """API برای دریافت لیست مکانیک‌های تایید شده جهت انتخاب در پیام همگانی با پشتیبانی از جستجو فقط روی first_name و phone_number"""
-    from app.models import Mechanic
+    """API برای دریافت لیست مکانیک‌های تایید شده جهت انتخاب در پیام همگانی با پشتیبانی از جستجو فقط روی full_name و phone_number"""
+    from app.models import MechanicProfile
     q = request.args.get('q', '').strip()
-    query = Mechanic.query.filter_by(is_approved=True)
+    query = Person.query.filter_by(person_type='mechanic').join(MechanicProfile).filter(MechanicProfile.is_approved == True)
     if q:
         query = query.filter(
-            (Mechanic.first_name.ilike(f'%{q}%')) |
-            (Mechanic.phone_number.ilike(f'%{q}%'))
+            (Person.full_name.ilike(f'%{q}%')) |
+            (Person.phone_number.ilike(f'%{q}%'))
         )
-    mechanics = query.order_by(Mechanic.first_name).limit(20).all()
+    mechanics = query.order_by(Person.full_name).limit(20).all()
     return jsonify([
         {
             'id': mechanic.id,
