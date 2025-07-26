@@ -449,7 +449,7 @@ document.addEventListener('DOMContentLoaded', function() {
     {% if current_user.is_authenticated %}
     // بررسی اعلان‌های جدید هر 30 ثانیه
     setInterval(function() {
-        fetch('/api/notifications/check')
+        fetch('/notifications/api/notifications/check')
             .then(response => response.json())
             .then(data => {
                 if (data.has_new_notifications) {

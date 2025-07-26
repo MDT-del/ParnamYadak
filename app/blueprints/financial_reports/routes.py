@@ -886,7 +886,7 @@ def customer_orders_history(customer_id):
     customer = Person.query.filter_by(id=customer_id, person_type='customer').first_or_404()
     
     # گرفتن سفارش‌های حضوری
-    instore_orders = customer.instore_orders.order_by(InStoreOrder.created_at.desc()).all()
+    instore_orders = InStoreOrder.query.filter_by(person_id=customer.id).order_by(InStoreOrder.created_at.desc()).all()
     # گرفتن سفارش‌های ربات (بر اساس شماره تلفن)
     bot_orders = []
     if customer.phone_number:

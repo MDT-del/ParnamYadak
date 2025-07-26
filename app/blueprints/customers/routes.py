@@ -42,11 +42,21 @@ def index():
     for customer in customers.items:
         if hasattr(customer, 'update_first_order_info'):
             customer.update_first_order_info()
+            # ذخیره تغییرات در دیتابیس
+            db.session.add(customer)
         customers_with_first_order.append({
             'customer': customer,
             'first_order_date': getattr(customer, 'first_order_date', None),
             'first_order_type': getattr(customer, 'first_order_type', None)
         })
+
+    # ذخیره همه تغییرات
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        import logging
+        logging.error(f"Error updating customer info: {e}")
 
     if request.args.get('ajax') == '1':
         # خروجی JSON برای جستجوی مشتری خاص
@@ -80,9 +90,9 @@ def view_customer(customer_id):
         return redirect(url_for('customers.index'))
 
     # گرفتن سفارش‌های مشتری (تلگرام)
-    customer_orders = customer.orders.order_by(Order.order_date.desc()).all() if hasattr(customer, 'orders') else []
+    customer_orders = Order.query.filter_by(person_id=customer.id).order_by(Order.order_date.desc()).all()
     # گرفتن سفارش‌های حضوری
-    instore_orders = customer.instore_orders.order_by(InStoreOrder.created_at.desc()).all() if hasattr(customer, 'instore_orders') else []
+    instore_orders = InStoreOrder.query.filter_by(person_id=customer.id).order_by(InStoreOrder.created_at.desc()).all()
     # گرفتن سفارش‌های ربات (بر اساس شماره تلفن)
     bot_orders = BotOrder.query.filter_by(person_id=customer.id).order_by(BotOrder.created_at.desc()).all()
     
@@ -208,7 +218,7 @@ def api_register_customer():
         from flask import url_for
         notify_url = url_for('notifications.customer_registered_notification', _external=True)
         payload = {
-            'customer_id': customer.id,
+            'person_id': customer.id,
             'telegram_id': customer.telegram_id,
             'full_name': customer.full_name,
             'phone_number': customer.phone_number
@@ -220,6 +230,108 @@ def api_register_customer():
         logging.error(f"[CUSTOMER_REGISTER] Notification error: {notif_err}")
 
     return {'success': True, 'message': 'مشتری با موفقیت ثبت شد.'}
+
+
+@customers_bp.route('/api/update-all-types', methods=['POST'])
+@login_required
+@permission_required('manage_customers')
+def update_all_customer_types():
+    """
+    به‌روزرسانی نوع همه مشتریان بر اساس اولین سفارش آن‌ها
+    """
+    try:
+        customers = Person.query.filter_by(person_type='customer').all()
+        updated_count = 0
+
+        for customer in customers:
+            if hasattr(customer, 'update_first_order_info'):
+                customer.update_first_order_info()
+                db.session.add(customer)
+                updated_count += 1
+
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': f'{updated_count} مشتری به‌روزرسانی شد',
+            'updated_count': updated_count
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        import logging
+        logging.error(f"Error updating all customer types: {e}")
+        return jsonify({
+            'success': False,
+            'message': 'خطا در به‌روزرسانی مشتریان',
+            'error': str(e)
+        }), 500
+
+
+@customers_bp.route('/api/fix-bot-orders', methods=['POST'])
+@login_required
+@permission_required('manage_customers')
+def fix_bot_orders():
+    """
+    اصلاح ارتباط سفارشات ربات با مشتریان
+    """
+    try:
+        from app.models import BotOrder
+
+        # پیدا کردن سفارشات ربات بدون person_id
+        orphan_orders = BotOrder.query.filter(BotOrder.person_id.is_(None)).all()
+        fixed_count = 0
+
+        for order in orphan_orders:
+            customer = None
+
+            # ابتدا بر اساس telegram_id جستجو کن
+            if order.telegram_id:
+                customer = Person.query.filter_by(
+                    telegram_id=order.telegram_id,
+                    person_type='customer'
+                ).first()
+
+            # اگر پیدا نشد، بر اساس شماره تلفن جستجو کن
+            if not customer and order.customer_phone:
+                customer = Person.query.filter_by(
+                    phone_number=order.customer_phone,
+                    person_type='customer'
+                ).first()
+
+            # اگر هنوز پیدا نشد، مشتری جدید ایجاد کن
+            if not customer and order.customer_phone:
+                customer = Person(
+                    full_name=order.customer_name or 'نامشخص',
+                    phone_number=order.customer_phone,
+                    telegram_id=order.telegram_id,
+                    person_type='customer',
+                    address=order.customer_address
+                )
+                db.session.add(customer)
+                db.session.flush()  # برای گرفتن ID
+
+            if customer:
+                order.person_id = customer.id
+                fixed_count += 1
+
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': f'{fixed_count} سفارش ربات اصلاح شد',
+            'fixed_count': fixed_count
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        import logging
+        logging.error(f"Error fixing bot orders: {e}")
+        return jsonify({
+            'success': False,
+            'message': 'خطا در اصلاح سفارشات ربات',
+            'error': str(e)
+        }), 500
 
 
 @customers_bp.route('/api/status', methods=['GET'])

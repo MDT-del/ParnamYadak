@@ -967,14 +967,10 @@ class Person(db.Model):
         """بروزرسانی اطلاعات اولین سفارش مشتری"""
         try:
             # جستجو در سفارشات تلگرام
-            first_telegram_order = None
-            if hasattr(self, 'orders') and self.orders:
-                first_telegram_order = self.orders.order_by('order_date').first()
-            
+            first_telegram_order = Order.query.filter_by(person_id=self.id).order_by(Order.order_date).first()
+
             # جستجو در سفارشات حضوری
-            first_instore_order = None
-            if hasattr(self, 'instore_orders') and self.instore_orders:
-                first_instore_order = self.instore_orders.order_by('created_at').first()
+            first_instore_order = InStoreOrder.query.filter_by(person_id=self.id).order_by(InStoreOrder.created_at).first()
             
             # جستجو در سفارشات ربات
             first_bot_order = BotOrder.query.filter_by(person_id=self.id).order_by('created_at').first()
@@ -1011,6 +1007,28 @@ class Person(db.Model):
                 
         except Exception as e:
             logging.error(f"Error updating first order info for person {self.id}: {e}")
+
+    @property
+    def customer_type(self):
+        """تشخیص نوع مشتری بر اساس telegram_id و نوع اولین سفارش"""
+        if self.person_type != 'customer':
+            return self.person_type
+
+        # اگر telegram_id دارد، احتمالاً از ربات آمده
+        if self.telegram_id:
+            # بررسی اولین سفارش
+            if self.first_order_type == 'ربات':
+                return 'ربات'
+            elif self.first_order_type == 'تلگرام':
+                return 'ربات'  # سفارشات تلگرام هم از ربات می‌آیند
+            elif self.first_order_type == 'حضوری':
+                return 'حضوری'
+            else:
+                # اگر telegram_id دارد اما سفارشی ندارد، احتمالاً از ربات ثبت‌نام کرده
+                return 'ربات'
+        else:
+            # اگر telegram_id ندارد، حضوری است
+            return 'حضوری'
 
     def __repr__(self):
         return f'<Person {self.full_name} - {self.phone_number}>'
