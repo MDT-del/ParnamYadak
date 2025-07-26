@@ -137,8 +137,7 @@ def create_app(config_name='default'):
     app.logger.setLevel(logging.WARNING)
     app.logger.info('Logging is enabled for both file and console.')
 
-    # --- SocketIO event handlers ---
-    # --- حذف کامل socketio و eventهای آن ---
+    # --- سیستم اعلان‌های محلی بدون SocketIO ---
 
     # تنظیم logging برای ثبت لاگ‌ها در حالت production
     if not app.debug and not app.testing:

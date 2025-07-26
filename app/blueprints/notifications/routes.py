@@ -516,3 +516,43 @@ def api_notify_order_created():
         return jsonify({'success': True, 'message': 'اعلان سفارش جدید ثبت شد'})
     except Exception as e:
         return jsonify({'success': False, 'message': f'خطا: {e}'})
+
+
+@notifications_bp.route('/api/notifications/check', methods=['GET'])
+@login_required
+def check_notifications():
+    """
+    API برای بررسی اعلان‌های جدید (جایگزین SocketIO)
+    """
+    try:
+        from datetime import datetime, timedelta
+
+        # بررسی اعلان‌های 5 دقیقه اخیر
+        five_minutes_ago = datetime.now() - timedelta(minutes=5)
+
+        # شمارش اعلان‌های جدید
+        new_notifications = Notification.query.filter(
+            Notification.user_id == current_user.id,
+            Notification.created_at >= five_minutes_ago,
+            Notification.is_read == False
+        ).count()
+
+        # دریافت آخرین اعلان
+        latest_notification = Notification.query.filter(
+            Notification.user_id == current_user.id,
+            Notification.created_at >= five_minutes_ago,
+            Notification.is_read == False
+        ).order_by(Notification.created_at.desc()).first()
+
+        return jsonify({
+            'has_new_notifications': new_notifications > 0,
+            'count': new_notifications,
+            'latest_message': latest_notification.message if latest_notification else None
+        })
+
+    except Exception as e:
+        return jsonify({
+            'has_new_notifications': False,
+            'count': 0,
+            'latest_message': None
+        })
