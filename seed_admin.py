@@ -120,7 +120,8 @@ def create_admin_user():
                         'view_dashboard', 'manage_orders', 'manage_customers',
                         'view_notifications', 'view_reports'
                     ]
-                },
+                }
+            ]
 
             for role_data in additional_roles:
                 role = Role.query.filter_by(name=role_data['name']).first()
