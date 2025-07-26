@@ -40,9 +40,9 @@ def index():
             target_display = 'همه مشتریان'
         elif msg.target_type == 'mechanic_all':
             target_display = 'همه مکانیک‌ها'
-        elif msg.target_type == 'specific' and msg.target_customers:
+        elif msg.target_type == 'specific' and msg.target_persons:
             try:
-                ids = json.loads(msg.target_customers)
+                ids = json.loads(msg.target_persons)
                 customers = Person.query.filter(Person.id.in_(ids), Person.person_type == 'customer').all()
                 target_display = '، '.join([
                     (c.full_name if c.full_name else c.phone_number)
@@ -50,9 +50,9 @@ def index():
                 ]) if customers else 'مشتری خاص'
             except Exception:
                 target_display = 'مشتری خاص'
-        elif msg.target_type == 'mechanic_specific' and msg.target_customers:
+        elif msg.target_type == 'mechanic_specific' and msg.target_persons:
             try:
-                ids = json.loads(msg.target_customers)
+                ids = json.loads(msg.target_persons)
                 mechanics = Person.query.filter(Person.id.in_(ids), Person.person_type == 'mechanic').all()
                 target_display = '، '.join([
                     (m.full_name if m.full_name else m.phone_number)
@@ -83,7 +83,7 @@ def create_message():
                                    message=form.message.data,
                                    message_type=form.message_type.data,
                                    target_type=form.target_type.data,
-                                   target_customers=form.target_customers.data,
+                                   target_persons=form.target_customers.data,
                                    status='draft', # فقط پیش‌نویس مجاز است
                                    created_by=current_user.id)
 
@@ -117,7 +117,7 @@ def edit_message(message_id):
         message.message = form.message.data
         message.message_type = form.message_type.data
         message.target_type = form.target_type.data
-        message.target_customers = form.target_customers.data
+        message.target_persons = form.target_customers.data
         message.status = form.status.data
         message.scheduled_at = form.scheduled_at.data
 
@@ -309,8 +309,8 @@ def get_target_customers(message):
     if message.target_type == 'all':
         return Person.query.filter_by(person_type='customer').all()
     elif message.target_type == 'specific':
-        if message.target_customers:
-            customer_ids = json.loads(message.target_customers)
+        if message.target_persons:
+            customer_ids = json.loads(message.target_persons)
             return Person.query.filter(
                 Person.person_type == 'customer',
                 Person.id.in_(customer_ids)
@@ -326,8 +326,8 @@ def get_target_mechanics(message):
     if message.target_type == 'mechanic_all':
         return Person.query.filter_by(person_type='mechanic').join(MechanicProfile).filter(MechanicProfile.is_approved == True).all()
     elif message.target_type == 'mechanic_specific':
-        if message.target_customers:
-            mechanic_ids = json.loads(message.target_customers)
+        if message.target_persons:
+            mechanic_ids = json.loads(message.target_persons)
             return Person.query.filter(
                 Person.person_type == 'mechanic',
                 Person.id.in_(mechanic_ids)

@@ -196,7 +196,7 @@
     </div>
 
     <!-- سفارشات اخیر -->
-    {% if mechanic.bot_orders.count() > 0 %}
+    {% if mechanic.bot_orders_as_mechanic.count() > 0 %}
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
         <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
             <h3 class="text-lg font-semibold text-gray-900 dark:text-white">سفارشات اخیر</h3>
@@ -214,7 +214,7 @@
                     </tr>
                 </thead>
                 <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                    {% for order in mechanic.bot_orders.order_by(BotOrder.created_at.desc()).limit(10).all() %}
+                    {% for order in mechanic.bot_orders_as_mechanic[:10] %}
                     <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                             #{{ order.id|digits_to_persian }}
