@@ -364,7 +364,7 @@ def change_status(order_id):
                     
                     # انتقال رزرو به فروش در پارت‌ها
                     remaining_qty = qty
-                    product_batches = [ob for ob in order_batches if ob.batch_id in [b.id for b in product.inventory_batches]]
+                    product_batches = [ob for ob in order_batches if ob.batch_id in [b.id for b in product.batches]]
                     
                     for order_batch in product_batches:
                         if remaining_qty <= 0:

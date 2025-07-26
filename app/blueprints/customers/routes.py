@@ -508,3 +508,48 @@ def delete_customer(customer_id):
             'success': False,
             'message': f'خطا در حذف مشتری: {str(e)}'
         }), 500
+
+
+@customers_bp.route('/api/get_by_telegram', methods=['GET'])
+def get_customer_by_telegram():
+    """
+    دریافت اطلاعات مشتری بر اساس telegram_id
+    """
+    try:
+        telegram_id = request.args.get('telegram_id', type=int)
+        if not telegram_id:
+            return jsonify({
+                'success': False,
+                'message': 'telegram_id الزامی است'
+            }), 400
+
+        customer = Person.query.filter_by(telegram_id=telegram_id, person_type='customer').first()
+        if not customer:
+            return jsonify({
+                'success': False,
+                'message': 'مشتری یافت نشد'
+            }), 404
+
+        return jsonify({
+            'success': True,
+            'customer': {
+                'id': customer.id,
+                'full_name': customer.full_name,
+                'phone_number': customer.phone_number,
+                'telegram_id': customer.telegram_id,
+                'username': customer.username,
+                'address': customer.address,
+                'province': customer.province,
+                'city': customer.city,
+                'postal_code': customer.postal_code
+            }
+        })
+
+    except Exception as e:
+        import logging
+        logging.error(f"Error getting customer by telegram: {e}")
+        return jsonify({
+            'success': False,
+            'message': 'خطا در دریافت اطلاعات مشتری',
+            'error': str(e)
+        }), 500
