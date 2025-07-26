@@ -303,8 +303,7 @@ def change_status(order_id):
                     # رزرو از پارت‌ها به صورت FIFO
                     remaining_qty = qty
                     batches = InventoryBatch.query.filter_by(
-                        product_id=product.id,
-                        store_id=current_user.store_id
+                        product_id=product.id
                     ).filter(
                         InventoryBatch.remaining_quantity > 0
                     ).order_by(InventoryBatch.created_at.asc()).all()
@@ -313,26 +312,37 @@ def change_status(order_id):
                         if remaining_qty <= 0:
                             break
                         
-                        available_in_batch = batch.remaining_quantity - batch.reserved_quantity
+                        # موجودی قابل رزرو در این پارت
+                        available_in_batch = batch.remaining_quantity
                         if available_in_batch <= 0:
                             continue
                         
                         reserve_amount = min(remaining_qty, available_in_batch)
                         
-                        # ثبت رزرو در مدل واسط
-                        order_batch = InStoreOrderBatch(
+                        # بررسی اینکه آیا قبلاً رزرو شده است
+                        existing_order_batch = InStoreOrderBatch.query.filter_by(
                             order_id=order.id,
-                            batch_id=batch.id,
-                            reserved_qty=reserve_amount
-                        )
-                        db.session.add(order_batch)
+                            batch_id=batch.id
+                        ).first()
+                        
+                        if existing_order_batch:
+                            # افزایش رزرو موجود
+                            existing_order_batch.reserved_qty += reserve_amount
+                        else:
+                            # ثبت رزرو جدید در مدل واسط
+                            order_batch = InStoreOrderBatch(
+                                order_id=order.id,
+                                batch_id=batch.id,
+                                reserved_qty=reserve_amount
+                            )
+                            db.session.add(order_batch)
                         
                         # افزایش رزرو پارت
                         batch.reserved_quantity += reserve_amount
                         remaining_qty -= reserve_amount
                     
                     if remaining_qty > 0:
-                        flash(f'موجودی کافی برای محصول "{product.name}" وجود ندارد. موجودی: {product.available_quantity}, درخواستی: {qty}', 'error')
+                        flash(f'موجودی کافی برای محصول "{product.name}" وجود ندارد. موجودی قابل دسترس: {product.available_quantity}, درخواستی: {qty}', 'error')
                         db.session.rollback()
                         return redirect(url_for('instore_orders.index'))
                     
@@ -364,31 +374,33 @@ def change_status(order_id):
                     
                     # انتقال رزرو به فروش در پارت‌ها
                     remaining_qty = qty
-                    product_batches = [ob for ob in order_batches if ob.batch_id in [b.id for b in product.batches]]
+                    product_order_batches = [ob for ob in order_batches if ob.batch.product_id == product.id]
                     
-                    for order_batch in product_batches:
+                    for order_batch in product_order_batches:
                         if remaining_qty <= 0:
                             break
                         
-                        batch = InventoryBatch.query.get(order_batch.batch_id)
+                        batch = order_batch.batch
                         if not batch:
                             continue
                         
-                        sold_amount = min(remaining_qty, order_batch.reserved_qty)
+                        # تعداد قابل فروش از این پارت
+                        sellable_amount = min(remaining_qty, order_batch.reserved_qty)
                         
-                        # انتقال از رزرو به فروش
-                        order_batch.reserved_qty -= sold_amount
-                        order_batch.sold_qty += sold_amount
-                        
-                        # کاهش موجودی پارت
-                        batch.reserved_quantity -= sold_amount
-                        batch.remaining_quantity -= sold_amount
-                        batch.sold_quantity += sold_amount
-                        
-                        remaining_qty -= sold_amount
+                        if sellable_amount > 0:
+                            # انتقال از رزرو به فروش
+                            order_batch.reserved_qty -= sellable_amount
+                            order_batch.sold_qty += sellable_amount
+                            
+                            # کاهش موجودی پارت
+                            batch.reserved_quantity -= sellable_amount
+                            batch.remaining_quantity -= sellable_amount
+                            batch.sold_quantity += sellable_amount
+                            
+                            remaining_qty -= sellable_amount
                     
                     if remaining_qty > 0:
-                        flash(f'رزرو کافی برای محصول "{product.name}" وجود ندارد.', 'error')
+                        flash(f'رزرو کافی برای محصول "{product.name}" وجود ندارد. باقی‌مانده: {remaining_qty}', 'error')
                         db.session.rollback()
                         return redirect(url_for('instore_orders.index'))
                     
@@ -398,53 +410,47 @@ def change_status(order_id):
         # ۳. لغو رزرو هنگام لغو شده (قبل از فروش)
         elif new_status == 'لغو شده' and prev_status != 'لغو شده':
             if prev_status == 'تحویل داده شده':
-                flash('سفارش تحویل داده شده را نمی‌توان لغو کرد. برای مرجوعی از وضعیت "مرجوع شده" استفاده کنید.', 'error')
+                flash('سف��رش تحویل داده شده را نمی‌توان لغو کرد. برای مرجوعی از وضعیت "مرجوع شده" استفاده کنید.', 'error')
                 return redirect(url_for('instore_orders.index'))
             
-            if not order.store_stock or not order.products_info:
-                flash('این سفارش از انبار مغازه نیست یا محصولی ندارد.', 'error')
-                return redirect(url_for('instore_orders.index'))
-            
-            # آزادسازی رزرو از پارت‌ها
-            order_batches = InStoreOrderBatch.query.filter_by(order_id=order.id).all()
-            for order_batch in order_batches:
-                if order_batch.reserved_qty > 0:
-                    batch = InventoryBatch.query.get(order_batch.batch_id)
-                    if batch:
-                        batch.reserved_quantity -= order_batch.reserved_qty
-                        order_batch.reserved_qty = 0
-                    
-                    # بروزرسانی موجودی محصول
-                    if batch:
-                        product = InventoryProduct.query.get(batch.product_id)
-                        if product:
-                            product.update_quantities()
+            if order.store_stock and order.products_info:
+                # آزادسازی رزرو از پارت‌ها
+                order_batches = InStoreOrderBatch.query.filter_by(order_id=order.id).all()
+                for order_batch in order_batches:
+                    if order_batch.reserved_qty > 0:
+                        batch = order_batch.batch
+                        if batch:
+                            batch.reserved_quantity -= order_batch.reserved_qty
+                            order_batch.reserved_qty = 0
+                        
+                        # بروزرسانی موجودی محصول
+                        if batch:
+                            product = batch.product
+                            if product:
+                                product.update_quantities()
         
         # ۴. مرجوعی (بعد از فروش)
         elif new_status == 'مرجوع شده' and prev_status == 'تحویل داده شده':
-            if not order.store_stock or not order.products_info:
-                flash('این سفارش از انبار مغازه نیست یا محصولی ندارد.', 'error')
-                return redirect(url_for('instore_orders.index'))
-            
-            # بازگرداندن موجودی فروخته شده به پارت‌ها
-            order_batches = InStoreOrderBatch.query.filter_by(order_id=order.id).all()
-            for order_batch in order_batches:
-                if order_batch.sold_qty > 0:
-                    batch = InventoryBatch.query.get(order_batch.batch_id)
-                    if batch:
-                        # بازگرداندن موجودی به پارت
-                        batch.remaining_quantity += order_batch.sold_qty
-                        batch.sold_quantity -= order_batch.sold_qty
+            if order.store_stock and order.products_info:
+                # بازگرداندن موجودی فروخته شده به پ��رت‌ها
+                order_batches = InStoreOrderBatch.query.filter_by(order_id=order.id).all()
+                for order_batch in order_batches:
+                    if order_batch.sold_qty > 0:
+                        batch = order_batch.batch
+                        if batch:
+                            # بازگرداندن موجودی به پارت
+                            batch.remaining_quantity += order_batch.sold_qty
+                            batch.sold_quantity -= order_batch.sold_qty
+                            
+                            # ثبت مرجوعی
+                            order_batch.returned_qty += order_batch.sold_qty
+                            order_batch.sold_qty = 0
                         
-                        # ثبت مرجوعی
-                        order_batch.returned_qty += order_batch.sold_qty
-                        order_batch.sold_qty = 0
-                    
-                    # بروزرسانی موجودی محصول
-                    if batch:
-                        product = InventoryProduct.query.get(batch.product_id)
-                        if product:
-                            product.update_quantities()
+                        # بروزرسانی موجودی محصول
+                        if batch:
+                            product = batch.product
+                            if product:
+                                product.update_quantities()
         
         # تغییر وضعیت
         order.status = new_status

@@ -599,18 +599,21 @@ class InventoryProduct(PaginationMixin, db.Model):
         return self.product_number
     
     def update_quantities(self):
-        total = sum(batch.remaining_quantity for batch in self.batches)
-        self.total_quantity = total
-        self.available_quantity = total - self.reserved_quantity
+        # محاسبه موجودی کل از مجموع پارت‌ها
+        total_remaining = sum(batch.remaining_quantity for batch in self.batches)
+        total_reserved = sum(batch.reserved_quantity for batch in self.batches)
+        total_sold = sum(batch.sold_quantity for batch in self.batches)
+
+        # موجودی کل = باقی‌مانده + رزرو شده + فروخته شده
+        self.total_quantity = total_remaining + total_reserved + total_sold
+        self.reserved_quantity = total_reserved
+        self.available_quantity = total_remaining
+
         if self.available_quantity < 0:
             self.available_quantity = 0
         
-        from sqlalchemy import func
-        sold_history = db.session.query(func.sum(InventoryHistory.quantity)).filter(
-            InventoryHistory.product_id == self.id,
-            InventoryHistory.operation_type == 'remove'
-        ).scalar() or 0
-        self.sold_quantity = sold_history
+        # محاسبه فروش از مجموع پارت‌ها (دقیق‌تر از InventoryHistory)
+        self.sold_quantity = total_sold
         
         db.session.commit()
         if self.available_quantity < 2:
