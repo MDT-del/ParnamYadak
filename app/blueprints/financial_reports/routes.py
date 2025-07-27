@@ -493,7 +493,7 @@ def commission_payments():
     page = request.args.get('page', 1, type=int)
     
     # دریافت مکانیک‌های تایید شده
-    query = Person.query.filter_by(person_type='mechanic', is_approved=True)
+    query = Person.query.filter_by(person_type='mechanic').join(MechanicProfile).filter(MechanicProfile.is_approved == True)
     
     if search:
         query = query.filter(

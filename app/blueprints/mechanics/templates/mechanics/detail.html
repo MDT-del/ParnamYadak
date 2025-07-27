@@ -159,6 +159,48 @@
                 </div>
             </div>
 
+            <!-- اطلاعات مالی -->
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">اطلاعات مالی</h3>
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600 dark:text-gray-400">شماره کارت</span>
+                        <span class="font-semibold text-gray-900 dark:text-white font-mono">
+                            {% if mechanic.mechanic_profile and mechanic.mechanic_profile.card_number %}
+                                {{ mechanic.mechanic_profile.card_number|digits_to_persian }}
+                            {% else %}
+                                <span class="text-gray-400">ثبت نشده</span>
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600 dark:text-gray-400">شماره شبا</span>
+                        <span class="font-semibold text-gray-900 dark:text-white font-mono">
+                            {% if mechanic.mechanic_profile and mechanic.mechanic_profile.sheba_number %}
+                                {{ mechanic.mechanic_profile.sheba_number|digits_to_persian }}
+                            {% else %}
+                                <span class="text-gray-400">ثبت نشده</span>
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600 dark:text-gray-400">عکس جواز کسب</span>
+                        <div>
+                            {% if mechanic.mechanic_profile and mechanic.mechanic_profile.business_license_image %}
+                                <a href="{{ url_for('static', filename='business_licenses/' + mechanic.mechanic_profile.business_license_image) }}"
+                                   target="_blank"
+                                   class="inline-flex items-center px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-sm rounded-full hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors">
+                                    <i class="bi bi-image mr-1"></i>
+                                    مشاهده عکس
+                                </a>
+                            {% else %}
+                                <span class="text-gray-400">آپلود نشده</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- اطلاعات تایید -->
             <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">اطلاعات تایید</h3>

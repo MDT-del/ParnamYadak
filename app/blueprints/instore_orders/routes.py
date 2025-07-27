@@ -307,42 +307,68 @@ def change_status(order_id):
         
         # ۲. فروش هنگام تحویل داده شده
         elif new_status == 'تحویل داده شده' and prev_status != 'تحویل داده شده':
-            if not order.store_stock or not order.products_info:
-                flash('این سفارش از انبار مغازه نیست یا محصولی ندارد.', 'error')
+            print(f"[DEBUG] Processing sale for order {order.id}: store_stock={order.store_stock}, has_products={bool(order.products_info)}")
+
+            # فقط بررسی وجود محصولات - store_stock اختیاری است
+            if not order.products_info:
+                flash('این سفارش محصولی ندارد.', 'error')
+                return redirect(url_for('instore_orders.index'))
+
+            # اگر store_stock=false باشد، فقط وضعیت تغییر کند بدون تغییر موجودی
+            if not order.store_stock:
+                print(f"[DEBUG] Order {order.id} is not from store stock - only changing status")
+                # تغییر وضعیت
+                order.status = new_status
+                db.session.commit()
+                flash('وضعیت سفارش با موفقیت تغییر کرد.', 'success')
                 return redirect(url_for('instore_orders.index'))
             
             products_list = json.loads(order.products_info)
+            print(f"[DEBUG] Products to process: {len(products_list)}")
+
             for product_item in products_list:
                 if 'product_id' in product_item and product_item['product_id']:
                     product = InventoryProduct.query.get(product_item['product_id'])
                     if not product:
+                        print(f"[DEBUG] Product not found: {product_item['product_id']}")
                         continue
 
                     qty = int(product_item.get('qty', 0))
                     if qty <= 0:
+                        print(f"[DEBUG] Invalid quantity for product {product.id}: {qty}")
                         continue
+
+                    print(f"[DEBUG] Processing product {product.id} ({product.name}): qty={qty}")
 
                     # کسر از موجودی (FIFO) - مثل سفارش ربات
                     remaining = qty
                     batches = product.batches.filter(InventoryBatch.remaining_quantity > 0).order_by(InventoryBatch.created_at).all()
+                    print(f"[DEBUG] Found {len(batches)} batches with remaining quantity")
 
                     for batch in batches:
                         if remaining <= 0:
                             break
 
                         available = min(batch.remaining_quantity, remaining)
+                        print(f"[DEBUG] Batch {batch.id}: remaining={batch.remaining_quantity}, taking={available}")
+
                         batch.remaining_quantity -= available
                         batch.sold_quantity += available
                         remaining -= available
 
+                        print(f"[DEBUG] Batch {batch.id} after: remaining={batch.remaining_quantity}, sold={batch.sold_quantity}")
+
                     if remaining > 0:
+                        print(f"[DEBUG] Not enough stock for product {product.name}: needed={remaining}")
                         flash(f'موجودی کافی برای محصول "{product.name}" وجود ندارد.', 'error')
                         db.session.rollback()
                         return redirect(url_for('instore_orders.index'))
 
                     # کاهش رزرو و بروزرسانی موجودی
+                    print(f"[DEBUG] Reducing reserved quantity: {product.reserved_quantity} - {qty}")
                     product.reserved_quantity -= qty
                     product.update_quantities()
+                    print(f"[DEBUG] Product {product.id} after update: reserved={product.reserved_quantity}")
         
         # ۳. لغو رزرو هنگام لغو شده (قبل از فروش)
         elif new_status == 'لغو شده' and prev_status != 'لغو شده':

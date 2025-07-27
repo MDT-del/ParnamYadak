@@ -185,15 +185,31 @@ def api_create_order():
         telegram_id = data.get('telegram_id')
         mechanic_id = data.get('mechanic_id')
 
-        logging.info(f"[API_CREATE_ORDER] Customer data - phone: {customer_phone}, name: {customer_name}, telegram_id: {telegram_id}")
+        logging.info(f"[API_CREATE_ORDER] Customer data - phone: {customer_phone}, name: {customer_name}, telegram_id: {telegram_id}, mechanic_id: {mechanic_id}")
 
-        if not customer_phone:
-            logging.error("[API_CREATE_ORDER] No customer phone provided")
+        # اگر مکانیک سفارش ثبت می‌کند، شماره تلفن اختیاری است
+        is_mechanic_order = bool(mechanic_id)
+
+        if not customer_phone and not is_mechanic_order:
+            logging.error("[API_CREATE_ORDER] No customer phone provided for non-mechanic order")
             return jsonify({'success': False, 'message': 'شماره تلفن مشتری الزامی است'}), 400
 
         # پیدا کردن یا ایجاد مشتری
-        customer = Person.query.filter_by(phone_number=customer_phone, person_type='customer').first()
+        customer = None
+        if customer_phone:
+            customer = Person.query.filter_by(phone_number=customer_phone, person_type='customer').first()
+
+        if not customer and telegram_id:
+            # اگر شماره تلفن نداریم، با telegram_id جستجو کنیم
+            customer = Person.query.filter_by(telegram_id=telegram_id, person_type='customer').first()
+
         if not customer:
+            # ایجاد مشتری جدید
+            if is_mechanic_order and not customer_phone:
+                # برای سفارش مکانیک بدون شماره تلفن، شماره پیش‌فرض بگذار
+                customer_phone = f"mechanic_{telegram_id}"
+                customer_name = customer_name or f"مشتری مکانیک {telegram_id}"
+
             logging.info(f"[API_CREATE_ORDER] Creating new customer: {customer_name} - {customer_phone}")
             customer = Person(
                 full_name=customer_name or 'نامشخص',
